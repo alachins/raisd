@@ -1,4 +1,5 @@
-# RAiSD: Software for selective sweep detection
+RAiSD: Software for selective sweep detection
+===============================================
 
 Authors: Nikolaos Alachiotis (n.alachiotis@gmail.com), Pavlos Pavlidis (ppavlidis@gmail.com)
 
@@ -6,11 +7,13 @@ Date: 9/6/2017
 
 Version: 1.0
 
-## About
+About
+-----
 
 RAiSD implements ... 
 
-## Download and Compile
+Download and Compile
+-----------------------
 
 $ 
 
@@ -23,8 +26,8 @@ $
     $ TODO
     $ TODO
 
-Compiling and Running a Simple C Program
--------------------------------------------
+Compiling 
+----------------------------------------
 
 
 
