@@ -6,4 +6,8 @@ Date: 9/6/2017
 
 Version: 1.0
 
+## About
+
+RAiSD implements ... 
+
 
