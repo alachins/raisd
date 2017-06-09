@@ -10,4 +10,12 @@ Version: 1.0
 
 RAiSD implements ... 
 
+## Download and Compile
+
+$
+$
+$
+
+
+
 
