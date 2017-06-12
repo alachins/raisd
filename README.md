@@ -26,10 +26,14 @@ In-tool Help
 RAiSD outputs a help message with the following command line:
 
     $ RAiSD -h
-
+    
 Supported File Formats
 ----------------------
 RAiSD can process SNP data in Hudson's ms or VCF (Variant Call Format) files.
+
+Command-line Input Arguments
+------------------------
+The basic execution mode DOES NOT require any FREE input parameters. 
 
 
 
