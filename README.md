@@ -23,8 +23,6 @@ Download and Compile
     
 In-tool Help
 ------------
-RAiSD outputs a help message with the following command line:
-
     $ RAiSD -h
     
 Supported File Formats
