@@ -22,7 +22,15 @@ $
 $
 
 
-    $ TODO
+    $ mkdir RAiSD
+    $ cd RAiSD
+    $ wget https://github.com/alachins/raisd/archive/master.zip
+    $ unzip master.zip
+    $ cd raisd-master
+    $ make
+
+#Sequential
+make -f Makefile.gcc ## MODIFY THIS
     $ TODO
     $ TODO
 
