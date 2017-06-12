@@ -14,14 +14,6 @@ RAiSD implements ...
 
 Download and Compile
 -----------------------
-
-$ 
-
-$
-
-$
-
-
     $ mkdir RAiSD
     $ cd RAiSD
     $ wget https://github.com/alachins/raisd/archive/master.zip
@@ -29,13 +21,7 @@ $
     $ cd raisd-master
     $ make
 
-#Sequential
-make -f Makefile.gcc ## MODIFY THIS
-    $ TODO
-    $ TODO
 
-Compiling 
-----------------------------------------
 
 
 
