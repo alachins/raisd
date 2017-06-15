@@ -91,6 +91,33 @@ The RAiSD_Info file additionally reports total execution time, memory footprint,
     Total execution time 32.03070 seconds
     Total memory footprint 1109 kbytes
     
+RAiSD_Report.test_run
+
+The first 20 lines of the RAiSD_Report.test_run file are shown below.
+
+    // 0
+    65	9.000e-05	3.000e-01	4.000e-01	1.080e-05
+    70	1.000e-04	2.000e-01	3.500e-01	7.000e-06
+    85	1.300e-04	2.000e-01	3.200e-01	8.320e-06
+    95	1.500e-04	2.000e-01	3.200e-01	9.600e-06
+    95	1.500e-04	2.000e-01	3.200e-01	9.600e-06
+    105	1.500e-04	1.000e-01	3.500e-01	5.250e-06
+    110	1.600e-04	1.000e-07	3.500e-01	5.600e-12
+    140	2.000e-04	1.000e-07	2.500e-01	5.000e-12
+    155	2.100e-04	1.000e-01	2.400e-01	5.040e-06
+    190	1.600e-04	2.000e-01	2.400e-01	7.680e-06
+    225	2.100e-04	3.000e-01	5.000e-01	3.150e-05
+    240	1.800e-04	3.000e-01	5.000e-01	2.700e-05
+    255	1.700e-04	3.000e-01	5.833e-01	2.975e-05
+    260	1.800e-04	3.000e-01	4.000e-01	2.160e-05
+    265	1.700e-04	4.000e-01	5.000e-01	3.400e-05
+    270	1.600e-04	4.000e-01	4.167e-01	2.667e-05
+    305	1.300e-04	4.000e-01	2.500e-01	1.300e-05
+    320	1.200e-04	4.000e-01	2.667e-01	1.280e-05
+    330	1.200e-04	3.000e-01	4.000e-01	1.440e-05
+    
+For each set of SNPs ("// Set Index"), the RAiSD_Report file contains a line per evaluated SNP window 
+    
  
 
 Command-line Input Arguments
