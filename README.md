@@ -36,10 +36,7 @@ To verify that RAiSD is installed correctly, a test run can be done with the fol
     $ tar -xvzf d1.tar.gz
     $ ./RAiSD -n test_run -I d1/msselection1.out -L 100000
     
-    
-    
-
-
+Upon completion, two output file are generated: RAiSD_Info.test_run and RAiSD_Report.test_run. 
     
 In-tool Help
 ------------
