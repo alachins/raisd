@@ -81,6 +81,15 @@ RAiSD_Info.test_run
 The RAiSD_Info file provides execution- and dataset-related information (command line, number of samples, region size, dataset format), as well as a result line per SNP set in the input file. Each per-set result line provides the following information:
 a) set index, b) number of sites, c) number of SNPs, d) region size, e) best-score location and the respective score for each of the factors that form the μ statistic, denoted as VAR, SFS, and LD, and f) best-score location and the respective score for the μ statistic (MuStat).
 
+The RAiSD_Info file additionally reports total execution time, memory footprint, and statistics about the total number of SNP sets in the input file (total, processed, skipped), as shown in the last 6 lines of the file.
+
+    Sets (total):     1000
+    Sets (processed): 1000
+    Sets (skipped):   0
+
+    Total execution time 32.03070 seconds
+    Total memory footprint 1109 kbytes
+
 Command-line Input Arguments
 ------------------------
 The basic execution mode DOES NOT require any FREE input parameters. 
