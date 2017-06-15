@@ -47,7 +47,14 @@ RAiSD outputs a quick-reference help message that provides a short description f
     
 Input File Formats
 ----------------------
-The current RAiSD release can process SNP data in Hudson's ms or VCF (Variant Call Format) file formats. The test dataset (d1) previously used for the test run is in Hudson's ms format. For the VCF format, refer to the respective wikipedia entry (https://en.wikipedia.org/wiki/Variant_Call_Format).
+
+The current RAiSD release can process SNP data in Hudson's ms or VCF (Variant Call Format) file formats. The test dataset (d1) previously used for the test run is in Hudson's ms format. For the VCF format, refer to the respective Wikipedia entry (https://en.wikipedia.org/wiki/Variant_Call_Format).
+
+Output Files
+------------
+
+RAiSD generates two output text files, the RAiSD_Info and the RAiSD_Report files, with the run name (provided via "-n") as file extension.  
+
 
 Command-line Input Arguments
 ------------------------
