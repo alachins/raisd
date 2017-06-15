@@ -16,7 +16,7 @@ RAiSD (Raised Accuracy in Sweep Detection) is a stand-alone software implementat
 Download and Compile
 --------------------
 
-The following commands can be used to download and compile the source code. The executable can be found in RAiSD/bin/release, and a link to the executable is placed in RAiSD.
+The following commands can be used to download and compile the source code. 
 
     $ mkdir RAiSD
     $ cd RAiSD
@@ -24,6 +24,8 @@ The following commands can be used to download and compile the source code. The 
     $ unzip master.zip
     $ cd raisd-master
     $ make
+    
+The executable is placed in the path RAiSD/raisd-master/bin/release. A link to the executable is placed in the main installation folder (raisd-master).
     
 In-tool Help
 ------------
