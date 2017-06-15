@@ -1,3 +1,4 @@
+
 RAiSD: Software for selective sweep detection
 ===============================================
 
@@ -10,7 +11,7 @@ Version: 1.0
 About
 -----
 
-RAiSD implements ... 
+RAiSD (Raised Accuracy in Sweep Detection) is a stand-alone software implementation of the μ statistic for selective sweep detection. Unlike existing implementations, including our previously released tools (SweeD and OmegaPlus), RAiSD scans whole-genome SNP data based on a composite evaluation scheme that captures multiple sweep signatures at once. 
 
 Download and Compile
 --------------------
