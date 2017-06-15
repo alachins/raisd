@@ -34,7 +34,7 @@ To check that RAiSD is installed correctly, a test run can be done with the foll
     
     $ wget 139.91.162.50/raisd_data/d70.tar.gz
     $ tar -xvzf d70.tar.gz
-    $ ./RAiSD -n test_run -I d70/msselection70.out
+    $ ./RAiSD -n test_run -I d70/msselection70.out -L 100000
     
     
     
