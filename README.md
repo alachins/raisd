@@ -45,9 +45,9 @@ RAiSD outputs a quick-reference help message that provides a short description f
 
     $ RAiSD -h
     
-Supported File Formats
+Input File Formats
 ----------------------
-RAiSD can process SNP data in Hudson's ms or VCF (Variant Call Format) files.
+The current RAiSD release can process SNP data in Hudson's ms or VCF (Variant Call Format) file formats. The test dataset (d1) previously used for the test run is in Hudson's ms format. For the VCF format, refer to the respective wikipedia entry (https://en.wikipedia.org/wiki/Variant_Call_Format).
 
 Command-line Input Arguments
 ------------------------
