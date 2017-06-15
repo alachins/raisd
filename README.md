@@ -40,6 +40,9 @@ Upon completion, two output file are generated: RAiSD_Info.test_run and RAiSD_Re
     
 In-tool Help
 ------------
+
+RAiSD outputs a quick-reference help message that provides a short description for each of the supported command-line flags with the following command. 
+
     $ RAiSD -h
     
 Supported File Formats
