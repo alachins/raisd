@@ -56,7 +56,7 @@ Output Files
 RAiSD generates two output files, the RAiSD_Info and the RAiSD_Report, with the run name (provided via "-n") as file extension. 
 The first 20 lines of the RAiSD_Info.test_run file are shown below.
 
-RAiSD_Info.test
+RAiSD_Info.test_run
 
     RAiSD, Raised Accuracy in Sweep Detection
     Copyright (C) 2017, and GNU GPL'd, by Nikolaos Alachiotis and Pavlos Pavlidis
