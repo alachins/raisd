@@ -53,7 +53,31 @@ The current RAiSD release can process SNP data in Hudson's ms or VCF (Variant Ca
 Output Files
 ------------
 
-RAiSD generates two output text files, the RAiSD_Info and the RAiSD_Report files, with the run name (provided via "-n") as file extension.  
+RAiSD generates two output files, the RAiSD_Info and the RAiSD_Report, with the run name (provided via "-n") as file extension. 
+The first 20 lines of the RAiSD_Info.test_run file are shown below.
+
+>> RAiSD_Info.test
+
+    RAiSD, Raised Accuracy in Sweep Detection
+    Copyright (C) 2017, and GNU GPL'd, by Nikolaos Alachiotis and Pavlos Pavlidis
+    Contact n.alachiotis/pavlidisp at gmail.com
+
+    Command: ./RAiSD -n test_run -I d1/msselection1.out -L 100000 -f 
+    Samples: 20
+    Region:  100000 bp
+    Format:  ms
+
+    A pattern structure of 65536 patterns (max. capacity) and approx. 1 MB memory footprint has been created.
+
+    0: Set 0 | sites 6300 | snps 6300 | region 100000 - Var 53090 8.400e-04 | SFS 12005 1.000e+00 | LD 38385 1.333e+00 | MuStat 49905 3.908e-04
+    1: Set 1 | sites 6296 | snps 6296 | region 100000 - Var 49665 1.970e-03 | SFS 3745 1.000e+00 | LD 46945 2.000e+00 | MuStat 49685 8.320e-04
+    2: Set 2 | sites 6109 | snps 6109 | region 100000 - Var 50835 1.890e-03 | SFS 42100 1.000e+00 | LD 89390 1.500e+00 | MuStat 50770 6.825e-04
+    3: Set 3 | sites 6052 | snps 6052 | region 100000 - Var 49590 1.880e-03 | SFS 5545 1.000e+00 | LD 22460 1.500e+00 | MuStat 50150 1.102e-03
+    4: Set 4 | sites 6184 | snps 6184 | region 100000 - Var 51920 3.020e-03 | SFS 26445 1.000e+00 | LD 55080 1.333e+00 | MuStat 52400 1.180e-03
+    5: Set 5 | sites 5519 | snps 5519 | region 100000 - Var 49310 1.660e-03 | SFS 5475 1.000e+00 | LD 42490 1.333e+00 | MuStat 47165 8.925e-04
+    6: Set 6 | sites 6052 | snps 6052 | region 100000 - Var 49640 1.700e-03 | SFS 9090 1.000e+00 | LD 61435 1.250e+00 | MuStat 48080 6.200e-04
+    7: Set 7 | sites 6274 | snps 6274 | region 100000 - Var 50480 2.100e-03 | SFS 18910 1.000e+00 | LD 36695 1.333e+00 | MuStat 50490 8.505e-04
+    8: Set 8 | sites 6100 | snps 6100 | region 100000 - Var 50710 1.820e-03 | SFS 3700 1.000e+00 | LD 28830 1.500e+00 | MuStat 50710 7.371e-04
 
 
 Command-line Input Arguments
