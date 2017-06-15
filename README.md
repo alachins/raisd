@@ -116,7 +116,7 @@ The first 20 lines of the RAiSD_Report.test_run file are shown below.
     320	1.200e-04	4.000e-01	2.667e-01	1.280e-05
     330	1.200e-04	3.000e-01	4.000e-01	1.440e-05
     
-For each set of SNPs (separated by a line that contains the separator symbol "//" followed by the set index), the RAiSD_Report file contains a set of result lines, one per evaluated genomic location, with each result line provising the genomic location followed by the calculated statistic values for the factors VAR, SFS, and LD, and finally the μ statistic. 
+For each set of SNPs (separated by a line that contains the separator symbol "//" followed by the set index), the RAiSD_Report file contains a set of result lines, one per evaluated genomic location, with each result line providing the genomic location followed by the calculated statistic values for the factors VAR, SFS, and LD, and finally the μ statistic. 
     
  
 
