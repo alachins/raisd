@@ -120,9 +120,15 @@ For each set of SNPs (separated by a line that contains the separator symbol "//
     
  
 
-Command-line Input Arguments
-------------------------
+Required Input Parameters
+-----------------------
 The basic execution mode DOES NOT require any FREE input parameters. 
+
+
+Optional Input Parameters
+------------------------
+
+
 
 
 
