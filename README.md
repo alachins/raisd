@@ -30,11 +30,11 @@ The executable is placed in the path RAiSD/raisd-master/bin/release. A link to t
 Test Run
 --------
 
-To check that RAiSD is installed correctly, a test run can be done with the following commands. These commands are going to download a dataset (one of the many that we used for evaluation purposes) and execute RAiSD.
+To verify that RAiSD is installed correctly, a test run can be done with the following commands. These commands are going to download a dataset (one of the many that we used for evaluation purposes) and execute RAiSD to process 1,000 simulated sets of SNPs (genomic region size = 100000 bp).
     
-    $ wget 139.91.162.50/raisd_data/d70.tar.gz
-    $ tar -xvzf d70.tar.gz
-    $ ./RAiSD -n test_run -I d70/msselection70.out -L 100000
+    $ wget 139.91.162.50/raisd_data/d1.tar.gz
+    $ tar -xvzf d1.tar.gz
+    $ ./RAiSD -n test_run -I d1/msselection1.out -L 100000
     
     
     
