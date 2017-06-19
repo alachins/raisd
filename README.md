@@ -155,8 +155,10 @@ For each set of SNPs (separated by a line that contains the separator symbol "//
  
 
 Required Input Parameters
------------------------
-The basic execution mode DOES NOT require any FREE input parameters. 
+-------------------------
+
+The in-tool help generates a sequence of input parameters, as shown above. Parameters in brackets are optional.
+The basic execution mode does NOT require any FREE input parameters. 
 
 
 Optional Input Parameters
