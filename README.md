@@ -245,8 +245,8 @@ This will report the respective TPR value as shown in the additional lines in RA
     
 These results demonstate a TPR of 99.5% when d1 is analyzed.
 
-Known Issues and Reported Bugs
-------------------------------
+Known/Reported Issues
+---------------------
 
 
 
