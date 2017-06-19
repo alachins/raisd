@@ -207,7 +207,7 @@ Measuring Success Rate
 -----------------------
 The -d parameter can be used along with -T to direct RAiSD to report the success rate, defined as the percentage of sets with reported best-score location withing a distance (provided via -d, in base pairs) from the known target of selection (provided via -T, in base pairs). The respective command line for a distance threshold of 1% of the total region length, i.e., 1,000 bp, is shown below.
 
-    $ ./RAiSD -n test_run_accuracy -I d1/msselection1.out -L 100000 -T 50000 -d 1000
+    $ ./RAiSD -n test_run_success_rate -I d1/msselection1.out -L 100000 -T 50000 -d 1000
     
 Note the additional output lines in RAiSD_Info file, reporting success rate. The results show that 62.6% of the runs report locations within 1,000 bp from the known selection target (location 50,000).
 
@@ -218,9 +218,40 @@ Note the additional output lines in RAiSD_Info file, reporting success rate. The
     MuStat	0.626
 
 
+Evaluating Sensitivity (True Positive Rate)
+-------------------------------------------
 
-Evaluating Sensitivity
-----------------------
+The -k and -l parameters can be used to direct the tool to report sensitivity. This requires to conduct a run on neutral data first and sort all per-set best scores in order to define a threshold for a given False Positive Rate (FPR). RAiSD does this automatically when neutral data are processed, with the use of the -k parameter, providing an FPR. The following command line illustrates this for an FPR of 5%.
+
+    $ ./RAiSD -n test_run_fpr -I d1/msneutral1.out -L 100000 -k 0.05
+    
+Note the additional lines that report the respective threshold for the chosen FPR value.
+
+    SORTED DATA (FPR 0.050000)
+    Size			1000
+    Highest Score		0.000450000
+    Lowest Score		0.000089600
+    FPR Threshold		0.000221867
+    Threshold Location	50
+    
+Thereafter, the FPR Threshold value can be given to RAiSD when selection data are processed (via the -l parameter) as shown below.
+
+    $ ./RAiSD -n test_run_tpr -I d1/msselection1.out -L 100000 -l 0.000221867
+    
+This will report the respective TPR value as shown in the additional lines in RAiSD_Info file as shown below.
+
+    SCORE COUNT (Threshold 0.000222)
+    TPR	0.995000
+    
+These results demonstate a TPR of 99.5% when d1 is analyzed.
+
+Known Issues and Reported Bugs
+------------------------------
+
+
+
+Support
+-------
 
 
 
