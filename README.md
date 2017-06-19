@@ -203,8 +203,20 @@ Note the additional output lines in the RAiSD_Info file, reporting accuracy. The
     mu-LD	18577.810
     MuStat	1253.685
 
-Measuring the Success Rate
---------------------------
+Measuring Success Rate
+-----------------------
+The -d parameter can be used along with -T to direct RAiSD to report the success rate, defined as the percentage of sets with reported best-score location withing a distance (provided via -d, in base pairs) from the known target of selection (provided via -T, in base pairs). The respective command line for a distance threshold of 1% of the total region length, i.e., 1,000 bp, is shown below.
+
+    $ ./RAiSD -n test_run_accuracy -I d1/msselection1.out -L 100000 -T 50000 -d 1000
+    
+Note the additional output lines in RAiSD_Info file, reporting success rate. The results show that 62.6% of the runs report locations within 1,000 bp from the known selection target (location 50,000).
+
+    SUCCESS RATE (Distance 1000)
+    mu-VAR	0.692
+    mu-SFS	0.022
+    mu-LD	0.019
+    MuStat	0.626
+
 
 
 Evaluating Sensitivity
