@@ -179,7 +179,7 @@ Optional Input Parameters
 
 In addition to the required set of parameters, several optional ones can be used. The in-tool help message provides a short description for each one of them. 
 
-The "-f" parameter allows to overwrite output files. The default operation mode is to prevent execution in order to avoid accidental overwritting of existing output files.
+The -f parameter allows to overwrite output files. The default operation mode is to prevent execution in order to avoid accidental overwritting of existing output files.
 
 
 
