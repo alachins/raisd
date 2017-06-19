@@ -189,6 +189,7 @@ The optional parameters -T, -d, -k, and -l are used for evaluation purposes and 
 
 Evaluating Accuracy
 -------------------
+RAiSD provides a series of parameters that facilitate measuring performance when simulated datasets are analyzed. Given a simulated dataset, e.g., in ms format, that comprises several sets of SNPs, the -T parameter can be used in order to direct RAiSD to report an accuracy measure, defined as the average distance between a known sweep location (provided via -T and the reported best-score locations). 
 
 Measuring the Success Rate
 --------------------------
