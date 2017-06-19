@@ -243,7 +243,7 @@ This will report the respective TPR value as shown in the additional lines in RA
     SCORE COUNT (Threshold 0.000222)
     TPR	0.995000
     
-These results demonstate a TPR of 99.5% when d1 is analyzed.
+These results demonstrate a TPR of 99.5% when d1 is analyzed.
 
 Known/Reported Issues
 ---------------------
