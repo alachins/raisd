@@ -177,6 +177,9 @@ VCF format
 Optional Input Parameters
 ------------------------
 
+In addition to the required set of parameters, several optional ones can be used. 
+
+-f
 
 
 
