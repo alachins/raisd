@@ -179,10 +179,11 @@ Optional Input Parameters
 
 In addition to the required set of parameters, several optional ones can be used. The in-tool help message provides a short description for each one of them. 
 
-The -f parameter allows to overwrite output files. The default operation mode is to prevent execution in order to avoid accidental overwritting of existing output files.
+The -f parameter allows to overwrite existing output files. The default operation mode is to prevent execution in order to avoid accidental overwritting of existing output files.
 
 Parameters -s and -t affect the way output files are generated. The -s parameter splits reports in separate files, one per SNP set, whereas the -t parameter removes the SNP set separator symbols "//".
 
+Processing only a subset of the samples in a VCF file is possible with the use of parameters -p and -S. The former generates a list of all samples in the input file, stored in an output file named RAiSD_Samples.run_name, while the latter allows the user to provide a similar to RAiSD_Samples input file containing only the list of samples to process. 
 
 
 
