@@ -181,6 +181,8 @@ In addition to the required set of parameters, several optional ones can be used
 
 The -f parameter allows to overwrite output files. The default operation mode is to prevent execution in order to avoid accidental overwritting of existing output files.
 
+Parameters -s and -t affect the way output files are generated. The -s parameter splits reports in separate files, one per SNP set, whereas the -t parameter removes the SNP set separator symbols "//".
+
 
 
 
