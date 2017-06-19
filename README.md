@@ -157,8 +157,11 @@ For each set of SNPs (separated by a line that contains the separator symbol "//
 Required Input Parameters
 -------------------------
 
-The in-tool help generates a sequence of input parameters, as shown above. Parameters in brackets are optional.
-The basic execution mode does NOT require any FREE input parameters. 
+The in-tool help generates a list of parameters, as shown above. Those in brackets are optional.
+    
+    The basic execution mode does NOT require any FREE input parameters. 
+   
+In addition to the run name ("-n", used to name the output files accordingly) and the path to the input file ("-I") containing SNP data, the region length ("-L") is required only when simulated data are processed, i.e., ms files. The region length, which is required for calculating the μ statistic is extracted from the input file prior to processing when VCF files are analyzed.  
 
 
 Optional Input Parameters
