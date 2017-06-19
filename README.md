@@ -189,7 +189,19 @@ The optional parameters -T, -d, -k, and -l are used for evaluation purposes and 
 
 Evaluating Accuracy
 -------------------
-RAiSD provides a series of parameters that facilitate measuring performance when simulated datasets are analyzed. Given a simulated dataset, e.g., in ms format, that comprises several sets of SNPs, the -T parameter can be used in order to direct RAiSD to report an accuracy measure, defined as the average distance between a known sweep location (provided via -T and the reported best-score locations). 
+RAiSD provides a series of parameters that facilitate measuring performance when simulated datasets are analyzed. Given a simulated dataset, e.g., in ms format, that comprises several sets of SNPs, the -T parameter can be used in order to direct RAiSD to report accuracy, defined as the average distance between a known sweep location (provided via -T and the reported best-score locations). 
+
+The following command line example for the previously conducted test run demonstrates the use of -T and the respective output. All provided datasets, like the d1 used in the test run, exhibit a selective sweep at the center of the genomic region they simulate. Therefore, RAiSD can be launched as follows:
+
+    $ ./RAiSD -n test_run_accuracy -I d1/msselection1.out -L 100000 -T 50000
+    
+Note the additional output lines in the RAiSD_Info file, reporting accuracy. The values are in base pairs, averaged over the number of processed sets of SNPs.
+
+    AVERAGE DISTANCE (Target 50000)
+    mu-VAR	1022.500
+    mu-SFS	26137.655
+    mu-LD	18577.810
+    MuStat	1253.685
 
 Measuring the Success Rate
 --------------------------
