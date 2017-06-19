@@ -183,11 +183,19 @@ The -f parameter allows to overwrite existing output files. The default operatio
 
 Parameters -s and -t affect the way output files are generated. The -s parameter splits reports in separate files, one per SNP set, whereas the -t parameter removes the SNP set separator symbols "//".
 
-Processing only a subset of the samples in a VCF file is possible with the use of parameters -p and -S. The former generates a list of all samples in the input file, stored in an output file named RAiSD_Samples.run_name, while the latter allows the user to provide a similar to RAiSD_Samples input file containing only the list of samples to process. 
+Processing only a subset of the samples in a VCF file is possible with the use of parameters -p and -S. The former generates a list of all samples in the input file, stored in an output file named RAiSD_Samples.run_name, while the latter allows the user to provide a similar to RAiSD_Samples input file containing only the list of samples to process.
+
+The optional parameters -T, -d, -k, and -l are used for evaluation purposes and are discussed in detail below.
+
+Evaluating Accuracy
+-------------------
+
+Measuring the Success Rate
+--------------------------
 
 
-
-
+Evaluating Sensitivity
+----------------------
 
 
 
