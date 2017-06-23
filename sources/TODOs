@@ -1,9 +1,0 @@
-In RSDPatternPool_pushSNP:
-1. check if SNP is indeed SNP before pushing it
-2. check if incoming SNP location is valid
-3. properly handle ambiguity (once fixed, correct in the getNextSNP functions for ms and VCF) and add assertion check again - check also in VCF parsing
-4. Fixed output reports
-5. Create eval functions for distance, success, tpr
-6. what should we do with the FSM?
-7. Fix testing input flags
-8. parallelize pattern matching in patternPool_pushSNP
