@@ -253,7 +253,9 @@ Known/Reported Issues
 Support
 -------
 
-
+We provide support for RAiSD through our generic Google group for Population Genetics:
+    
+    https://groups.google.com/forum/#!forum/popgen-support
 
 
 
