@@ -15,7 +15,7 @@ SRC_PATH = sources
 # Space-separated pkg-config libraries used by this project
 LIBS = 
 # General compiler flags
-COMPILE_FLAGS = -std=c99 -Wall -Wextra -g -O2 -mavx -msse4.2 #-D_INTRINSIC_POPCOUNT #-fopenmp
+COMPILE_FLAGS = -std=c99 -Wall -Wextra -g -O2 -mavx -msse4.2 #-D_HW #-D_INTRINSIC_POPCOUNT #-fopenmp
 # Additional release-specific flags
 RCOMPILE_FLAGS = #-D NDEBUG
 # Additional debug-specific flags

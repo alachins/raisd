@@ -647,6 +647,430 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 
 }
 
+#ifdef _HW
+void pru1_var_scan (float * vec_a_in, float * vec_a_tmp, float * window_loc, int iterations, int window_size, uint64_t region_length)
+{
+	int i;
+	float muVar = 0.0f;
+
+	// Processing
+	for(i=0;i<iterations;i++)
+	{
+		muVar = vec_a_in[i+window_size-1] - vec_a_in[i];
+		muVar /= region_length;
+		muVar /= window_size;
+
+		vec_a_tmp[i] = muVar;
+	
+		window_loc[i] = (vec_a_in[i+window_size-1] + vec_a_in[i]) / 2.0f;
+	}
+}
+
+void pru2_sfs_scan (int * vec_b_in, float * vec_b_tmp, int iterations, int window_size, int sample_size)
+{
+	int i;
+	float muSFS = 0.0f;
+
+	// Preprocessing
+	int dCnt1 = 0, dCntN = 0;
+	for(i=0;i<window_size - 0;i++)
+	{
+		dCnt1 += (vec_b_in[i]==1);
+		dCntN += (vec_b_in[i]==sample_size-1);
+	}
+
+	// Processing
+	for(i=0;i<iterations;i++)
+	{
+		dCnt1 -= (vec_b_in[i-1]==1);
+		dCnt1 += (vec_b_in[i+window_size-1]==1);
+
+		dCntN -= (vec_b_in[i-1]==sample_size-1);
+		dCntN += (vec_b_in[i+window_size-1]==sample_size-1);
+
+
+		muSFS = (float)dCnt1 + (float)dCntN; 
+
+		if(dCnt1+dCntN==0) 
+			muSFS = 0.000001f;
+
+		muSFS /= (float)window_size;
+
+		vec_b_tmp[i] = muSFS;
+	}	
+}
+
+void pru3_ld_scan (int * vec_c_in, float * vec_c_tmp, int iterations, int window_size, int sample_size)
+{
+	int i, j;
+	float muLD = 0.0f;
+
+	// Preprocessing
+	int * tmp_vec_a = (int *)malloc(sizeof(int)*(window_size/2)); // patterns left
+	int * tmp_vec_b = (int *)malloc(sizeof(int)*(window_size/2));
+	int * tmp_vec_c = (int *)malloc(sizeof(int)*(window_size/2));
+	int * tmp_vec_d = (int *)malloc(sizeof(int)*(window_size/2));
+
+	int * tmp_vec_a_cnt = (int *)malloc(sizeof(int)*(window_size/2)); // patterns left
+	int * tmp_vec_b_cnt = (int *)malloc(sizeof(int)*(window_size/2));
+	int * tmp_vec_c_cnt = (int *)malloc(sizeof(int)*(window_size/2));
+	int * tmp_vec_d_cnt = (int *)malloc(sizeof(int)*(window_size/2));
+	
+	for(i=0;i<(window_size/2);i++)
+	{
+		tmp_vec_a[i] = -1;
+		tmp_vec_b[i] = -1;
+		tmp_vec_c[i] = -1;
+		tmp_vec_d[i] = -1;
+
+		tmp_vec_a_cnt[i] = 0;
+		tmp_vec_b_cnt[i] = 0;
+		tmp_vec_c_cnt[i] = 0;
+		tmp_vec_d_cnt[i] = 0;
+	}
+
+	// Temp Registers
+	int reg1 = vec_c_in[0];
+	int reg2 = vec_c_in[0 + (window_size/2) - 1];
+	int reg3 = vec_c_in[0 + (window_size/2)];
+	int reg4 = vec_c_in[0 + (window_size/2) + (window_size/2) - 1];
+
+	// Left
+	tmp_vec_a[0] = vec_c_in[0];
+	tmp_vec_a_cnt[0] = 1;
+
+	for( i=1 ; i<= 0 + (window_size/2) - 1; i++)
+	{
+		int match = 0;
+		for(j=0;j<(window_size/2);j++)
+		{
+			if(tmp_vec_a[j]==vec_c_in[i])
+			{
+				match = 1;
+				tmp_vec_a_cnt[j]++;
+				
+			}
+		}
+
+		if(match==0)
+		{
+			for(j=0;j<(window_size/2);j++)
+				if(tmp_vec_a[j]==-1)
+					break;
+
+			
+			tmp_vec_a[j] = vec_c_in[i];
+			tmp_vec_a_cnt[j] = 1;
+		}
+	}
+
+	// Right
+	tmp_vec_b[0] = vec_c_in[(window_size/2)];
+	tmp_vec_b_cnt[0] = 1;
+
+
+	for( i=(window_size/2)+1 ; i<= (window_size/2) + (window_size/2) - 1; i++)
+	{
+		int match = 0;
+		for(j=0;j<(window_size/2);j++)
+		{
+			if(tmp_vec_b[j]==vec_c_in[i])
+			{
+				match = 1;
+				tmp_vec_b_cnt[j]++;
+				
+			}
+		}
+
+		if(match==0)
+		{
+			for(j=0;j<(window_size/2);j++)
+				if(tmp_vec_b[j]==-1)
+					break;
+
+			
+			tmp_vec_b[j] = vec_c_in[i];
+			tmp_vec_b_cnt[j] = 1;
+		}
+	}
+
+	// Excl Left, Excl Right
+	int left_sz = 0;
+	for(j=0;j<window_size/2;j++)
+		if(tmp_vec_a[j]!=-1)
+			left_sz++;
+
+	int right_sz = 0;
+	for(j=0;j<window_size/2;j++)
+		if(tmp_vec_b[j]!=-1)
+			right_sz++;
+
+	int excl_left = left_sz;
+	for(i=0;i<window_size/2;i++)
+	{
+		int match = 0;
+		for(j=0;j<window_size/2;j++)
+		{
+			if((tmp_vec_a[i] == tmp_vec_b[j]) && tmp_vec_a[i]!=-1)
+			{
+				excl_left--;
+			}
+		}
+	}
+
+	int excl_right = right_sz;
+	for(i=0;i<window_size/2;i++)
+	{
+		int match = 0;
+		for(j=0;j<window_size/2;j++)
+		{
+			if((tmp_vec_a[i] == tmp_vec_b[j]) && tmp_vec_a[i]!=-1)
+			{
+				excl_right--;
+			}
+		}
+	}
+
+	
+	muLD = (((float)excl_left)+((float)excl_right)) / ((float)(left_sz * right_sz));
+	vec_c_tmp[0] = muLD;
+
+	int ii;
+	// Processing
+	int match = 0;
+	for(i=1;i<iterations;i++)
+	{
+		int snp_l_first = i;
+		int snp_l_last = i + (window_size/2) - 1;
+
+		int snp_r_first = i + (window_size/2);
+		int snp_r_last = i + (window_size/2) + (window_size/2) - 1;
+
+
+		// Remove previous Left
+		for(j=0;j<(window_size/2);j++)
+		{
+			if(tmp_vec_a[j]==reg1)
+			{
+				tmp_vec_a_cnt[j]--;
+
+				if(tmp_vec_a_cnt[j]==0)
+				{
+					tmp_vec_a[j] = -1;
+					left_sz--;
+				}				
+			}
+		}
+		reg1 = vec_c_in[snp_l_first];
+		
+
+		// Add new Left
+		match = 0;
+		for(j=0;j<(window_size/2);j++)
+		{
+			if(tmp_vec_a[j]==vec_c_in[snp_l_last])
+			{
+				match = 1;
+				tmp_vec_a_cnt[j]++;
+				
+			}
+		}
+
+		if(match==0)
+		{
+			for(j=0;j<(window_size/2);j++)
+				if(tmp_vec_a[j]==-1)
+					break;
+
+			
+			tmp_vec_a[j] = vec_c_in[snp_l_last];
+			tmp_vec_a_cnt[j] = 1;
+			left_sz++;
+		}
+		reg2 =  vec_c_in[snp_l_last];
+
+		// Remove previous right
+		for(j=0;j<(window_size/2);j++)
+		{
+			if(tmp_vec_b[j]==reg2)
+			{
+				tmp_vec_b_cnt[j]--;
+
+				if(tmp_vec_b_cnt[j]==0)
+				{
+					tmp_vec_b[j] = -1;
+					right_sz--;
+				}				
+			}
+		}
+		reg3 = vec_c_in[snp_r_first];
+
+		// Add new Right
+		match = 0;
+		for(j=0;j<(window_size/2);j++)
+		{
+			if(tmp_vec_b[j]==vec_c_in[snp_r_last])
+			{
+				match = 1;
+				tmp_vec_b_cnt[j]++;
+				
+			}
+		}
+
+		if(match==0)
+		{
+			for(j=0;j<(window_size/2);j++)
+				if(tmp_vec_b[j]==-1)
+					break;
+
+			
+			tmp_vec_b[j] = vec_c_in[snp_r_last];
+			tmp_vec_b_cnt[j] = 1;
+			right_sz++;
+		}
+		reg4 =  vec_c_in[snp_r_last];
+		
+		// Calculate excl counters		
+		excl_left = left_sz;
+		for(ii=0;ii<window_size/2;ii++)
+		{
+			int match = 0;
+			for(j=0;j<window_size/2;j++)
+			{
+				if((tmp_vec_a[ii] == tmp_vec_b[j]) && tmp_vec_a[ii]!=-1)
+				{
+					excl_left--;
+				}
+			}
+		}
+
+		excl_right = right_sz;
+		for(ii=0;ii<window_size/2;ii++)
+		{
+			int match = 0;
+			for(j=0;j<window_size/2;j++)
+			{
+				if((tmp_vec_a[ii] == tmp_vec_b[j]) && tmp_vec_a[ii]!=-1)
+				{
+					excl_right--;
+				}
+			}
+		}
+
+		
+		muLD = (((float)excl_left)+((float)excl_right)) / ((float)(left_sz * right_sz));
+		vec_c_tmp[i] = muLD;
+	}
+
+
+	// Free
+	free(tmp_vec_a);
+	free(tmp_vec_b);
+	free(tmp_vec_c);
+	free(tmp_vec_d);
+}
+
+void pru4_mu_calc (float * vec_a_tmp, float * vec_b_tmp, float * vec_c_tmp, float * vec_out, int iterations)
+{
+	int i;
+	for(i=0;i<iterations;i++)
+		vec_out[i]  = vec_a_tmp[i] * vec_b_tmp[i] * vec_c_tmp[i]; 
+}
+
+void RSDMuStat_scanChunk (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
+{
+	// Exec parameters
+	int iterations = RSDChunk->chunkSize - RSDMuStat->windowSize + 1;
+	int vec_size = RSDChunk->chunkSize;
+	int window_size = RSDMuStat->windowSize;
+	uint64_t  region_length = RSDDataset->setRegionLength;
+	int sample_size = RSDDataset->setSamples;
+
+	// Input vectors
+	float * vec_a_in = (float *)malloc(sizeof(float)*vec_size);
+	int * vec_b_in = (int *)malloc(sizeof(int)*vec_size);
+	int * vec_c_in = (int *)malloc(sizeof(int)*vec_size);
+
+	memcpy(vec_a_in, RSDChunk->sitePosition, sizeof(float)*vec_size);
+	memcpy(vec_b_in, RSDChunk->derivedAlleleCount, sizeof(int)*vec_size);
+	memcpy(vec_c_in, RSDChunk->patternID, sizeof(int)*vec_size);
+
+	// Intermediate vectors
+	float * vec_a_tmp = (float *)malloc(sizeof(float)*vec_size);
+	float * vec_b_tmp = (float *)malloc(sizeof(float)*vec_size);
+	float * vec_c_tmp = (float *)malloc(sizeof(float)*vec_size);
+
+	// Output vectors
+	float * window_loc = (float*)malloc(sizeof(float)*vec_size);
+	float * vec_out = (float *)malloc(sizeof(float)*vec_size);
+
+	// Processing Units
+	pru1_var_scan (vec_a_in, vec_a_tmp, window_loc, iterations, window_size, region_length);
+	pru2_sfs_scan (vec_b_in, vec_b_tmp, iterations, window_size, sample_size);
+	pru3_ld_scan (vec_c_in, vec_c_tmp, iterations, window_size, sample_size);
+	pru4_mu_calc (vec_a_tmp, vec_b_tmp, vec_c_tmp, vec_out, iterations);
+
+	int i, size = RSDChunk->chunkSize;
+
+	float windowCenter = 0.0f;
+
+	float muVar = 0.0f;
+	float muSfs = 0.0f;
+	float muLd = 0.0f;
+	float mu = 0.0f;
+
+	for(i=0;i<size-RSDMuStat->windowSize+1;i++)
+	{
+
+
+		windowCenter = window_loc[i];
+		mu =  vec_out[i];//muVar * muSfs * muLd;
+
+		// MuVar Max
+		if (muVar > RSDMuStat->muVarMax)
+		{
+			RSDMuStat->muVarMax = muVar;
+			RSDMuStat->muVarMaxLoc = windowCenter;
+		}
+
+		// MuSfs Max
+		if (muSfs > RSDMuStat->muSfsMax)
+		{
+			RSDMuStat->muSfsMax = muSfs;
+			RSDMuStat->muSfsMaxLoc = windowCenter;
+		}
+
+		// MuLd Max
+		if (muLd > RSDMuStat->muLdMax)
+		{
+			RSDMuStat->muLdMax = muLd;
+			RSDMuStat->muLdMaxLoc = windowCenter;
+		}
+
+		// Mu Max
+		if (mu > RSDMuStat->muMax)
+		{
+			RSDMuStat->muMax = mu;
+			RSDMuStat->muMaxLoc = windowCenter;
+		}
+	
+		fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", windowCenter, muVar, muSfs, muLd, mu);
+	}
+
+
+
+
+
+	// Free
+	free(vec_a_in);
+	free(vec_b_in); 
+	free(vec_c_in); 
+	free(vec_a_tmp);
+	free(vec_b_tmp); 
+	free(vec_c_tmp);
+
+}
+#else
 void RSDMuStat_scanChunk (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
 {
 	int i, size = RSDChunk->chunkSize;
@@ -888,3 +1312,4 @@ void RSDMuStat_scanChunk (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPat
 
 	//printf("\n\nEnd of scanning chunk %d\n", RSDChunk->chunkID);
 }
+#endif
