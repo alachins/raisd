@@ -617,7 +617,8 @@ int RSDDataset_getNextSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDP
 		RSDPatternPool->incomingSite[RSDDataset->numberOfSamples] = '\0';
 
 		RSDPatternPool->incomingSiteAlleleCount = 0;
-		for(i=0;i<(int)strlen(RSDPatternPool->incomingSite);i++)
+		int tlen = (int)strlen(RSDPatternPool->incomingSite);
+		for(i=0;i<tlen;i++)
 			RSDPatternPool->incomingSiteAlleleCount += RSDPatternPool->incomingSite[i] - 48;		
 	}
 

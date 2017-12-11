@@ -114,6 +114,9 @@ int main (int argc, char ** argv)
 
 	int setIndex = -1, setDone = 0, setsProcessedTotal=0;
 
+	fprintf(stdout, "Processing ... ");
+	fflush(stdout);
+
 	// Set processing
 	while(RSDDataset_goToNextSet(RSDDataset)!=EOF) 
 	{
@@ -144,7 +147,7 @@ int main (int argc, char ** argv)
 			setDone = RSDDataset_getFirstSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine->regionLength);
 			if(setDone)
 			{
-				fprintf(stdout, "\n%d: Set %s | sites %d | snps %d | region %lu - skipped", setIndex, RSDDataset->setID, RSDDataset->setSize, RSDDataset->setSNPs, RSDDataset->setRegionLength);
+				//fprintf(stdout, "\n%d: Set %s | sites %d | snps %d | region %lu - skipped", setIndex, RSDDataset->setID, RSDDataset->setSize, RSDDataset->setSNPs, RSDDataset->setRegionLength);
 				fprintf(RAiSD_Info_FP, "\n%d: Set %s | sites %d | snps %d | region %lu - skipped", setIndex, RSDDataset->setID, RSDDataset->setSize, RSDDataset->setSNPs, RSDDataset->setRegionLength);
 				continue;
 			}
@@ -212,7 +215,7 @@ int main (int argc, char ** argv)
 
 			setsProcessedTotal++;
 
-			fprintf(stdout, "\n%d: Set %s | sites %d | snps %d | region %lu - Var %.0f %.3e | SFS %.0f %.3e | LD %.0f %.3e | MuStat %.0f %.3e", setIndex, RSDDataset->setID, RSDDataset->setSize, RSDDataset->setSNPs, RSDDataset->setRegionLength, RSDMuStat->muVarMaxLoc, RSDMuStat->muVarMax, RSDMuStat->muSfsMaxLoc, RSDMuStat->muSfsMax, RSDMuStat->muLdMaxLoc, RSDMuStat->muLdMax, RSDMuStat->muMaxLoc, RSDMuStat->muMax);
+			//fprintf(stdout, "\n%d: Set %s | sites %d | snps %d | region %lu - Var %.0f %.3e | SFS %.0f %.3e | LD %.0f %.3e | MuStat %.0f %.3e", setIndex, RSDDataset->setID, RSDDataset->setSize, RSDDataset->setSNPs, RSDDataset->setRegionLength, RSDMuStat->muVarMaxLoc, RSDMuStat->muVarMax, RSDMuStat->muSfsMaxLoc, RSDMuStat->muSfsMax, RSDMuStat->muLdMaxLoc, RSDMuStat->muLdMax, RSDMuStat->muMaxLoc, RSDMuStat->muMax);
 
 			fprintf(RAiSD_Info_FP, "\n%d: Set %s | sites %d | snps %d | region %lu - Var %.0f %.3e | SFS %.0f %.3e | LD %.0f %.3e | MuStat %.0f %.3e", setIndex, RSDDataset->setID, RSDDataset->setSize, RSDDataset->setSNPs, RSDDataset->setRegionLength, RSDMuStat->muVarMaxLoc, RSDMuStat->muVarMax, RSDMuStat->muSfsMaxLoc, RSDMuStat->muSfsMax, RSDMuStat->muLdMaxLoc, RSDMuStat->muLdMax, RSDMuStat->muMaxLoc, RSDMuStat->muMax);
 
