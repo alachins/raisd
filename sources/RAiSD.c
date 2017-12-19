@@ -114,7 +114,7 @@ int main (int argc, char ** argv)
 
 	int setIndex = -1, setDone = 0, setsProcessedTotal=0;
 
-	fprintf(stdout, "Processing ... ");
+	fprintf(stdout, "Processing ... \n\n");
 	fflush(stdout);
 
 	// Set processing

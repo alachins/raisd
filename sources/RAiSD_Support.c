@@ -181,7 +181,7 @@ void dataShuffleKnuth(char * data, int startIndex, int endIndex)
 	for (i = endIndex; i > startIndex; i--)
 	{
 		index = startIndex + (rand() % (i - startIndex + 1));
-		printf("%d\n", index);
+		//printf("%d\n", index);
 
 		tmp = data[index];
 		data[index] = data[i];
