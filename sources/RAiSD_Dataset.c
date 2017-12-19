@@ -749,7 +749,7 @@ int RSDDataset_getNumberOfSamples_vcf (RSDDataset_t * RSDDataset)
 		
 		char tchar;
 		char sampleName [STRING_SIZE];
-		while(tstring[0]!='\n' && tstring[0]!=EOF)
+		while(tstring[0]!='\n' && tstring[0]!=EOF && tstring[0]!='\r')
 		{
 			rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
 			assert(rcnt==1);
@@ -789,7 +789,7 @@ int RSDDataset_getNumberOfSamples_vcf (RSDDataset_t * RSDDataset)
 				tchar = tstring[0];
 			}
 		}
-		assert(tstring[0]=='\n');
+		assert(tstring[0]=='\n' || tstring[0]=='\r');
 		ungetc(tstring[0], RSDDataset->inputFilePtr);		
 
 		RSDDataset->numberOfSamplesVCF = sampleCntr;
