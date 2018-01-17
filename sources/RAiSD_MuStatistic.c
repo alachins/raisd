@@ -442,7 +442,7 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 			excntsnpsl++;
 		}
 	}
-	//*pcntexll = (*pcntexll) * excntsnpsl;
+	*pcntexll = (*pcntexll) * excntsnpsl;
 	//*exsnpcntleft = excntsnpsl;
 	int excntsnpsr = 0;
 	for(i=p2+1;i<=p3;i++)
@@ -464,7 +464,7 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 		}
 	}/* */
 	//*exsnpcntright = excntsnpsr;
-	//*pcntexlr = (*pcntexlr) * excntsnpsr;
+	*pcntexlr = (*pcntexlr) * excntsnpsr;
 
 	// New Test - (Max Number of Exclusive SNPs left + Max NUmber of Exclusive SNPs right ) / shared SNPs or Patterns + 1
 	

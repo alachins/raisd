@@ -67,8 +67,8 @@ double global_pos;
 #define CHUNK_MEMSIZE_AND_INCREMENT 1024 // sites
 #define MULTI_STEP_PARSING 0
 #define SINGLE_STEP_PARSING 1 // set this to 0 to deactivate completely
-#define WINDOW_SIZE 10
-#define MIN_SET_SNPS 10
+#define WINDOW_SIZE 50
+#define MIN_SET_SNPS 50
 #define MIN_NUMBER_OF_SAMPLES 3
 #define ALL_SAMPLES_VALID -1 // when -1, all samples are assumed valid and will be processed
 #define SAMPLE_IS_VALID 1
