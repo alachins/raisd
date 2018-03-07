@@ -189,9 +189,9 @@ void dataShuffleKnuth(char * data, int startIndex, int endIndex)
 	}
 }
 
-void getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char * sampleData, int * alleleCount)
+int getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char * sampleData, int * derivedAlleleCount, int * totalAlleleCount)
 {	
-	int i, j=0, index=0, start=0, end=0, len = strlen(string);
+	int i, j=0, index=0, start=0, end=0, len = strlen(string), skipSNP=0;
 
 	for(i=0;i<len;i++)
 	{	
@@ -200,19 +200,27 @@ void getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char 
 			index = string[i]-48;
 
 			if(index>0)
-				(*alleleCount)++;
+				(*derivedAlleleCount)++;
+
+			(*totalAlleleCount)++;
 			
 			assert(index<statesTotal);
 			
-			//FSM
+			//FSM -- not supported
 			//sampleData[j++] = stateVector[index]; 
-			assert(stateVector!=NULL);
+			//assert(stateVector!=NULL);
 
 			//ISM
 			if(string[i]=='0')
 				sampleData[j++] = '0';
 			else
 				sampleData[j++] = '1';
+
+			if(string[i]!='0' && string[i]!='1')
+			{
+				fprintf(stderr, "\n ERROR: Unsupported case!\n\n");
+				exit(0);
+			}
 
 			sampleData[j] = '\0';
 		}
@@ -222,6 +230,7 @@ void getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char 
 			{
 				sampleData[j++] = 'N';
 				sampleData[j] = '\0';
+				skipSNP=1;
 			}
 
 			if(string[i]=='/')
@@ -238,6 +247,8 @@ void getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char 
 		}
 	}
 	dataShuffleKnuth(sampleData, start, end);
+
+	return skipSNP;
 }
 
 
@@ -278,5 +289,54 @@ float DIST (float a, float b)
 		return b-a;
 }
 
+char alleleMask_binary (char c, int * isDerived, int * isValid, FILE * fpOut)
+{
+	*isDerived = 0;
+	*isValid = 0;
 
+	switch(c)
+	{
+		case '0':
+			*isDerived = 0;
+			*isValid = 1;
+			return c;
+
+		case '1':
+			*isDerived = 1;
+			*isValid = 1;
+			return c;
+
+		/*case '-':
+			*isDerived = 0;
+			*isValid = 1;
+			return 'N';
+
+		case 'N':
+			*isDerived = 0;
+			*isValid = 1;
+			return 'N';*/
+
+		default:
+			fprintf(fpOut, "ERROR: Unrecognized character %c\n\n",c);
+			fprintf(stderr, "ERROR: Unrecognized character %c\n\n",c);
+			exit(0);
+
+	}	
+}
+
+int maf_check (int ac, int at, double maf)
+{
+	if(ac<=0||at<=0)
+		return 0;
+
+	int check = 1; // default: do not discard
+
+	double aaf = ((double)ac)/((double)at);
+	double adf = ((double)at-ac)/((double)at);
+
+	if(aaf<maf || adf<maf)
+		check = 0;
+	
+	return check;
+}
 

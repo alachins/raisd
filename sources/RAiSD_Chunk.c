@@ -45,17 +45,26 @@ void RSDChunk_free(RSDChunk_t * ch, int numberOfSamples)
 {
 	assert(ch!=NULL);
 
-	MemoryFootprint += sizeof(fpos_t)*numberOfSamples;
-	free(ch->seqPosition);
+	if(numberOfSamples!=-1)
+		MemoryFootprint += sizeof(fpos_t)*numberOfSamples;
+	
+	if(ch->seqPosition!=NULL)
+		free(ch->seqPosition);
 
 	MemoryFootprint += sizeof(float)*ch->chunkMemSize;
-	free(ch->sitePosition);
+
+	if(ch->sitePosition!=NULL)
+		free(ch->sitePosition);
 
 	MemoryFootprint += sizeof(int)*ch->chunkMemSize;
-	free(ch->derivedAlleleCount);
+	
+	if(ch->derivedAlleleCount!=NULL)
+		free(ch->derivedAlleleCount);
 
 	MemoryFootprint += sizeof(int)*ch->chunkMemSize;
-	free(ch->patternID);
+
+	if(ch->patternID!=NULL)
+		free(ch->patternID);
 
 	free(ch);
 }

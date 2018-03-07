@@ -167,7 +167,7 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int numberOfSample
 				RSDPatternPool->incomingSite[i]='\0';
 		}
 
-		RSDPatternPool->incomingSiteAlleleCount = 0;
+		RSDPatternPool->incomingSiteDerivedAlleleCount = 0;
 
 		for(i=0;i<RSDPatternPool->patternSize;i++)
 			RSDPatternPool->incomingSiteCompact[i] = 0ull;
@@ -198,7 +198,7 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int numberOfSample
 				RSDPatternPool->incomingSite[i]='\0';
 		}
 
-		RSDPatternPool->incomingSiteAlleleCount = 0;
+		RSDPatternPool->incomingSiteDerivedAlleleCount = 0;
 
 		for(i=0;i<RSDPatternPool->patternSize;i++)
 			RSDPatternPool->incomingSiteCompact[i] = 0ull;
@@ -292,7 +292,7 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 	if(RSDPatternPool->dataSize==0)
 	{
 		memcpy(&(RSDPatternPool->poolData[i]), RSDPatternPool->incomingSiteCompact, RSDPatternPool->patternSize*8);
-		RSDPatternPool->poolDataAlleleCount[i] =  RSDPatternPool->incomingSiteAlleleCount;
+		RSDPatternPool->poolDataAlleleCount[i] =  RSDPatternPool->incomingSiteDerivedAlleleCount;
 		RSDPatternPool->poolDataPatternCount[i] = 1;
 		RSDPatternPool->dataSize++;
 	}
@@ -322,7 +322,7 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 		else
 		{	
 			memcpy(&(RSDPatternPool->poolData[i*RSDPatternPool->patternSize]), RSDPatternPool->incomingSiteCompact, RSDPatternPool->patternSize*8);
-			RSDPatternPool->poolDataAlleleCount[i] =  RSDPatternPool->incomingSiteAlleleCount;
+			RSDPatternPool->poolDataAlleleCount[i] =  RSDPatternPool->incomingSiteDerivedAlleleCount;
 			RSDPatternPool->poolDataPatternCount[i] = 1;
 			RSDPatternPool->dataSize++;
 		}
@@ -339,11 +339,11 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 	}
 
 	RSDChunk->sitePosition[RSDChunk->chunkSize-1] = (float) RSDPatternPool->incomingSitePosition;
-	RSDChunk->derivedAlleleCount[RSDChunk->chunkSize-1] = RSDPatternPool->incomingSiteAlleleCount;
+	RSDChunk->derivedAlleleCount[RSDChunk->chunkSize-1] = RSDPatternPool->incomingSiteDerivedAlleleCount;
 	RSDChunk->patternID[RSDChunk->chunkSize-1] = i;
 
-	RSDChunk->derAll1CntTotal += RSDPatternPool->incomingSiteAlleleCount==1?1:0;
-	RSDChunk->derAllNCntTotal += RSDPatternPool->incomingSiteAlleleCount==numberOfSamples-1?1:0;
+	RSDChunk->derAll1CntTotal += RSDPatternPool->incomingSiteDerivedAlleleCount==1?1:0;
+	RSDChunk->derAllNCntTotal += RSDPatternPool->incomingSiteDerivedAlleleCount==numberOfSamples-1?1:0;
 
 	// pattern pool full check
 	int poolFull = 0;		

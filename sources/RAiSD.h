@@ -89,6 +89,9 @@ double MemoryFootprint;
 
 FILE * RAiSD_Info_FP;
 
+// RAiSD.c
+void 			RSD_header 		(FILE * fpOut);
+
 // RAiSD_Support.c
 unsigned long long 	rdtsc			(void);
 double 			gettime			(void);
@@ -96,10 +99,12 @@ int			snpv_cmp 		(uint64_t * A, uint64_t * B, int size);
 int			isnpv_cmp 		(uint64_t * A, uint64_t * B, int size, int numberOfSamples);
 int			getGTLocation_vcf 	(char * string);
 void			getGTData_vcf 		(char * string, int location, char * data);
-void			getGTAlleles_vcf	(char * string, char * stateVector, int statesTotal, char * sampleData, int * alleleCount);
+int			getGTAlleles_vcf	(char * string, char * stateVector, int statesTotal, char * sampleData, int * derivedAlleleCount, int * totalAlleleCount);
 int			rsd_popcnt_u64		(uint64_t input);
 float 			DIST 			(float a, float b);
 float * 		putInSortVector		(int * size, float * vector, float value);
+char 			alleleMask_binary 	(char c, int * isDerived, int *isValid, FILE * fpOut);
+int 			maf_check 		(int ac, int at, double maf);
 
 #ifndef _INTRINSIC_POPCOUNT
 char POPCNT_U16_LUT [0x1u << 16];
@@ -118,6 +123,7 @@ typedef struct
 	int		setSeparator; // Flag: t
 	int		printSampleList; // Flag: p
 	char 		sampleFileName[STRING_SIZE]; // Flag: S
+	double		maf; // Flag: m
 
 } RSDCommandLine_t;
 
@@ -165,7 +171,8 @@ typedef struct
 	int 		dataSize; // number of patterns stored in the pool
 
 	char * 		incomingSite;
-	int		incomingSiteAlleleCount;
+	int		incomingSiteDerivedAlleleCount;
+	int		incomingSiteTotalAlleleCount;
 	uint64_t * 	incomingSiteCompact;
 	double		incomingSitePosition;
 
@@ -223,10 +230,10 @@ void 		RSDDataset_initParser			(RSDDataset_t * RSDDataset, FILE * fpOut);
 char 		(*RSDDataset_goToNextSet) 		(RSDDataset_t * RSDDataset);
 int 		(*RSDDataset_getNumberOfSamples) 	(RSDDataset_t * RSDDataset);
 int 		(*RSDDataset_getValidSampleList) 	(RSDDataset_t * RSDDataset);
-int 		(*RSDDataset_getFirstSNP) 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, uint64_t length);
-int 		(*RSDDataset_getNextSNP) 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, uint64_t length);
-int 		RSDDataset_getNextSNP_ms 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, uint64_t length);
-int 		RSDDataset_getNextSNP_vcf 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, uint64_t length);
+int 		(*RSDDataset_getFirstSNP) 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, uint64_t length, double maf, FILE * fpOut);
+int 		(*RSDDataset_getNextSNP) 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, uint64_t length, double maf, FILE * fpOut);
+int 		RSDDataset_getNextSNP_ms 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, uint64_t length, double maf, FILE * fpOut);
+int 		RSDDataset_getNextSNP_vcf 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, uint64_t length, double maf, FILE * fpOut);
 void		RSDDataset_getSetRegionLength_ms	(RSDDataset_t * RSDDataset, uint64_t length);
 void		RSDDataset_getSetRegionLength_vcf	(RSDDataset_t * RSDDataset);
 

@@ -144,7 +144,7 @@ int main (int argc, char ** argv)
 
 			RSDPatternPool_reset(RSDPatternPool, RSDDataset->numberOfSamples, RSDDataset->setSamples, RSDChunk);	
 		
-			setDone = RSDDataset_getFirstSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine->regionLength);
+			setDone = RSDDataset_getFirstSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine->regionLength, RSDCommandLine->maf, RAiSD_Info_FP);
 			if(setDone)
 			{
 				//fprintf(stdout, "\n%d: Set %s | sites %d | snps %d | region %lu - skipped", setIndex, RSDDataset->setID, RSDDataset->setSize, RSDDataset->setSNPs, RSDDataset->setRegionLength);
@@ -167,7 +167,7 @@ int main (int argc, char ** argv)
 				// SNP processing
 				while(!poolFull && !setDone) 
 				{
-					setDone = RSDDataset_getNextSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDDataset->setRegionLength);
+					setDone = RSDDataset_getNextSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDDataset->setRegionLength, RSDCommandLine->maf, RAiSD_Info_FP);
 					poolFull = RSDPatternPool_pushSNP (RSDPatternPool, RSDChunk, RSDDataset->setSamples); 
 				}
 

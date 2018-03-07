@@ -23,7 +23,7 @@
 
 void RSDHelp (FILE * fp)
 {
-	fprintf(fp, "This is RAiSD version 1.0, released in June 2017.\n\n");
+	fprintf(fp, "This is RAiSD version 1.1, released in March 2018.\n\n");
 
 	fprintf(fp, " RAiSD");
 
@@ -41,6 +41,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t[-d INTEGER]\n");
 	fprintf(fp, "\t[-k FLOATING-POINT]\n");
 	fprintf(fp, "\t[-l FLOATING-POINT]\n");
+	fprintf(fp, "\t[-m FLOATING-POINT]\n");
 	//fprintf(fp, "\t[-i INTEGER]")
 
 	fprintf(fp, "\n");	
@@ -56,7 +57,8 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, " -T\tProvides the selection target (in basepairs) and calculates the average distance (over all datasets in the input file) between the selection target and the reported locations.\n");
 	fprintf(fp, " -d\tProvides a maximum distance (in base pairs, from the selection target) to calculate success rate in terms of reported locations in the proximity of the target of selection (provided via -T).\n");
 	fprintf(fp, " -k\tProvides the false positive rate (e.g., 0.05) to report the corresponding reported score after sorting the reported locations for all the datasets in the input file.\n");
-	fprintf(fp, " -l\tProvides the theshold score, reported by a previous run using a false positive rate (e.g., 0.05, via -k) to report the true positive rate.\n");
+	fprintf(fp, " -l\tProvides the threshold score, reported by a previous run using a false positive rate (e.g., 0.05, via -k) to report the true positive rate.\n");
+	fprintf(fp, " -m\tProvides the threshold value for excluding SNPs with minor allele frequency < threshold (0.0-1.0).\n");
 	//fprintf(fp, " -i\tProvides the index of set of SNPs in the input file to process (supported only with ms).\n");	
 
 	fprintf(fp, "\n");
@@ -85,6 +87,7 @@ void RSDCommandLine_init(RSDCommandLine_t * RSDCommandLine)
 	RSDCommandLine->splitOutput = 0;
 	RSDCommandLine->setSeparator = 1;
 	RSDCommandLine->printSampleList = 0;
+	RSDCommandLine->maf = 0.0;
 	strncpy(RSDCommandLine->sampleFileName, "\0", STRING_SIZE);
 }
 
@@ -190,9 +193,25 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 			continue;
 		}
 
+		if(!strcmp(argv[i], "-m")) 
+		{ 
+			if (i!=argc-1)
+			{
+				RSDCommandLine->maf = (double)atof(argv[++i]);
+				if(RSDCommandLine->maf<0.0 || RSDCommandLine->maf>1.0)
+				{
+					fprintf(stderr, "\n ERROR: Invalid MAF value (valid: 0.0-1.0)\n\n");
+					exit(0);
+				}
+			}
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
 
-		
-		
+			continue;
+		}		
 		
 		/* Testing */
 		if(!strcmp(argv[i], "-T")) 
