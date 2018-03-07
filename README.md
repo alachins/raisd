@@ -5,6 +5,7 @@ RAiSD: Software for selective sweep detection
 Authors: Nikolaos Alachiotis (n.alachiotis@gmail.com), Pavlos Pavlidis (ppavlidis@gmail.com)
 
 First release: 9/6/2017 
+
 Latest update: 7/3/2018       
 
 Version: 1.1
@@ -249,9 +250,12 @@ These results demonstrate a TPR of 99.5% when d1 is analyzed.
 Known/Reported Issues
 ---------------------
 
+
 Change log
 ----------
+
 v1.0 (9/6/2017): first release
+
 v1.1 (7/3/2018): MAF threshold option
 
 Support
