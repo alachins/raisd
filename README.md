@@ -6,7 +6,7 @@ Authors: Nikolaos Alachiotis (n.alachiotis@gmail.com), Pavlos Pavlidis (ppavlidi
 
 First release: 9/6/2017 
 
-Latest update: 7/3/2018       
+Last update: 7/3/2018       
 
 Version: 1.1
 
