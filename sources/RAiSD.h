@@ -124,6 +124,7 @@ typedef struct
 	int		printSampleList; // Flag: p
 	char 		sampleFileName[STRING_SIZE]; // Flag: S
 	double		maf; // Flag: m
+	int		mbs; // Flag: b
 
 } RSDCommandLine_t;
 
@@ -198,6 +199,7 @@ typedef struct
 {
 	FILE * 		inputFilePtr;
 	char 		inputFileFormat[STRING_SIZE];
+	int 		inputFileIsMBS;
 
 	fpos_t 		setPosition; // set position, first "/" in ms or first line with dif chrom number in VCF
 	int 		numberOfSamples; // -1 when unitialized
@@ -218,6 +220,7 @@ typedef struct
 	int *		sampleValid; // this must be of size numberOfSamples with sampleValidListSize number of 1s or less, indicates which of the dataset samples are valid
 	
 	int		numberOfSamplesVCF; // this is the full number of samples in the vcf file
+
 } RSDDataset_t;
 
 RSDDataset_t * 	RSDDataset_new				(void);
@@ -226,7 +229,7 @@ void 		RSDDataset_init				(RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDComm
 void 		RSDDataset_print 			(RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine, FILE * fpOut);
 void 		RSDDataset_setPosition 			(RSDDataset_t * RSDDataset, int * setIndex);
 
-void 		RSDDataset_initParser			(RSDDataset_t * RSDDataset, FILE * fpOut);
+void 		RSDDataset_initParser			(RSDDataset_t * RSDDataset, FILE * fpOut, RSDCommandLine_t * RSDCommandLine);
 char 		(*RSDDataset_goToNextSet) 		(RSDDataset_t * RSDDataset);
 int 		(*RSDDataset_getNumberOfSamples) 	(RSDDataset_t * RSDDataset);
 int 		(*RSDDataset_getValidSampleList) 	(RSDDataset_t * RSDDataset);

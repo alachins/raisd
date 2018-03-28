@@ -23,7 +23,7 @@
 
 void RSDHelp (FILE * fp)
 {
-	fprintf(fp, "This is RAiSD version 1.1, released in March 2018.\n\n");
+	fprintf(fp, "This is RAiSD version 1.2, released in April 2018.\n\n");
 
 	fprintf(fp, " RAiSD");
 
@@ -42,6 +42,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t[-k FLOATING-POINT]\n");
 	fprintf(fp, "\t[-l FLOATING-POINT]\n");
 	fprintf(fp, "\t[-m FLOATING-POINT]\n");
+	fprintf(fp, "\t[-b]\n");
 	//fprintf(fp, "\t[-i INTEGER]")
 
 	fprintf(fp, "\n");	
@@ -59,6 +60,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, " -k\tProvides the false positive rate (e.g., 0.05) to report the corresponding reported score after sorting the reported locations for all the datasets in the input file.\n");
 	fprintf(fp, " -l\tProvides the threshold score, reported by a previous run using a false positive rate (e.g., 0.05, via -k) to report the true positive rate.\n");
 	fprintf(fp, " -m\tProvides the threshold value for excluding SNPs with minor allele frequency < threshold (0.0-1.0).\n");
+	fprintf(fp, " -b\tSpecifies that the input file is in mbs format.\n\n");
 	//fprintf(fp, " -i\tProvides the index of set of SNPs in the input file to process (supported only with ms).\n");	
 
 	fprintf(fp, "\n");
@@ -193,7 +195,7 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 			continue;
 		}
 
-		if(!strcmp(argv[i], "-m")) 
+		if(!strcmp(argv[i], "-m")) // To provide a threshold for MAF
 		{ 
 			if (i!=argc-1)
 			{
@@ -210,6 +212,12 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 				exit(0);	
 			}
 
+			continue;
+		}
+
+		if(!strcmp(argv[i], "-b")) // To specify mbs format
+		{ 
+			RSDCommandLine->mbs = 1;
 			continue;
 		}		
 		

@@ -34,6 +34,7 @@ RSDDataset_t * RSDDataset_new(void)
 
 	d->inputFilePtr = NULL;
 	strcpy(d->inputFileFormat, "invalid");
+	d->inputFileIsMBS = 0;
 	d->numberOfSamples = -1;
 	strcpy(d->setID, "-1");
 	d->setSamples = 0;
@@ -271,8 +272,8 @@ void RSDDataset_init (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLi
 		}
 
 	} 
-
-	RSDDataset_initParser (RSDDataset, fpOut);
+	
+	RSDDataset_initParser (RSDDataset, fpOut, RSDCommandLine);
 
 	if(strcmp(RSDCommandLine->sampleFileName, "\0")) // gets in here when sample file is provided as input
 		RSDDataset_getValidSampleList (RSDDataset);
@@ -396,10 +397,16 @@ int RSDDataset_getValidSampleList_ms (RSDDataset_t * RSDDataset)
 int RSDDataset_getNumberOfSamples_ms (RSDDataset_t * RSDDataset)
 {
 	char tstring[STRING_SIZE];
-	int rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // ms/mssel
+	int rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // ms/mssel/msHOT/command(if mbs)
 	assert(rcnt==1);
-	rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
+	rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // samples if !mbs
 	assert(rcnt==1);
+	
+	if(RSDDataset->inputFileIsMBS==1)
+	{
+		rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // samples if mbs
+		assert(rcnt==1);
+	}	
 
 	int val = atoi(tstring);
 	RSDDataset->numberOfSamples = val;
@@ -429,8 +436,10 @@ int RSDDataset_getFirstSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 	int rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
 	assert(rcnt==1); // //
 
+	tstring[2] = '\0'; // for all ms-like keep just // (required for mbs)
+
 	if(strcmp(tstring, "//"))
-	{	
+	{
 		fsetpos(RSDDataset->inputFilePtr, &(RSDDataset->setPosition));
 		RSDDataset->setSize = 0;
 		RSDDataset->setSNPs = 0;
@@ -438,6 +447,13 @@ int RSDDataset_getFirstSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 		RSDDataset->setSamples = 0;
 		setDone = 1;
 		return setDone; 
+	}
+
+	if(RSDDataset->inputFileIsMBS==1)
+	{	
+		tstring[0] = fgetc(RSDDataset->inputFilePtr);
+		while(tstring[0]!='\n')
+			tstring[0] = fgetc(RSDDataset->inputFilePtr); // skip line
 	}
 
 	fgetpos(RSDDataset->inputFilePtr, &(RSDDataset->setPosition));
@@ -461,7 +477,7 @@ int RSDDataset_getFirstSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 	assert(rcnt==1); // number of sites
 
 	int vali = atoi(tstring);
-	RSDDataset->setSize = vali;
+	RSDDataset->setSize = RSDDataset->inputFileIsMBS==1?vali-1:vali;
 	RSDDataset->setProgress = 1; // first site loaded
 	RSDDataset->setSNPs = 0; // Init to 0 since we dont know yet whether this is a polymorphic one or not
 
@@ -499,7 +515,8 @@ int RSDDataset_getFirstSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 	assert(rcnt==1); // first SNP position
 
 	double valf = atof(tstring);
-	valf = valf * (double)length;
+	valf = RSDDataset->inputFileIsMBS==1?valf:valf*(double)length;
+	//valf = valf * (double)length;
 	RSDPatternPool->incomingSitePosition = valf;
 
 	fgetpos(RSDDataset->inputFilePtr, &(RSDChunk->posPosition));
@@ -577,10 +594,13 @@ int RSDDataset_getNextSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDP
 	fsetpos(RSDDataset->inputFilePtr, &(RSDChunk->posPosition));
 
 	int rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
-	assert(rcnt==1); 
+	assert(rcnt==1);
+
+	//printf(); 
 	
 	double valf = atof(tstring);
-	valf = valf * (double)length;
+	valf = RSDDataset->inputFileIsMBS==1?valf:valf*(double)length;
+	//valf = valf * (double)length;
 	RSDPatternPool->incomingSitePosition = valf;
 
 	fgetpos(RSDDataset->inputFilePtr, &(RSDChunk->posPosition));
@@ -1091,7 +1111,7 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 /* Parser */
 /**********/
 
-void RSDDataset_initParser (RSDDataset_t * RSDDataset, FILE * fpOut)
+void RSDDataset_initParser (RSDDataset_t * RSDDataset, FILE * fpOut, RSDCommandLine_t * RSDCommandLine)
 {
 	assert(RSDDataset!=NULL);
 
@@ -1109,6 +1129,8 @@ void RSDDataset_initParser (RSDDataset_t * RSDDataset, FILE * fpOut)
 		RSDDataset_getNumberOfSamples = &RSDDataset_getNumberOfSamples_ms;		
 		RSDDataset_getFirstSNP = &RSDDataset_getFirstSNP_ms;
 		RSDDataset_getNextSNP = &RSDDataset_getNextSNP_ms;
+
+		RSDDataset->inputFileIsMBS = RSDCommandLine->mbs==1?1:RSDDataset->inputFileIsMBS;
 
 		return;
 	}
