@@ -2,6 +2,7 @@
 RAiSD: Software for selective sweep detection
 ===============================================
 
+
 Authors: Nikolaos Alachiotis (n.alachiotis@gmail.com), Pavlos Pavlidis (ppavlidis@gmail.com)
 
 First release: 9/6/2017 
