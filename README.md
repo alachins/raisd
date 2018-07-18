@@ -255,7 +255,7 @@ Thereafter, the FPR Threshold value can be given to RAiSD when selection data ar
 This will report the respective TPR value as shown in the additional lines in RAiSD_Info file as shown below.
 
     SCORE COUNT (Threshold 0.000222)
-    TPR	0.995000
+    TPR	    0.995000
     
 These results demonstrate a TPR of 99.5% when d1 is analyzed.
 
