@@ -23,46 +23,39 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <linux/limits.h>
-#include <ctype.h>
+//#include <unistd.h>
+//#include <sys/types.h>
+//#include <sys/stat.h>
+//#include <linux/limits.h>
+//#include <ctype.h>
 #include <inttypes.h>
-#include <math.h>
-#include <omp.h>
-#include <immintrin.h>
+//#include <math.h>
+//#include <immintrin.h>
 #include <time.h>
-#include <sys/time.h>
+//#include <sys/time.h>
 
-double minld;
-double maxld;
-double accumld;
-int cntld;
-double ** ldmap;
 
 /*Testing*/
-uint64_t selectionTarget;
-double MuVar_Accum;
-double MuSfs_Accum;
-double MuLd_Accum;
-double Mu_Accum;
-uint64_t selectionTargetDThreshold;
-double MuVar_Success;
-double MuSfs_Success;
-double MuLd_Success;
-double Mu_Success;
-double fpr_loc;
-int scr_svec_sz;
-float * scr_svec;
-float tpr_thres;
-double tpr_scr;
-int setIndexValid;
+extern uint64_t selectionTarget;
+extern double MuVar_Accum;
+extern double MuSfs_Accum;
+extern double MuLd_Accum;
+extern double Mu_Accum;
+extern uint64_t selectionTargetDThreshold;
+extern double MuVar_Success;
+extern double MuSfs_Success;
+extern double MuLd_Success;
+extern double Mu_Success;
+extern double fpr_loc;
+extern int scr_svec_sz;
+extern float * scr_svec;
+extern double tpr_thres;
+extern double tpr_scr;
+extern int setIndexValid;
 /**/
 
-double global_pos;
 
-#define STRING_SIZE 10000 
+#define STRING_SIZE 8192
 #define PATTERNPOOL_SIZE 1 // MBs
 #define CHUNK_MEMSIZE_AND_INCREMENT 1024 // sites
 #define MULTI_STEP_PARSING 0
@@ -83,13 +76,17 @@ double global_pos;
 
 #define MIN_MU_VAL 0.00000001
 
-double StartTime;
-double FinishTime;
-double MemoryFootprint;
-
-FILE * RAiSD_Info_FP;
+#define BILLION 1E9
 
 // RAiSD.c
+extern struct timespec requestStart;
+extern struct timespec requestEnd;
+
+extern double StartTime;
+extern double FinishTime;
+extern double MemoryFootprint;
+extern FILE * RAiSD_Info_FP;
+
 void 			RSD_header 		(FILE * fpOut);
 
 // RAiSD_Support.c
@@ -105,9 +102,15 @@ float 			DIST 			(float a, float b);
 float * 		putInSortVector		(int * size, float * vector, float value);
 char 			alleleMask_binary 	(char c, int * isDerived, int *isValid, FILE * fpOut);
 int 			maf_check 		(int ac, int at, double maf);
+void 			dataShuffleKnuth	(char * data, int startIndex, int endIndex);
+extern void		ignoreLineSpaces	(FILE *fp, char *ent);
+extern int 		flagMatch		(FILE *fp, char flag[], int flaglength, char tmp);
+extern void 		RSD_printTime 		(FILE * fp1, FILE * fp2);
+extern void 		RSD_printMemory 	(FILE * fp1, FILE * fp2);
+
 
 #ifndef _INTRINSIC_POPCOUNT
-char POPCNT_U16_LUT [0x1u << 16];
+extern char	 	POPCNT_U16_LUT [0x1u << 16];
 int 			popcount_u32_iterative	(unsigned int n);
 void 			popcount_u64_init 	(void);
 #endif
@@ -124,10 +127,13 @@ typedef struct
 	int		printSampleList; // Flag: p
 	char 		sampleFileName[STRING_SIZE]; // Flag: S
 	double		maf; // Flag: m
-	int		mbs; // Flag: b
+	int64_t		mbs; // Flag: b
+	int64_t		imputePerSNP; //Flag:i
 
 } RSDCommandLine_t;
 
+void 			RSDHelp 				(FILE * fp);
+void 			RSDVersions				(FILE * fp);
 RSDCommandLine_t * 	RSDCommandLine_new			(void);
 void 			RSDCommandLine_free			(RSDCommandLine_t * RSDCommandLine);
 void 			RSDCommandLine_init			(RSDCommandLine_t * RSDCommandLine);
@@ -137,18 +143,16 @@ void 			RSDCommandLine_print			(int argc, char ** argv, FILE * fpOut);
 // RAiSD_Chunk.c
 typedef struct
 {
-	int 		chunkID; // index
-	
+	int64_t		chunkID; // index
+	int64_t		chunkMemSize; // preallocated
+	int64_t		chunkSize; // number of snps
+
 	fpos_t		posPosition;
 	fpos_t * 	seqPosition;
-
-	int 		chunkMemSize; // preallocated
 
 	float * 	sitePosition;
 	int * 		derivedAlleleCount;
 	int * 		patternID;	
-
-	int		chunkSize; // number of snps
 
 	int		derAll1CntTotal;
 	int		derAllNCntTotal; 
@@ -156,8 +160,8 @@ typedef struct
 } RSDChunk_t;
 
 RSDChunk_t *	RSDChunk_new 			(void);
-void 		RSDChunk_free			(RSDChunk_t * ch, int numberOfSamples);
-void 		RSDChunk_init			(RSDChunk_t * RSDChunk, int numberOfSamples);
+void 		RSDChunk_free			(RSDChunk_t * ch, int64_t numberOfSamples);
+void 		RSDChunk_init			(RSDChunk_t * RSDChunk, int64_t numberOfSamples);
 void		RSDChunk_reset			(RSDChunk_t * RSDChunk);
 
 // RAiSD_PatternPool.c
@@ -185,42 +189,41 @@ typedef struct
 
 } RSDPatternPool_t;
 
-RSDPatternPool_t * 	RSDPatternPool_new		(void);
-void 			RSDPatternPool_free		(RSDPatternPool_t * pp, int numberOfSamples);
-void 			RSDPatternPool_init 		(RSDPatternPool_t * RSDPatternPool, RSDCommandLine_t * RSDCommandLine, int numberOfSamples);
-void 			RSDPatternPool_print		(RSDPatternPool_t * RSDPatternPool, FILE * fpOut);
-void 			RSDPatternPool_reset 		(RSDPatternPool_t * RSDPatternPool, int numberOfSamples, int setSamples, RSDChunk_t * RSDChunk);
-int			RSDPatternPool_pushSNP		(RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, int numberOfSamples);
-void			RSDPatternPool_resize 		(RSDPatternPool_t * RSDPatternPool, int setSamples, FILE * fpOut);
-void 			RSDPatternPool_exhangePatterns 	(RSDPatternPool_t * RSDPatternPool, int pID_a, int pID_b);
+RSDPatternPool_t * 	RSDPatternPool_new			(void);
+void 			RSDPatternPool_free			(RSDPatternPool_t * pp, int64_t numberOfSamples);
+void 			RSDPatternPool_init 			(RSDPatternPool_t * RSDPatternPool, RSDCommandLine_t * RSDCommandLine, int64_t numberOfSamples);
+void 			RSDPatternPool_print			(RSDPatternPool_t * RSDPatternPool, FILE * fpOut);
+void 			RSDPatternPool_reset 			(RSDPatternPool_t * RSDPatternPool, int64_t numberOfSamples, int64_t setSamples, RSDChunk_t * RSDChunk);
+int			RSDPatternPool_pushSNP			(RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, int64_t numberOfSamples);
+void			RSDPatternPool_resize 			(RSDPatternPool_t * RSDPatternPool, int64_t setSamples, FILE * fpOut);
+void 			RSDPatternPool_exhangePatterns 		(RSDPatternPool_t * RSDPatternPool, int pID_a, int pID_b);
+void			RSDPatternPool_imputeIncomingSite 	(RSDPatternPool_t * RSDPatternPool, int64_t setSamples);
 
 // RAiSD_Dataset.c
 typedef struct
 {
 	FILE * 		inputFilePtr;
 	char 		inputFileFormat[STRING_SIZE];
+	char		setID[STRING_SIZE]; // for vcf this is the chrom number
 	int 		inputFileIsMBS;
-
-	fpos_t 		setPosition; // set position, first "/" in ms or first line with dif chrom number in VCF
 	int 		numberOfSamples; // -1 when unitialized
 
-	int 		setParsingMode;
+	fpos_t 		setPosition; // set position, first "/" in ms or first line with dif chrom number in VCF
+
+	int64_t		setParsingMode;
 	
-	char		setID[STRING_SIZE]; // for vcf this is the chrom number
-	int		setSamples; // number of samples in the set - differs from numberOfSamples in vcf because of ploidy
-	int 		setSize; // number of segsites, provided by the set header in ms, -1 for vcf - this can also include non-polymorphic sites
-	int		setSNPs; // number of non-discarded sites
-	int		setProgress; // number of loaded segsites
+	int64_t		setSamples; // number of samples in the set - differs from numberOfSamples in vcf because of ploidy
+	int64_t 	setSize; // number of segsites, provided by the set header in ms, -1 for vcf - this can also include non-polymorphic sites
+	int64_t		setSNPs; // number of non-discarded sites
+	int64_t		setProgress; // number of loaded segsites
 
 	uint64_t 	setRegionLength;
 
 	FILE *		sampleFilePtr;
-	int		sampleValidListSize; // number of names in the sampleValidList
 	char **		sampleValidList; // list of names of valid samples
-	int *		sampleValid; // this must be of size numberOfSamples with sampleValidListSize number of 1s or less, indicates which of the dataset samples are valid
-	
+	int		sampleValidListSize; // number of names in the sampleValidList
 	int		numberOfSamplesVCF; // this is the full number of samples in the vcf file
-
+	int *		sampleValid; // this must be of size numberOfSamples with sampleValidListSize number of 1s or less, indicates which of the dataset samples are valid
 } RSDDataset_t;
 
 RSDDataset_t * 	RSDDataset_new				(void);
@@ -230,13 +233,13 @@ void 		RSDDataset_print 			(RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCom
 void 		RSDDataset_setPosition 			(RSDDataset_t * RSDDataset, int * setIndex);
 
 void 		RSDDataset_initParser			(RSDDataset_t * RSDDataset, FILE * fpOut, RSDCommandLine_t * RSDCommandLine);
-char 		(*RSDDataset_goToNextSet) 		(RSDDataset_t * RSDDataset);
-int 		(*RSDDataset_getNumberOfSamples) 	(RSDDataset_t * RSDDataset);
-int 		(*RSDDataset_getValidSampleList) 	(RSDDataset_t * RSDDataset);
-int 		(*RSDDataset_getFirstSNP) 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, uint64_t length, double maf, FILE * fpOut);
-int 		(*RSDDataset_getNextSNP) 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, uint64_t length, double maf, FILE * fpOut);
-int 		RSDDataset_getNextSNP_ms 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, uint64_t length, double maf, FILE * fpOut);
-int 		RSDDataset_getNextSNP_vcf 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, uint64_t length, double maf, FILE * fpOut);
+extern char	(*RSDDataset_goToNextSet) 		(RSDDataset_t * RSDDataset);
+extern int	(*RSDDataset_getNumberOfSamples) 	(RSDDataset_t * RSDDataset);
+extern int 	(*RSDDataset_getValidSampleList) 	(RSDDataset_t * RSDDataset);
+extern int 	(*RSDDataset_getFirstSNP) 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut);
+extern int	(*RSDDataset_getNextSNP) 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut);
+int 		RSDDataset_getNextSNP_ms 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut);
+int 		RSDDataset_getNextSNP_vcf 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut);
 void		RSDDataset_getSetRegionLength_ms	(RSDDataset_t * RSDDataset, uint64_t length);
 void		RSDDataset_getSetRegionLength_vcf	(RSDDataset_t * RSDDataset);
 
@@ -246,7 +249,7 @@ typedef struct
 	char 	reportName [STRING_SIZE];
 	FILE *	reportFP;
 
-	int	windowSize; // number of SNPs in each window
+	int64_t	windowSize; // number of SNPs in each window
 
 	int *	pCntVec;    // temp array used to count pattern occurences, contains (sequentially and at a stride): pattern count left, pattern count right, pattern count exclusive left, pattern count exclusive right
 	

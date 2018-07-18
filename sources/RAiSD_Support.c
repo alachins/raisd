@@ -21,6 +21,14 @@
 
 #include "RAiSD.h"
 
+void	ignoreLineSpaces	(FILE *fp, char *ent);
+int 	flagMatch		(FILE *fp, char flag[], int flaglength, char tmp);
+void 	RSD_printTime 		(FILE * fp1, FILE * fp2);
+void 	RSD_printMemory 	(FILE * fp1, FILE * fp2);
+
+
+char POPCNT_U16_LUT [0x1u << 16];
+
 unsigned long long rdtsc(void)
 {
 	unsigned a, d;
@@ -28,13 +36,6 @@ unsigned long long rdtsc(void)
 	__asm__ volatile("rdtsc" : "=a" (a), "=d" (d));
 
 	return ((unsigned long long)a) | (((unsigned long long)d) << 32);
-}
-
-double gettime(void)
-{
-	struct timeval ttime;
-	gettimeofday(&ttime , NULL);
-	return ttime.tv_sec + ttime.tv_usec * 0.000001;
 }
 
 #ifndef _INTRINSIC_POPCOUNT
@@ -47,6 +48,9 @@ int popcount_u32_iterative (unsigned int n)
 		count += n & 0x1u ;    
 		n >>= 1 ;
 	}
+	
+	assert(count<=16);
+	assert(count>=0);
 
 	return count;
 }
@@ -55,7 +59,10 @@ void popcount_u64_init (void)
 {
 	unsigned int i;    
 	for (i = 0; i < (0x1u<<16); i++)
-		POPCNT_U16_LUT[i] = popcount_u32_iterative(i);
+	{
+		int t = popcount_u32_iterative(i);
+		POPCNT_U16_LUT[i] = (char)t;
+	}	
 	
 }
 #endif
@@ -97,7 +104,7 @@ int isnpv_cmp (uint64_t * A, uint64_t * B, int size, int numberOfSamples)
 			return 1;
 		}
 	}
-	uint8_t temp = ~B[size-1];
+	uint64_t temp = ~B[size-1];
 	int shiftLast = 64-(numberOfSamples-(size-1)*64);
 	temp = temp << shiftLast;
 	temp = temp >> shiftLast;
@@ -113,15 +120,15 @@ int getGTLocation_vcf (char * string)
 	
 	char tstring [STRING_SIZE];
 	int Location = 0;
-	int i, length = strlen(string);
+	int i, length = (int)strlen(string);
 	int startIndex = 0;
 	int endIndex = 0;
 	for(i=0;i<length;i++)
 	{
-		if((string[i]==':'))
+		if(string[i]==':')
 		{
 			endIndex =  i;
-			memcpy(tstring, &string[startIndex], endIndex-startIndex);
+			memcpy(tstring, &string[startIndex], (size_t)(endIndex-startIndex));
 			tstring[endIndex]='\0';
 			if(!strcmp(tstring, "GT"))
 				return Location;
@@ -131,7 +138,7 @@ int getGTLocation_vcf (char * string)
 		}
 	}
 	endIndex =  i;
-	memcpy(tstring, &string[startIndex], endIndex);
+	memcpy(tstring, &string[startIndex], (size_t)endIndex);
 	tstring[endIndex]='\0';
 	if(!strcmp(tstring, "GT"))
 		return Location;
@@ -142,15 +149,15 @@ int getGTLocation_vcf (char * string)
 void getGTData_vcf (char * string, int location, char * data) // from sample
 {
 	int tLocation = 0;
-	int i, length = strlen(string);
+	int i, length = (int)strlen(string);
 	int startIndex = 0;
 	int endIndex = 0;
 	for(i=0;i<length;i++)
 	{
-		if((string[i]==':'))
+		if(string[i]==':')
 		{
 			endIndex =  i;
-			memcpy(data, &string[startIndex], endIndex-startIndex);
+			memcpy(data, &string[startIndex], (size_t)(endIndex-startIndex));
 			data[endIndex]='\0';
 
 			if(tLocation==location)
@@ -161,7 +168,7 @@ void getGTData_vcf (char * string, int location, char * data) // from sample
 		}
 	}
 	endIndex =  i;
-	memcpy(data, &string[startIndex], endIndex);
+	memcpy(data, &string[startIndex], (size_t)endIndex);
 	data[endIndex]='\0';
 	if(tLocation==location)
 		return;	
@@ -181,7 +188,6 @@ void dataShuffleKnuth(char * data, int startIndex, int endIndex)
 	for (i = endIndex; i > startIndex; i--)
 	{
 		index = startIndex + (rand() % (i - startIndex + 1));
-		//printf("%d\n", index);
 
 		tmp = data[index];
 		data[index] = data[i];
@@ -191,7 +197,9 @@ void dataShuffleKnuth(char * data, int startIndex, int endIndex)
 
 int getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char * sampleData, int * derivedAlleleCount, int * totalAlleleCount)
 {	
-	int i, j=0, index=0, start=0, end=0, len = strlen(string), skipSNP=0;
+	int i, j=0, index=0, start=0, end=0, len = (int)strlen(string), skipSNP=0;
+
+	assert(stateVector!=NULL);
 
 	for(i=0;i<len;i++)
 	{	
@@ -205,12 +213,7 @@ int getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char *
 			(*totalAlleleCount)++;
 			
 			assert(index<statesTotal);
-			
-			//FSM -- not supported
-			//sampleData[j++] = stateVector[index]; 
-			//assert(stateVector!=NULL);
-
-			//ISM
+		
 			if(string[i]=='0')
 				sampleData[j++] = '0';
 			else
@@ -226,11 +229,11 @@ int getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char *
 		}
 		else
 		{
-  			if(string[i]=='.')
+			if(string[i]=='.')
 			{
 				sampleData[j++] = 'N';
 				sampleData[j] = '\0';
-				skipSNP=1;
+				skipSNP=1; 
 			}
 
 			if(string[i]=='/')
@@ -255,7 +258,7 @@ int getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char *
 float * putInSortVector(int * size, float * vector, float value)
 {
 	(*size)++;
-	vector = realloc(vector, sizeof(float)*(*size));
+	vector = realloc(vector, sizeof(float)*((size_t)(*size)));
 	vector[(*size)-1] = 0.0f;
 
 	if(*size==1)
@@ -340,3 +343,47 @@ int maf_check (int ac, int at, double maf)
 	return check;
 }
 
+void ignoreLineSpaces(FILE *fp, char *ent)
+{
+	while(*ent==' '|| *ent == 9) // horizontal tab
+		*ent = (char)fgetc(fp);  
+}
+
+int flagMatch(FILE *fp, char flag[], int flaglength, char tmp)
+{
+	int counter = 0;
+	while(counter < flaglength)
+	{
+		if(tmp != flag[counter])
+		  {
+		    break;
+		  }
+		tmp = (char)fgetc(fp);
+
+		++counter;
+	}
+	
+	return counter;
+}
+
+void RSD_printTime (FILE * fp1, FILE * fp2)
+{
+	clock_gettime(CLOCK_REALTIME, &requestEnd);
+	double TotalTime = (requestEnd.tv_sec-requestStart.tv_sec)+ (requestEnd.tv_nsec-requestStart.tv_nsec) / BILLION;
+
+
+	fprintf(fp1, "\n\n");
+	fprintf(fp1, " Total execution time %.5f seconds\n", TotalTime);
+
+	fprintf(fp2, "\n\n");
+	fprintf(fp2, " Total execution time %.5f seconds\n", TotalTime);
+}
+
+void RSD_printMemory (FILE * fp1, FILE * fp2)
+{
+	fprintf(fp1, " Total memory footprint %.0f kbytes\n", MemoryFootprint/1024.0);
+	fprintf(fp1, "\n");
+
+	fprintf(fp2, " Total memory footprint %.0f kbytes\n", MemoryFootprint/1024.0);
+	fprintf(fp2, "\n");
+}

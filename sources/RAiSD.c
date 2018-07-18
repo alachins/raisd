@@ -21,66 +21,79 @@
 
 #include "RAiSD.h"
 
+void RSD_init (void);
+
+uint64_t selectionTarget;
+double MuVar_Accum;
+double MuSfs_Accum;
+double MuLd_Accum;
+double Mu_Accum;
+uint64_t selectionTargetDThreshold;
+double MuVar_Success;
+double MuSfs_Success;
+double MuLd_Success;
+double Mu_Success;
+double fpr_loc;
+int scr_svec_sz;
+float * scr_svec;
+double tpr_thres;
+double tpr_scr;
+int setIndexValid;
+double StartTime;
+double FinishTime;
+double MemoryFootprint;
+FILE * RAiSD_Info_FP;
+struct timespec requestStart;
+struct timespec requestEnd;
+
 void RSD_header (FILE * fpOut)
 {
 	fprintf(fpOut, "\n");
-	fprintf(fpOut, "RAiSD, Raised Accuracy in Sweep Detection\n");
-	fprintf(fpOut, "Copyright (C) 2017, and GNU GPL'd, by Nikolaos Alachiotis and Pavlos Pavlidis\n");
-	fprintf(fpOut, "Contact n.alachiotis/pavlidisp at gmail.com\n");
+	fprintf(fpOut, " RAiSD, Raised Accuracy in Sweep Detection\n");
+	fprintf(fpOut, " Copyright (C) 2017, and GNU GPL'd, by Nikolaos Alachiotis and Pavlos Pavlidis\n");
+	fprintf(fpOut, " Contact n.alachiotis/pavlidisp at gmail.com\n");
 	fprintf(fpOut, "\n");
 }
 
 void RSD_init (void)
 {
-	StartTime = gettime();
-	FinishTime = 0.0f;
-	MemoryFootprint = 0.0f;
+	clock_gettime(CLOCK_REALTIME, &requestStart);
+	//StartTime = gettime();
+
+	FinishTime = 0.0;
+	MemoryFootprint = 0.0;
 
 	RAiSD_Info_FP = NULL;
 
 	/*Testing*/
 	selectionTarget = 0ull;
 	selectionTargetDThreshold = 0ull;
-	MuVar_Accum = 0.0f;
- 	MuSfs_Accum = 0.0f;
- 	MuLd_Accum = 0.0f;
- 	Mu_Accum = 0.0f;
- 	MuVar_Success = 0.0f;
-	MuSfs_Success = 0.0f;
-	MuLd_Success = 0.0f;
-	Mu_Success = 0.0f;
-	fpr_loc = 0.0f;
+	MuVar_Accum = 0.0;
+ 	MuSfs_Accum = 0.0;
+ 	MuLd_Accum = 0.0;
+ 	Mu_Accum = 0.0;
+ 	MuVar_Success = 0.0;
+	MuSfs_Success = 0.0;
+	MuLd_Success = 0.0;
+	Mu_Success = 0.0;
+	fpr_loc = 0.0;
 	scr_svec_sz = 0;
 	scr_svec = NULL;
-	tpr_thres = 0.0f;
-	tpr_scr = 0.0f;
+	tpr_thres = 0.0;
+	tpr_scr = 0.0;
 	setIndexValid = -1;
 	/**/
 
 #ifndef _INTRINSIC_POPCOUNT
 	popcount_u64_init();
 #endif	
+
+	srand((unsigned int)time(NULL)); // if no seed given
 }
 	
-void RSD_printTime (FILE * fp1, FILE * fp2)
-{
-	FinishTime = gettime();
 
-	fprintf(fp1, "\n\n");
-	fprintf(fp1, "Total execution time %.5f seconds\n", (FinishTime-StartTime));
 
-	fprintf(fp2, "\n\n");
-	fprintf(fp2, "Total execution time %.5f seconds\n", (FinishTime-StartTime));
-}
 
-void RSD_printMemory (FILE * fp1, FILE * fp2)
-{
-	fprintf(fp1, "Total memory footprint %.0f kbytes\n", MemoryFootprint/1024.0);
-	fprintf(fp1, "\n");
-
-	fprintf(fp2, "Total memory footprint %.0f kbytes\n", MemoryFootprint/1024.0);
-	fprintf(fp2, "\n");
-}
 
 int main (int argc, char ** argv)
 {
@@ -114,7 +127,7 @@ int main (int argc, char ** argv)
 
 	int setIndex = -1, setDone = 0, setsProcessedTotal=0;
 
-	fprintf(stdout, "Processing ... \n\n");
+	fprintf(stdout, " Processing ... \n\n");
 	fflush(stdout);
 
 	// Set processing
@@ -124,7 +137,7 @@ int main (int argc, char ** argv)
 
 		if(setIndexValid!=-1 && setIndex!=setIndexValid)
 		{
-			char tchar = fgetc(RSDDataset->inputFilePtr);
+			char tchar = (char)fgetc(RSDDataset->inputFilePtr);
 			assert(tchar==tchar);
 		}
 
@@ -144,11 +157,11 @@ int main (int argc, char ** argv)
 
 			RSDPatternPool_reset(RSDPatternPool, RSDDataset->numberOfSamples, RSDDataset->setSamples, RSDChunk);	
 		
-			setDone = RSDDataset_getFirstSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine->regionLength, RSDCommandLine->maf, RAiSD_Info_FP);
+			setDone = RSDDataset_getFirstSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine, RSDCommandLine->regionLength, RSDCommandLine->maf, RAiSD_Info_FP);
 			if(setDone)
 			{
 				//fprintf(stdout, "\n%d: Set %s | sites %d | snps %d | region %lu - skipped", setIndex, RSDDataset->setID, RSDDataset->setSize, RSDDataset->setSNPs, RSDDataset->setRegionLength);
-				fprintf(RAiSD_Info_FP, "\n%d: Set %s | sites %d | snps %d | region %lu - skipped", setIndex, RSDDataset->setID, RSDDataset->setSize, RSDDataset->setSNPs, RSDDataset->setRegionLength);
+				fprintf(RAiSD_Info_FP, "\n%d: Set %s | sites %d | snps %d | region %lu - skipped", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength);
 				continue;
 			}
 			RSDPatternPool_resize (RSDPatternPool, RSDDataset->setSamples, RAiSD_Info_FP);
@@ -167,7 +180,7 @@ int main (int argc, char ** argv)
 				// SNP processing
 				while(!poolFull && !setDone) 
 				{
-					setDone = RSDDataset_getNextSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDDataset->setRegionLength, RSDCommandLine->maf, RAiSD_Info_FP);
+					setDone = RSDDataset_getNextSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine, RSDDataset->setRegionLength, RSDCommandLine->maf, RAiSD_Info_FP);
 					poolFull = RSDPatternPool_pushSNP (RSDPatternPool, RSDChunk, RSDDataset->setSamples); 
 				}
 
@@ -184,48 +197,48 @@ int main (int argc, char ** argv)
 			// Dist and Succ
 			if(selectionTarget!=0ull)
 			{
-				MuVar_Accum += DIST (RSDMuStat->muVarMaxLoc, (float)selectionTarget);
+				MuVar_Accum += (double) DIST (RSDMuStat->muVarMaxLoc, (float)selectionTarget);
 				if(selectionTargetDThreshold!=0ull)
 				{
 					if(DIST (RSDMuStat->muVarMaxLoc, (float)selectionTarget)<=selectionTargetDThreshold)
-						MuVar_Success += 1.0f;
+						MuVar_Success += 1.0;
 				}
 
-				MuSfs_Accum += DIST (RSDMuStat->muSfsMaxLoc, (float)selectionTarget);
+				MuSfs_Accum += (double) DIST (RSDMuStat->muSfsMaxLoc, (float)selectionTarget);
 				if(selectionTargetDThreshold!=0ull)
 				{
 					if(DIST (RSDMuStat->muSfsMaxLoc, (float)selectionTarget)<=selectionTargetDThreshold)
-						MuSfs_Success += 1.0f;
+						MuSfs_Success += 1.0;
 				}
 
-				MuLd_Accum += DIST (RSDMuStat->muLdMaxLoc, (float)selectionTarget);
+				MuLd_Accum += (double) DIST (RSDMuStat->muLdMaxLoc, (float)selectionTarget);
 				if(selectionTargetDThreshold!=0ull)
 				{
 					if(DIST (RSDMuStat->muLdMaxLoc, (float)selectionTarget)<=selectionTargetDThreshold)
-						MuLd_Success += 1.0f;
+						MuLd_Success += 1.0;
 				}
 
-				Mu_Accum += DIST (RSDMuStat->muMaxLoc, (float)selectionTarget);
+				Mu_Accum += (double) DIST (RSDMuStat->muMaxLoc, (float)selectionTarget);
 				if(selectionTargetDThreshold!=0ull)
 				{
 					if(DIST (RSDMuStat->muMaxLoc, (float)selectionTarget)<=selectionTargetDThreshold)
-						Mu_Success += 1.0f;
+						Mu_Success += 1.0;
 				}
 			}
 
 			setsProcessedTotal++;
 
-			//fprintf(stdout, "\n%d: Set %s | sites %d | snps %d | region %lu - Var %.0f %.3e | SFS %.0f %.3e | LD %.0f %.3e | MuStat %.0f %.3e", setIndex, RSDDataset->setID, RSDDataset->setSize, RSDDataset->setSNPs, RSDDataset->setRegionLength, RSDMuStat->muVarMaxLoc, RSDMuStat->muVarMax, RSDMuStat->muSfsMaxLoc, RSDMuStat->muSfsMax, RSDMuStat->muLdMaxLoc, RSDMuStat->muLdMax, RSDMuStat->muMaxLoc, RSDMuStat->muMax);
+			fprintf(stdout, "\n %d: Set %s | sites %d | snps %d | region %lu - Var %.0f %.3e | SFS %.0f %.3e | LD %.0f %.3e | MuStat %.0f %.3e", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength, (double)RSDMuStat->muVarMaxLoc, (double)RSDMuStat->muVarMax, (double)RSDMuStat->muSfsMaxLoc, (double)RSDMuStat->muSfsMax, (double)RSDMuStat->muLdMaxLoc, (double)RSDMuStat->muLdMax, (double)RSDMuStat->muMaxLoc, (double)RSDMuStat->muMax);
 
-			fprintf(RAiSD_Info_FP, "\n%d: Set %s | sites %d | snps %d | region %lu - Var %.0f %.3e | SFS %.0f %.3e | LD %.0f %.3e | MuStat %.0f %.3e", setIndex, RSDDataset->setID, RSDDataset->setSize, RSDDataset->setSNPs, RSDDataset->setRegionLength, RSDMuStat->muVarMaxLoc, RSDMuStat->muVarMax, RSDMuStat->muSfsMaxLoc, RSDMuStat->muSfsMax, RSDMuStat->muLdMaxLoc, RSDMuStat->muLdMax, RSDMuStat->muMaxLoc, RSDMuStat->muMax);
+			fprintf(RAiSD_Info_FP, "\n %d: Set %s | sites %d | snps %d | region %lu - Var %.0f %.3e | SFS %.0f %.3e | LD %.0f %.3e | MuStat %.0f %.3e", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength, (double)RSDMuStat->muVarMaxLoc, (double)RSDMuStat->muVarMax, (double)RSDMuStat->muSfsMaxLoc, (double)RSDMuStat->muSfsMax, (double)RSDMuStat->muLdMaxLoc, (double)RSDMuStat->muLdMax, (double)RSDMuStat->muMaxLoc, (double)RSDMuStat->muMax);
 
 			// FPR/TPR
-			if(fpr_loc>0.0f)
+			if(fpr_loc>0.0)
 				scr_svec = putInSortVector(&scr_svec_sz, scr_svec, RSDMuStat->muMax);
 
-			if(tpr_thres>0.0f)
-				if(RSDMuStat->muMax>=tpr_thres)
-					tpr_scr += 1.0f;
+			if(tpr_thres>0.0)
+				if(RSDMuStat->muMax>=(float)tpr_thres)
+					tpr_scr += 1.0;
 
 			if(setIndex == setIndexValid)
 				break;
@@ -234,52 +247,52 @@ int main (int argc, char ** argv)
 	}
 
 	fprintf(stdout, "\n\n");
-	fprintf(stdout, "Sets (total):     %d\n", setIndex+1);
-	fprintf(stdout, "Sets (processed): %d\n", setsProcessedTotal);
-	fprintf(stdout, "Sets (skipped):   %d", setIndex+1-setsProcessedTotal);
+	fprintf(stdout, " Sets (total):     %d\n", setIndex+1);
+	fprintf(stdout, " Sets (processed): %d\n", setsProcessedTotal);
+	fprintf(stdout, " Sets (skipped):   %d", setIndex+1-setsProcessedTotal);
 
 	fprintf(RAiSD_Info_FP, "\n\n");
-	fprintf(RAiSD_Info_FP, "Sets (total):     %d\n", setIndex+1);
-	fprintf(RAiSD_Info_FP, "Sets (processed): %d\n", setsProcessedTotal);
-	fprintf(RAiSD_Info_FP, "Sets (skipped):   %d", setIndex+1-setsProcessedTotal);
+	fprintf(RAiSD_Info_FP, " Sets (total):     %d\n", setIndex+1);
+	fprintf(RAiSD_Info_FP, " Sets (processed): %d\n", setsProcessedTotal);
+	fprintf(RAiSD_Info_FP, " Sets (skipped):   %d", setIndex+1-setsProcessedTotal);
 
 	if(selectionTarget!=0ull)
 	{
 		fprintf(stdout, "\n\n");
-		fprintf(stdout, "AVERAGE DISTANCE (Target %lu)\nmu-VAR\t%.3f\nmu-SFS\t%.3f\nmu-LD\t%.3f\nMuStat\t%.3f", selectionTarget, MuVar_Accum/setsProcessedTotal, MuSfs_Accum/setsProcessedTotal, MuLd_Accum/setsProcessedTotal, Mu_Accum/setsProcessedTotal);
+		fprintf(stdout, " AVERAGE DISTANCE (Target %lu)\nmu-VAR\t%.3f\nmu-SFS\t%.3f\nmu-LD\t%.3f\nMuStat\t%.3f", selectionTarget, MuVar_Accum/setsProcessedTotal, MuSfs_Accum/setsProcessedTotal, MuLd_Accum/setsProcessedTotal, Mu_Accum/setsProcessedTotal);
 
 		if(selectionTargetDThreshold!=0ull)
 		{
 			fprintf(stdout, "\n\n");
-			fprintf(stdout, "SUCCESS RATE (Distance %lu)\nmu-VAR\t%.3f\nmu-SFS\t%.3f\nmu-LD\t%.3f\nMuStat\t%.3f", selectionTargetDThreshold, MuVar_Success/setsProcessedTotal, MuSfs_Success/setsProcessedTotal, MuLd_Success/setsProcessedTotal, Mu_Success/setsProcessedTotal);
+			fprintf(stdout, " SUCCESS RATE (Distance %lu)\nmu-VAR\t%.3f\nmu-SFS\t%.3f\nmu-LD\t%.3f\nMuStat\t%.3f", selectionTargetDThreshold, MuVar_Success/setsProcessedTotal, MuSfs_Success/setsProcessedTotal, MuLd_Success/setsProcessedTotal, Mu_Success/setsProcessedTotal);
 		}
 
 		fprintf(RAiSD_Info_FP, "\n\n");
-		fprintf(RAiSD_Info_FP, "AVERAGE DISTANCE (Target %lu)\nmu-VAR\t%.3f\nmu-SFS\t%.3f\nmu-LD\t%.3f\nMuStat\t%.3f", selectionTarget, MuVar_Accum/setsProcessedTotal, MuSfs_Accum/setsProcessedTotal, MuLd_Accum/setsProcessedTotal, Mu_Accum/setsProcessedTotal);
+		fprintf(RAiSD_Info_FP, " AVERAGE DISTANCE (Target %lu)\nmu-VAR\t%.3f\nmu-SFS\t%.3f\nmu-LD\t%.3f\nMuStat\t%.3f", selectionTarget, MuVar_Accum/setsProcessedTotal, MuSfs_Accum/setsProcessedTotal, MuLd_Accum/setsProcessedTotal, Mu_Accum/setsProcessedTotal);
 
 		if(selectionTargetDThreshold!=0ull)
 		{
 			fprintf(RAiSD_Info_FP, "\n\n");
-			fprintf(RAiSD_Info_FP, "SUCCESS RATE (Distance %lu)\nmu-VAR\t%.3f\nmu-SFS\t%.3f\nmu-LD\t%.3f\nMuStat\t%.3f", selectionTargetDThreshold, MuVar_Success/setsProcessedTotal, MuSfs_Success/setsProcessedTotal, MuLd_Success/setsProcessedTotal, Mu_Success/setsProcessedTotal);
+			fprintf(RAiSD_Info_FP, " SUCCESS RATE (Distance %lu)\nmu-VAR\t%.3f\nmu-SFS\t%.3f\nmu-LD\t%.3f\nMuStat\t%.3f", selectionTargetDThreshold, MuVar_Success/setsProcessedTotal, MuSfs_Success/setsProcessedTotal, MuLd_Success/setsProcessedTotal, Mu_Success/setsProcessedTotal);
 		}
 	}
 
-	if(fpr_loc>0.0f)
+	if(fpr_loc>0.0)
 	{	
 		fprintf(stdout, "\n\n");
-		fprintf(stdout, "SORTED DATA (FPR %f)\nSize\t\t\t%d\nHighest Score\t\t%.9f\nLowest Score\t\t%.9f\nFPR Threshold\t\t%.9f\nThreshold Location\t%d", fpr_loc, scr_svec_sz, scr_svec[0], scr_svec[scr_svec_sz-1], scr_svec[(int)(scr_svec_sz*fpr_loc)], (int)(scr_svec_sz*fpr_loc));
+		fprintf(stdout, " SORTED DATA (FPR %f)\nSize\t\t\t%d\nHighest Score\t\t%.9f\nLowest Score\t\t%.9f\nFPR Threshold\t\t%.9f\nThreshold Location\t%d", fpr_loc, scr_svec_sz, (double)scr_svec[0],(double)scr_svec[scr_svec_sz-1], (double)scr_svec[(int)(scr_svec_sz*fpr_loc)], (int)(scr_svec_sz*fpr_loc));
 
 		fprintf(RAiSD_Info_FP, "\n\n");
-		fprintf(RAiSD_Info_FP, "SORTED DATA (FPR %f)\nSize\t\t\t%d\nHighest Score\t\t%.9f\nLowest Score\t\t%.9f\nFPR Threshold\t\t%.9f\nThreshold Location\t%d", fpr_loc, scr_svec_sz, scr_svec[0], scr_svec[scr_svec_sz-1], scr_svec[(int)(scr_svec_sz*fpr_loc)], (int)(scr_svec_sz*fpr_loc));
+		fprintf(RAiSD_Info_FP, " SORTED DATA (FPR %f)\nSize\t\t\t%d\nHighest Score\t\t%.9f\nLowest Score\t\t%.9f\nFPR Threshold\t\t%.9f\nThreshold Location\t%d", fpr_loc, scr_svec_sz, (double)scr_svec[0], (double)scr_svec[scr_svec_sz-1], (double)scr_svec[(int)(scr_svec_sz*fpr_loc)], (int)(scr_svec_sz*fpr_loc));
 	}
 
-	if(tpr_thres>0.0f)
+	if(tpr_thres>0.0)
 	{
 		fprintf(stdout, "\n\n");
-		fprintf(stdout, "SCORE COUNT (Threshold %f)\nTPR\t%f", tpr_thres, tpr_scr/setsProcessedTotal);
+		fprintf(stdout, " SCORE COUNT (Threshold %f)\nTPR\t%f", tpr_thres, tpr_scr/setsProcessedTotal);
 
 		fprintf(RAiSD_Info_FP, "\n\n");
-		fprintf(RAiSD_Info_FP, "SCORE COUNT (Threshold %f)\nTPR\t%f", tpr_thres, tpr_scr/setsProcessedTotal);
+		fprintf(RAiSD_Info_FP, " SCORE COUNT (Threshold %f)\nTPR\t%f", tpr_thres, tpr_scr/setsProcessedTotal);
 	}
 
 	RSDCommandLine_free(RSDCommandLine);
@@ -291,7 +304,7 @@ int main (int argc, char ** argv)
 	
 	if(scr_svec!=NULL)
 	{
-		MemoryFootprint += sizeof(float)*scr_svec_sz;
+		MemoryFootprint += sizeof(float)*((unsigned long)scr_svec_sz);
 		free(scr_svec);	
 	}
 

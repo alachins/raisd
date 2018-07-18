@@ -40,94 +40,96 @@ RSDPatternPool_t * RSDPatternPool_new(void)
 	return pp;
 }
 
-void RSDPatternPool_free(RSDPatternPool_t * pp, int numberOfSamples)
+void RSDPatternPool_free(RSDPatternPool_t * pp, int64_t numberOfSamples)
 {
 	assert(pp!=NULL);
 
 	MemoryFootprint += (numberOfSamples+1);
 	free(pp->incomingSite);
 
-	MemoryFootprint += sizeof(uint64_t)*pp->patternSize;
+	MemoryFootprint += sizeof(uint64_t)*((unsigned long)pp->patternSize);
 	free(pp->incomingSiteCompact);
 
-	MemoryFootprint += sizeof(uint64_t)*(pp->patternSize*pp->maxSize);
+	MemoryFootprint += sizeof(uint64_t)*((unsigned long)(pp->patternSize*pp->maxSize));
 	free(pp->poolData);
 
-	MemoryFootprint += sizeof(int)*pp->maxSize;
+	MemoryFootprint += sizeof(int)*((unsigned long)pp->maxSize);
 	free(pp->poolDataAlleleCount);
 
-	MemoryFootprint += sizeof(int)*pp->maxSize;
+	MemoryFootprint += sizeof(int)*((unsigned long)pp->maxSize);
 	free(pp->poolDataPatternCount);
 
-	MemoryFootprint += sizeof(uint64_t)*pp->patternSize;
+	MemoryFootprint += sizeof(uint64_t)*((unsigned long)pp->patternSize);
 	free(pp->exchangeBuffer);
 
 	free(pp);	
 }
 
-void RSDPatternPool_init (RSDPatternPool_t * RSDPatternPool, RSDCommandLine_t * RSDCommandLine, int numberOfSamples)
+void RSDPatternPool_init (RSDPatternPool_t * RSDPatternPool, RSDCommandLine_t * RSDCommandLine, int64_t numberOfSamples)
 {
 	assert(RSDCommandLine!=NULL);
 
 	int wordLength = sizeof(uint64_t)*8;
 
-	int wordsPerSNP = numberOfSamples%wordLength==0?numberOfSamples/wordLength:numberOfSamples/wordLength+1;
+	int wordsPerSNP = numberOfSamples%wordLength==0?(int)(numberOfSamples/wordLength):(int)(numberOfSamples/wordLength+1);
 	RSDPatternPool->patternSize = wordsPerSNP;
 
-	float maxSNPsInPool = ((float)(RSDPatternPool->memorySize)*1024.0*1024.0)/((wordsPerSNP*8.0)+(8.0)); // +8 for the allelecount and the patterncount
+	float maxSNPsInPool_num = ((float)RSDPatternPool->memorySize)*1024.0f*1024.0f;
+	float maxSNPsInPool = maxSNPsInPool_num/(wordsPerSNP*8.0f+8.0f); // +8 for the allelecount and the patterncount
 	RSDPatternPool->maxSize = (int) maxSNPsInPool;
 
-	RSDPatternPool->incomingSite = (char*) malloc(sizeof(char)*(numberOfSamples+1));
+	RSDPatternPool->incomingSite = (char*) malloc(sizeof(char)*((unsigned long)(numberOfSamples+1)));
 	assert(RSDPatternPool->incomingSite!=NULL);
 
-	RSDPatternPool->incomingSiteCompact = (uint64_t*) malloc(sizeof(uint64_t)*RSDPatternPool->patternSize);
+	RSDPatternPool->incomingSiteCompact = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
 	assert(RSDPatternPool->incomingSiteCompact!=NULL);
 
-	RSDPatternPool->poolData = (uint64_t*) malloc(sizeof(uint64_t)*(RSDPatternPool->patternSize*RSDPatternPool->maxSize));
+	RSDPatternPool->poolData = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)(RSDPatternPool->patternSize*RSDPatternPool->maxSize)));
 	assert(RSDPatternPool->poolData!=NULL);
 
-	RSDPatternPool->poolDataAlleleCount = (int*) malloc(sizeof(int)*RSDPatternPool->maxSize);
+	RSDPatternPool->poolDataAlleleCount = (int*) malloc(sizeof(int)*((unsigned long)RSDPatternPool->maxSize));
 	assert(RSDPatternPool->poolDataAlleleCount!=NULL);
 
-	RSDPatternPool->poolDataPatternCount = (int*) malloc(sizeof(int)*RSDPatternPool->maxSize);
+	RSDPatternPool->poolDataPatternCount = (int*) malloc(sizeof(int)*((unsigned long)RSDPatternPool->maxSize));
 	assert(RSDPatternPool->poolDataPatternCount!=NULL);
 
-	RSDPatternPool->exchangeBuffer = (uint64_t*) malloc(sizeof(uint64_t)*RSDPatternPool->patternSize);
+	RSDPatternPool->exchangeBuffer = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
 	assert(RSDPatternPool->exchangeBuffer!=NULL);
 }
 
-void RSDPatternPool_resize (RSDPatternPool_t * RSDPatternPool, int setSamples, FILE * fpOut)
+void RSDPatternPool_resize (RSDPatternPool_t * RSDPatternPool, int64_t setSamples, FILE * fpOut)
 {
-	if(setSamples<=(int)(RSDPatternPool->patternSize*sizeof(uint64_t)*8))
+	if(setSamples<=(int)(((unsigned long)RSDPatternPool->patternSize)*sizeof(uint64_t)*8))
 		return;
 	
 	int wordLength = sizeof(uint64_t)*8;
 
-	int wordsPerSNP = setSamples%wordLength==0?setSamples/wordLength:setSamples/wordLength+1;
+	int wordsPerSNP = setSamples%wordLength==0?(int)(setSamples/wordLength):(int)(setSamples/wordLength+1);
 	RSDPatternPool->patternSize = wordsPerSNP;
 
-	float maxSNPsInPool = ((float)(RSDPatternPool->memorySize)*1024.0*1024.0)/((wordsPerSNP*8.0)+(8.0)); // +8 for the allelecount and the patterncount
+	float maxSNPsInPool_num = ((float)RSDPatternPool->memorySize)*1024.0f*1024.0f;
+	float maxSNPsInPool = maxSNPsInPool_num/(wordsPerSNP*8.0f+8.0f); // +8 for the allelecount and the patterncount
 	RSDPatternPool->maxSize = (int) maxSNPsInPool;
 
-	RSDPatternPool->incomingSiteCompact = (uint64_t*) malloc(sizeof(uint64_t)*RSDPatternPool->patternSize);
+	RSDPatternPool->incomingSiteCompact = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
 	assert(RSDPatternPool->incomingSiteCompact!=NULL);
 
-	RSDPatternPool->poolData = (uint64_t*) malloc(sizeof(uint64_t)*(RSDPatternPool->patternSize*RSDPatternPool->maxSize));
+	RSDPatternPool->poolData = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)(RSDPatternPool->patternSize*RSDPatternPool->maxSize)));
 	assert(RSDPatternPool->poolData!=NULL);
 
-	RSDPatternPool->exchangeBuffer = (uint64_t*) malloc(sizeof(uint64_t)*RSDPatternPool->patternSize);
+	RSDPatternPool->exchangeBuffer = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
 	assert(RSDPatternPool->exchangeBuffer!=NULL);
 
-	fprintf(fpOut, "The pattern structure has been resized to %d patterns (max. capacity) and approx. %d MB memory footprint.\n", RSDPatternPool->maxSize, RSDPatternPool->memorySize);	
+	fprintf(fpOut, " The pattern structure has been resized to %d patterns (max. capacity) and approx. %d MB memory footprint.\n", RSDPatternPool->maxSize, RSDPatternPool->memorySize);	
 	fflush(fpOut);	
 
-	fprintf(stdout, "The pattern structure has been resized to %d patterns (max. capacity) and approx. %d MB memory footprint.\n", RSDPatternPool->maxSize, RSDPatternPool->memorySize);	
+	fprintf(stdout, " The pattern structure has been resized to %d patterns (max. capacity) and approx. %d MB memory footprint.\n", RSDPatternPool->maxSize, RSDPatternPool->memorySize);	
 	fflush(stdout);
 }
 
 void RSDPatternPool_print(RSDPatternPool_t * RSDPatternPool, FILE * fpOut)
 {
-	fprintf(fpOut, "\nA pattern structure of %d patterns (max. capacity) and approx. %d MB memory footprint has been created.\n", RSDPatternPool->maxSize, RSDPatternPool->memorySize);	
+	fprintf(fpOut, "\n A pattern structure of %d patterns (max. capacity) and approx. %d MB memory footprint has been created.\n", RSDPatternPool->maxSize, RSDPatternPool->memorySize);	
 	fflush(fpOut);
 }
 
@@ -136,21 +138,21 @@ void RSDPatternPool_exhangePatterns (RSDPatternPool_t * RSDPatternPool, int pID_
 	if(pID_a==pID_b)
 		return;
 
-	memcpy(RSDPatternPool->exchangeBuffer, &(RSDPatternPool->poolData[pID_a*RSDPatternPool->patternSize]), RSDPatternPool->patternSize*8);
+	memcpy(RSDPatternPool->exchangeBuffer, &(RSDPatternPool->poolData[pID_a*RSDPatternPool->patternSize]), (unsigned long)(RSDPatternPool->patternSize*8));
 	int alleleCount =  RSDPatternPool->poolDataAlleleCount[pID_a];
-	int patternCount =  0;//RSDPatternPool->poolDataPatternCount[pID_a]; // Not copying the patterncount because it changes per chunk
+	int patternCount =  0; //RSDPatternPool->poolDataPatternCount[pID_a]; // Not copying the patterncount because it changes per chunk
  
-	memcpy(&(RSDPatternPool->poolData[pID_a*RSDPatternPool->patternSize]), &(RSDPatternPool->poolData[pID_b*RSDPatternPool->patternSize]), RSDPatternPool->patternSize*8);
+	memcpy(&(RSDPatternPool->poolData[pID_a*RSDPatternPool->patternSize]), &(RSDPatternPool->poolData[pID_b*RSDPatternPool->patternSize]), (unsigned long)(RSDPatternPool->patternSize*8));
 	RSDPatternPool->poolDataAlleleCount[pID_a] = RSDPatternPool->poolDataAlleleCount[pID_b];
-	RSDPatternPool->poolDataPatternCount[pID_a] = 0;//RSDPatternPool->poolDataPatternCount[pID_b];
+	RSDPatternPool->poolDataPatternCount[pID_a] = 0; //RSDPatternPool->poolDataPatternCount[pID_b];
 
-	memcpy(&(RSDPatternPool->poolData[pID_b*RSDPatternPool->patternSize]), RSDPatternPool->exchangeBuffer, RSDPatternPool->patternSize*8);
+	memcpy(&(RSDPatternPool->poolData[pID_b*RSDPatternPool->patternSize]), RSDPatternPool->exchangeBuffer, (unsigned long)(RSDPatternPool->patternSize*8));
 	RSDPatternPool->poolDataAlleleCount[pID_b] = alleleCount;
 	RSDPatternPool->poolDataPatternCount[pID_b] = patternCount;
 
 }
 
-void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int numberOfSamples, int setSamples, RSDChunk_t * RSDChunk)
+void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSamples, int64_t setSamples, RSDChunk_t * RSDChunk)
 {
 	int i;
 
@@ -251,9 +253,9 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int numberOfSample
 
 }
 
-int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, int numberOfSamples)
+int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, int64_t numberOfSamples)
 {
-	if(RSDPatternPool->incomingSitePosition==-1.0)
+	if(RSDPatternPool->incomingSitePosition<=-1.0)
 		return 0;
 
 	int i, j, lcnt=0, acnt=0;
@@ -269,7 +271,7 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 		if(RSDPatternPool->incomingSite[j]!='0') // ambiguous
 			RSDPatternPool->incomingSite[j] = '1';
 
-		uint8_t b = RSDPatternPool->incomingSite[j]-48;
+		uint8_t b = (uint8_t)(RSDPatternPool->incomingSite[j]-48);
 		RSDPatternPool->incomingSiteCompact[i] = (RSDPatternPool->incomingSiteCompact[i]<<1) | b;
 	
 		lcnt++;
@@ -291,7 +293,7 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 	i = 0;
 	if(RSDPatternPool->dataSize==0)
 	{
-		memcpy(&(RSDPatternPool->poolData[i]), RSDPatternPool->incomingSiteCompact, RSDPatternPool->patternSize*8);
+		memcpy(&(RSDPatternPool->poolData[i]), RSDPatternPool->incomingSiteCompact, (unsigned long)(RSDPatternPool->patternSize*8));
 		RSDPatternPool->poolDataAlleleCount[i] =  RSDPatternPool->incomingSiteDerivedAlleleCount;
 		RSDPatternPool->poolDataPatternCount[i] = 1;
 		RSDPatternPool->dataSize++;
@@ -321,7 +323,7 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 		}
 		else
 		{	
-			memcpy(&(RSDPatternPool->poolData[i*RSDPatternPool->patternSize]), RSDPatternPool->incomingSiteCompact, RSDPatternPool->patternSize*8);
+			memcpy(&(RSDPatternPool->poolData[i*RSDPatternPool->patternSize]), RSDPatternPool->incomingSiteCompact, (unsigned long)(RSDPatternPool->patternSize*8));
 			RSDPatternPool->poolDataAlleleCount[i] =  RSDPatternPool->incomingSiteDerivedAlleleCount;
 			RSDPatternPool->poolDataPatternCount[i] = 1;
 			RSDPatternPool->dataSize++;
@@ -333,9 +335,9 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 	if(RSDChunk->chunkSize>RSDChunk->chunkMemSize)
 	{
 		RSDChunk->chunkMemSize += CHUNK_MEMSIZE_AND_INCREMENT;
-		RSDChunk->sitePosition = realloc(RSDChunk->sitePosition, sizeof(float)*RSDChunk->chunkMemSize);
-		RSDChunk->derivedAlleleCount = realloc(RSDChunk->derivedAlleleCount, sizeof(int)*RSDChunk->chunkMemSize);
-		RSDChunk->patternID = realloc(RSDChunk->patternID, sizeof(int)*RSDChunk->chunkMemSize);
+		RSDChunk->sitePosition = realloc(RSDChunk->sitePosition, sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
+		RSDChunk->derivedAlleleCount = realloc(RSDChunk->derivedAlleleCount, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
+		RSDChunk->patternID = realloc(RSDChunk->patternID, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
 	}
 
 	RSDChunk->sitePosition[RSDChunk->chunkSize-1] = (float) RSDPatternPool->incomingSitePosition;
@@ -352,4 +354,29 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 		poolFull = 1;
 
 	return poolFull;
+}
+
+void RSDPatternPool_imputeIncomingSite (RSDPatternPool_t * RSDPatternPool, int64_t setSamples)
+{
+	double prob1 = ((double)RSDPatternPool->incomingSiteDerivedAlleleCount)/((double)RSDPatternPool->incomingSiteTotalAlleleCount);
+	int64_t i;
+	for(i=0;i<setSamples;i++)
+	{
+		if(RSDPatternPool->incomingSite[i]=='N')
+		{
+			int val = rand();
+			double rval = ((double)val) / ((double)RAND_MAX);
+			if(rval<prob1)
+			{
+				RSDPatternPool->incomingSite[i] = '1';
+				RSDPatternPool->incomingSiteDerivedAlleleCount++;
+				RSDPatternPool->incomingSiteTotalAlleleCount++;	
+			}
+			else
+			{
+				RSDPatternPool->incomingSite[i] = '0';
+				RSDPatternPool->incomingSiteTotalAlleleCount++;
+			}
+		}		
+	}
 }

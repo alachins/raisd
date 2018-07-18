@@ -41,27 +41,27 @@ RSDChunk_t * RSDChunk_new(void)
 	return ch;
 }
 
-void RSDChunk_free(RSDChunk_t * ch, int numberOfSamples)
+void RSDChunk_free(RSDChunk_t * ch, int64_t numberOfSamples)
 {
 	assert(ch!=NULL);
 
 	if(numberOfSamples!=-1)
-		MemoryFootprint += sizeof(fpos_t)*numberOfSamples;
+		MemoryFootprint += sizeof(fpos_t)*((unsigned long)numberOfSamples);
 	
 	if(ch->seqPosition!=NULL)
 		free(ch->seqPosition);
 
-	MemoryFootprint += sizeof(float)*ch->chunkMemSize;
+	MemoryFootprint += sizeof(float)*((unsigned long)ch->chunkMemSize);
 
 	if(ch->sitePosition!=NULL)
 		free(ch->sitePosition);
 
-	MemoryFootprint += sizeof(int)*ch->chunkMemSize;
+	MemoryFootprint += sizeof(int)*((unsigned long)ch->chunkMemSize);
 	
 	if(ch->derivedAlleleCount!=NULL)
 		free(ch->derivedAlleleCount);
 
-	MemoryFootprint += sizeof(int)*ch->chunkMemSize;
+	MemoryFootprint += sizeof(int)*((unsigned long)ch->chunkMemSize);
 
 	if(ch->patternID!=NULL)
 		free(ch->patternID);
@@ -69,18 +69,18 @@ void RSDChunk_free(RSDChunk_t * ch, int numberOfSamples)
 	free(ch);
 }
 
-void RSDChunk_init(RSDChunk_t * RSDChunk, int numberOfSamples)
+void RSDChunk_init(RSDChunk_t * RSDChunk, int64_t numberOfSamples)
 {
-	RSDChunk->seqPosition = (fpos_t*)malloc(sizeof(fpos_t)*numberOfSamples);
+	RSDChunk->seqPosition = (fpos_t*)malloc(sizeof(fpos_t)*((unsigned long)numberOfSamples));
 	assert(RSDChunk->seqPosition!=NULL);
 
-	RSDChunk->sitePosition = (float*)malloc(sizeof(float)*RSDChunk->chunkMemSize);
+	RSDChunk->sitePosition = (float*)malloc(sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
 	assert(RSDChunk->sitePosition != NULL);
 
-	RSDChunk->derivedAlleleCount = (int*)malloc(sizeof(int)*RSDChunk->chunkMemSize);
+	RSDChunk->derivedAlleleCount = (int*)malloc(sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
 	assert(RSDChunk->derivedAlleleCount != NULL);
 
-	RSDChunk->patternID = (int*)malloc(sizeof(int)*RSDChunk->chunkMemSize);
+	RSDChunk->patternID = (int*)malloc(sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
 	assert(RSDChunk->patternID != NULL);
 
 	RSDChunk->derAll1CntTotal = 0;
@@ -109,7 +109,7 @@ void RSDChunk_reset(RSDChunk_t * RSDChunk)
 		if(RSDChunk->chunkSize <= WINDOW_SIZE)
 			return;
 
-		int i_offset = RSDChunk->chunkSize - WINDOW_SIZE + 1;
+		int64_t i_offset = RSDChunk->chunkSize - WINDOW_SIZE + 1;
 		assert(i_offset>=0);
 
 		RSDChunk->chunkSize = WINDOW_SIZE - 1;

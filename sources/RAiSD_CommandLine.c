@@ -23,7 +23,7 @@
 
 void RSDHelp (FILE * fp)
 {
-	fprintf(fp, "This is RAiSD version 1.2, released in April 2018.\n\n");
+	fprintf(fp, " This is RAiSD version 1.3, released in July 2018.\n\n");
 
 	fprintf(fp, " RAiSD");
 
@@ -32,6 +32,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t -I STRING\n");
 	fprintf(fp, "\t[-L INTEGER]\n");
 	fprintf(fp, "\t[-h]\n");
+	fprintf(fp, "\t[-v]\n");
 	fprintf(fp, "\t[-f]\n");
 	fprintf(fp, "\t[-s]\n");
 	fprintf(fp, "\t[-t]\n");
@@ -43,13 +44,15 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t[-l FLOATING-POINT]\n");
 	fprintf(fp, "\t[-m FLOATING-POINT]\n");
 	fprintf(fp, "\t[-b]\n");
-	//fprintf(fp, "\t[-i INTEGER]")
+	fprintf(fp, "\t[-i]\n");
+	fprintf(fp, "\t[-a INTEGER]\n");
 
 	fprintf(fp, "\n");	
 	fprintf(fp, " -n\tProvides a unique run ID that is used to name the output files, i.e., the info file and the report(s).\n");
 	fprintf(fp, " -I\tProvides the path to the input file, which can be either in ms or in vcf format.\n");
 	fprintf(fp, " -L\tProvides the size of the region in basepairs for ms files. If known, it can be used for vcf as well, leading to faster processing.\n");
 	fprintf(fp, " -h\tPrints this help message.\n");
+	fprintf(fp, " -v\tPrints version information.\n");
 	fprintf(fp, " -f\tOverwrites existing run files under the same run ID.\n");
 	fprintf(fp, " -s\tGenerates a separate report file per set.\n");
 	fprintf(fp, " -t\tRemoves the set separator symbol from the report(s).\n");
@@ -60,10 +63,26 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, " -k\tProvides the false positive rate (e.g., 0.05) to report the corresponding reported score after sorting the reported locations for all the datasets in the input file.\n");
 	fprintf(fp, " -l\tProvides the threshold score, reported by a previous run using a false positive rate (e.g., 0.05, via -k) to report the true positive rate.\n");
 	fprintf(fp, " -m\tProvides the threshold value for excluding SNPs with minor allele frequency < threshold (0.0-1.0).\n");
-	fprintf(fp, " -b\tSpecifies that the input file is in mbs format.\n\n");
-	//fprintf(fp, " -i\tProvides the index of set of SNPs in the input file to process (supported only with ms).\n");	
+	fprintf(fp, " -b\tIndicates that the input file is in mbs format.\n");
+	fprintf(fp, " -i\tImputes missing data per SNP (The default operation is to discard the SNP).\n");
+	fprintf(fp, " -a\tProvides a seed for the random number generator.\n");
+
 
 	fprintf(fp, "\n");
+}
+
+void RSDVersions(FILE * fp)
+{
+	int releaseIndex = 0;
+	int majorIndex = 1;
+	int minorIndex = 0;
+
+	fprintf(fp, " %d. RAiSD v%d.%d (Jun  9, 2017): first release\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Mar  7, 2018): MAF threshold option\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Mar 28, 2018): mbs format with -b\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Jul 18, 2018): -i to impute N per SNP, -a for rand seed\n", releaseIndex++, majorIndex, minorIndex++);
+
+	majorIndex++;
 }
 
 RSDCommandLine_t * RSDCommandLine_new(void)
@@ -91,6 +110,8 @@ void RSDCommandLine_init(RSDCommandLine_t * RSDCommandLine)
 	RSDCommandLine->printSampleList = 0;
 	RSDCommandLine->maf = 0.0;
 	strncpy(RSDCommandLine->sampleFileName, "\0", STRING_SIZE);
+	RSDCommandLine->mbs = 0;
+	RSDCommandLine->imputePerSNP = 0;
 }
 
 void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** argv)
@@ -142,7 +163,10 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 		if(!strcmp(argv[i], "-L")) 
 		{ 
 			if (i!=argc-1)
-				RSDCommandLine->regionLength = (uint64_t)atof(argv[++i]);
+			{
+				double len = atof(argv[++i]);
+				RSDCommandLine->regionLength = (uint64_t) len;
+			}
 			else
 			{
 				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
@@ -156,6 +180,12 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 		{ 
 			RSD_header(stdout);
 			RSDHelp(stdout);
+			exit(0);
+		}
+
+		if(!strcmp(argv[i], "-v")) // version information
+		{ 
+			RSDVersions(stdout);
 			exit(0);
 		}
 
@@ -202,7 +232,7 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 				RSDCommandLine->maf = (double)atof(argv[++i]);
 				if(RSDCommandLine->maf<0.0 || RSDCommandLine->maf>1.0)
 				{
-					fprintf(stderr, "\n ERROR: Invalid MAF value (valid: 0.0-1.0)\n\n");
+					fprintf(stderr, "\nERROR: Invalid MAF value (valid: 0.0-1.0)\n\n");
 					exit(0);
 				}
 			}
@@ -221,14 +251,39 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 			continue;
 		}		
 		
+		if(!strcmp(argv[i], "-i")) // To impute N per SNP
+		{ 
+			RSDCommandLine->imputePerSNP = 1;
+			continue;
+		}
+
+		if(!strcmp(argv[i], "-a")) 
+		{ 
+			if (i!=argc-1)
+			{
+				int seed = atoi(argv[++i]);
+				srand((unsigned int)seed);
+			}
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
+
+			continue;
+		}
+
 		/* Testing */
 		if(!strcmp(argv[i], "-T")) 
 		{ 
 			if (i!=argc-1)
-				selectionTarget = (uint64_t)atof(argv[++i]);
+			{
+				double tar = atof(argv[++i]);
+				selectionTarget = (uint64_t)tar;
+			}			
 			else
 			{
-				fprintf(stderr, "ERROR: Missing argument after %s\n\n",argv[i]);
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
 				exit(0);	
 			}
 
@@ -238,10 +293,13 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 		if(!strcmp(argv[i], "-d")) 
 		{ 
 			if (i!=argc-1)
-				selectionTargetDThreshold = (uint64_t)atof(argv[++i]);
+			{
+				double dist = atof(argv[++i]);
+				selectionTargetDThreshold = (uint64_t)dist;
+			}
 			else
 			{
-				fprintf(stderr, "ERROR: Missing argument after %s\n\n",argv[i]);
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
 				exit(0);	
 			}
 
@@ -254,7 +312,7 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 				fpr_loc = (double)atof(argv[++i]);
 			else
 			{
-				fprintf(stderr, "ERROR: Missing argument after %s\n\n",argv[i]);
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
 				exit(0);	
 			}
 
@@ -267,7 +325,7 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 				tpr_thres = (double)atof(argv[++i]);
 			else
 			{
-				fprintf(stderr, "ERROR: Missing argument after %s\n\n",argv[i]);
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
 				exit(0);	
 			}
 
@@ -286,7 +344,7 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 			continue;
 		}*/
 
-		fprintf(stderr, "ERROR: Unrecognized input parameter %s\n\n",argv[i]);
+		fprintf(stderr, "\nERROR: Unrecognized input parameter %s\n\n",argv[i]);
 		exit(0);
 	}
 
@@ -306,12 +364,12 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 	}
 	if(!strcmp(RSDCommandLine->runName, "\0"))
 	{
-		fprintf(stderr, "ERROR: Missing required input parameter -n\n\n");
+		fprintf(stderr, "\nERROR: Missing required input parameter -n\n\n");
 		exit(0);	
 	}
 	if(!strcmp(RSDCommandLine->inputFileName, "\0"))
 	{
-		fprintf(stderr, "ERROR: Missing required input parameter -I\n\n");
+		fprintf(stderr, "\nERROR: Missing required input parameter -I\n\n");
 		exit(0);	
 	}
 	else
@@ -320,18 +378,11 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 		assert(inputFileExists!=NULL);
 		fclose(inputFileExists);
 	}
-	
-	// The following check has been moved after dataset type definition.
-	//if(RSDCommandLine->regionLength==0ull)
-	//{
-	//	fprintf(stderr, "ERROR: Missing required input parameter -L\n\n");
-	//	exit(0);
-	//}
 }
 
 void RSDCommandLine_print(int argc, char ** argv, FILE * fpOut)
 {
-	fprintf(fpOut, "Command: ");
+	fprintf(fpOut, " Command: ");
 	int i;
 	for(i=0; i<argc; ++i)
 	{
