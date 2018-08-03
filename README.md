@@ -1,5 +1,5 @@
 
-RAiSD: Software for selective sweep detection
+RAiSD (Raised Accuracy in Sweep Detection): A software tool for selective sweep detection
 ===============================================
 
 Authors: Nikolaos Alachiotis (n.alachiotis@gmail.com), Pavlos Pavlidis (pavlidisp@gmail.com)
