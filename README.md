@@ -205,6 +205,10 @@ Processing only a subset of the samples in a VCF file is possible with the use o
 
 The optional parameters -T, -d, -k, and -l are used for evaluation purposes and are discussed in detail below.
 
+Missing Data Strategies
+-----------------------
+
+
 Evaluating Accuracy
 -------------------
 RAiSD provides a series of parameters that facilitate measuring performance when simulated datasets are analyzed. Given a simulated dataset, e.g., in ms format, that comprises several sets of SNPs, the -T parameter can be used in order to direct RAiSD to report accuracy, defined as the average distance between a known sweep location (provided via -T and the reported best-score locations). 
