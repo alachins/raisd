@@ -207,7 +207,12 @@ The optional parameters -T, -d, -k, and -l are used for evaluation purposes and 
 
 Missing Data Strategies
 -----------------------
+RAiSD provides four different ways to handle missing data, which can be selected using the -M parameter followed by the strategy number, i.e., 0, 1, 2, 3, as shown below.
 
+Strategy 0: 
+Strategy 1:
+2:
+3:
 
 Evaluating Accuracy
 -------------------
