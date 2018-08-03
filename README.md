@@ -207,13 +207,12 @@ The optional parameters -T, -d, -k, and -l are used for evaluation purposes and 
 
 Missing Data Strategies
 -----------------------
-RAiSD provides four different strategies to handle missing data, using the -M parameter followed by the strategy number. 
+RAiSD provides four different strategies to handle missing data, using the -M parameter followed by the strategy number.
 
-Strategy 0: Discards all SNPs with missing data (default)\\
-Strategy 1: Imputes N per SNP.//
-Strategy 2: Creates a mask for valid alleles and treats N as a third state. \n
-
-Strategy 3: Creates a mask for valid alleles and ignores allele pairs with N in the pattern-matching step.
+    0: Discards all SNPs with missing data (default)
+    1: Imputes N per SNP   
+    2: Creates a mask for valid alleles and treats N as a third state 
+    3: Creates a mask for valid alleles and ignores allele pairs with N in the pattern-matching step
 
 Evaluating Accuracy
 -------------------
