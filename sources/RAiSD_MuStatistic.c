@@ -21,10 +21,13 @@
 
 #include "RAiSD.h"
 
-float 	getPatternCounts 	(int * pCntVec, int offset, int * patternID, int p0, int p1, int p2, int p3, int * pcntl, int * pcntr, int * pcntexll, int * pcntexlr);
-float 	getCrossLD 		(RSDPatternPool_t * pp, int p0, int p1, int p2, int p3, int samples);
-float 	getRegionLD 		(RSDPatternPool_t * pp, int p0, int p1, int samples);
-float 	pwLD 			(RSDPatternPool_t * pp, int p1, int p2, int samples);
+float 	getPatternCounts 		(int * pCntVec, int offset, int * patternID, int p0, int p1, int p2, int p3, int * pcntl, int * pcntr, int * pcntexll, int * pcntexlr);
+float 	getCrossLD 			(RSDPatternPool_t * pp, int p0, int p1, int p2, int p3, int samples);
+float 	getRegionLD 			(RSDPatternPool_t * pp, int p0, int p1, int samples);
+float 	pwLD 				(RSDPatternPool_t * pp, int p1, int p2, int samples);
+void	(*RSDMuStat_scanChunk) 		(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
+void 	RSDMuStat_scanChunkBinary	(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
+void 	RSDMuStat_scanChunkWithMask	(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
 
 RSDMuStat_t * RSDMuStat_new (void)
 {
@@ -32,6 +35,8 @@ RSDMuStat_t * RSDMuStat_new (void)
 
 	mu = (RSDMuStat_t *)malloc(sizeof(RSDMuStat_t));
 	assert(mu!=NULL);
+
+	mu->reportFP = NULL;
 	
 	mu->windowSize = WINDOW_SIZE;
 	
@@ -84,6 +89,12 @@ void RSDMuStat_init (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine)
 		RSDMuStat->pCntVec = (int *)malloc(sizeof(int)*((unsigned long)(RSDMuStat->windowSize*4)));
 		assert(RSDMuStat->pCntVec!=NULL);
 	}
+
+	if(RSDCommandLine->createPatternPoolMask==1)
+		RSDMuStat_scanChunk = &RSDMuStat_scanChunkWithMask;
+	else
+		RSDMuStat_scanChunk = &RSDMuStat_scanChunkBinary;
+	
 }
 
 void RSDMuStat_setReportName (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine, FILE * fpOut)
@@ -198,7 +209,6 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 	list_left_cnt[0] = 1;
 	list_left_size++;
 
-
 	// Left subwindow
 	for(i=p0+1;i<=p1;i++)
 	{
@@ -221,9 +231,7 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 		}
 	}
 		
-	*pcntl = list_left_size; // number of patterns in left sudwindow
-
-	//float ldl = getRegionLD (RSDPatternPool, patternID, p0, p1, samples);
+	*pcntl = list_left_size; 
 
 	int checksum = 0;
 	for(i=0;i<list_left_size;i++)
@@ -261,116 +269,6 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 		
 	*pcntr = list_right_size;
 
-	int excl_pat_left_total = 0;
-	int * excl_pat_left = (int *) malloc(sizeof(int)*WINDOW_SIZE);
-	int * excl_pat_left_cnt = (int *) malloc(sizeof(int)*WINDOW_SIZE);
-	int excl_pat_rght_total = 0;
-	int * excl_pat_rght = (int *) malloc(sizeof(int)*WINDOW_SIZE);
-	int * excl_pat_rght_cnt = (int *) malloc(sizeof(int)*WINDOW_SIZE);
-	int shared_pat_total = 0;
-	int * shared_pat = (int *) malloc(sizeof(int)*WINDOW_SIZE);
-	int * shared_pat_cnt = (int *) malloc(sizeof(int)*WINDOW_SIZE);
-
-	for(i=0;i<WINDOW_SIZE;i++)
-	{
-		excl_pat_left[i] = 0;
-		excl_pat_left_cnt [i] = 0;
-		excl_pat_rght[i] = 0;
-		excl_pat_rght_cnt [i] = 0;
-		shared_pat[i] = 0;
-		shared_pat_cnt [i] = 0;
-	}
-
-	int max_cnt_of_excl_snps_for_one_excl_pat = 0;
-	for(i=0;i<list_left_size;i++)
-	{
-		int match = 0;
-		for(j=0;j<list_right_size;j++)
-		{
-			if(list_left[i] == list_right[j])
-			{
-				match = 1;
-				j = list_right_size;
-			}
-		}
-		if(match==0)
-		{
-			excl_pat_left [excl_pat_left_total] = list_left[i];
-			excl_pat_left_cnt [excl_pat_left_total++] = list_left_cnt[i];
-
-			if(list_left_cnt[i]>=max_cnt_of_excl_snps_for_one_excl_pat)
-				max_cnt_of_excl_snps_for_one_excl_pat = list_left_cnt[i];
-		}
-	}
-
-
-	int max_cnt_of_excl_snps_for_one_excl_pat_rght = 0;
-	for(i=0;i<list_right_size;i++)
-	{
-		int match = 0;
-		for(j=0;j<list_left_size;j++)
-		{
-			if(list_left[j] == list_right[i])
-			{
-				match = 1;
-				j = list_left_size;
-			}
-		}
-		if(match==0)
-		{
-			excl_pat_rght [excl_pat_rght_total] = list_right[i];
-			excl_pat_rght_cnt [excl_pat_rght_total++] = list_right_cnt[i];
-
-			if(list_right_cnt[i]>=max_cnt_of_excl_snps_for_one_excl_pat_rght)
-				max_cnt_of_excl_snps_for_one_excl_pat_rght = list_right_cnt[i];
-		}
-	}
-
-
-	int max_cnt_of_shared_snps_for_one_shared_pat = 0;
-	for(i=0;i<list_left_size;i++)
-	{
-		for(j=0;j<list_right_size;j++)
-		{
-			if(list_left[i] == list_right[j])
-			{
-				shared_pat [shared_pat_total] = list_left[i];
-				shared_pat_cnt [shared_pat_total++] = list_left_cnt[i] + list_right_cnt[i] ;
-
-				if(list_left_cnt[i] + list_right_cnt[j] >=max_cnt_of_shared_snps_for_one_shared_pat)
-					max_cnt_of_shared_snps_for_one_shared_pat = list_left_cnt[i] + list_right_cnt[j];
-				
-				j = list_right_size;
-			}
-		}
-	}
-
-	float tempTest = 0.0f;
-	
-	tempTest = ((float)max_cnt_of_excl_snps_for_one_excl_pat * (float)max_cnt_of_excl_snps_for_one_excl_pat_rght);
-
-	free(excl_pat_left);
-	free(excl_pat_left_cnt);
-	free(excl_pat_rght);
-	free(excl_pat_rght_cnt);
-	free(shared_pat);
-	free(shared_pat_cnt);
-
-	checksum = 0;
-	for(i=0;i<list_right_size;i++)
-		checksum += list_right_cnt[i];
-
-	assert(checksum==p3-p2+1);
-
-
-	//int * list_left_backup = (int *) malloc(sizeof(int)*list_left_size);
-	//for(i=0;i<list_left_size;i++)
-	//	list_left_backup [i] = list_left[i];
-
-	//int * list_right_backup = (int *) malloc(sizeof(int)*list_right_size);
-	//for(i=0;i<list_right_size;i++)
-	//	list_right_backup [i] = list_right[i];
-	
 
 	int excl_left = list_left_size;
 	for(i=0;i<list_left_size;i++)
@@ -380,12 +278,10 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 			if(list_left[i] == list_right[j])
 			{
 				excl_left--;
-				//list_left_backup [i] = -1;
 			}
 		}
 	}
 	*pcntexll = excl_left;
-	assert(excl_pat_left_total==excl_left);
 
 	int excl_right = list_right_size;
 	for(i=0;i<list_right_size;i++)
@@ -395,12 +291,10 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 			if(list_right[i] == list_left[j])
 			{
 				excl_right--;
-				//list_right_backup [i] = -1;
 			}
 		}
 	}
 	*pcntexlr = excl_right;
-	assert(excl_pat_rght_total==excl_right);
 	assert(list_left_size - excl_left == list_right_size - excl_right);
 
 
@@ -426,7 +320,7 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 		}
 	}
 	*pcntexll = (*pcntexll) * excntsnpsl;
-	//*exsnpcntleft = excntsnpsl;
+
 	int excntsnpsr = 0;
 	for(i=p2+1;i<=p3;i++)
 	{
@@ -445,18 +339,10 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 		{
 			excntsnpsr++;
 		}
-	}/* */
-	//*exsnpcntright = excntsnpsr;
+	}
 	*pcntexlr = (*pcntexlr) * excntsnpsr;
 
-
-
-
-	return tempTest;
-
-
-
-
+	return 0;//tempTest;
 }
 
 #ifdef _HW
@@ -883,7 +769,7 @@ void RSDMuStat_scanChunk (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPat
 
 }
 #else
-void RSDMuStat_scanChunk (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
+void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
 {
 	assert(RSDCommandLine!=NULL);
 	assert(RSDPatternPool!=NULL);
@@ -952,6 +838,152 @@ void RSDMuStat_scanChunk (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPat
 		muLd = tempTest;
 
 		if(pcntexll + pcntexlr==0) // TODO
+		{
+			muLd = 0.000001f;
+		}
+		else
+		{
+			muLd = (((float)pcntexll)+((float)pcntexlr)) / ((float)(pcntl * pcntr));
+		}
+
+
+		// Mu
+		mu =  muVar * muSfs * muLd;
+
+		// MuVar Max
+		if (muVar > RSDMuStat->muVarMax)
+		{
+			RSDMuStat->muVarMax = muVar;
+			RSDMuStat->muVarMaxLoc = windowCenter;
+		}
+
+		// MuSfs Max
+		if (muSfs > RSDMuStat->muSfsMax)
+		{
+			RSDMuStat->muSfsMax = muSfs;
+			RSDMuStat->muSfsMaxLoc = windowCenter;
+		}
+
+		// MuLd Max
+		if (muLd > RSDMuStat->muLdMax)
+		{
+			RSDMuStat->muLdMax = muLd;
+			RSDMuStat->muLdMaxLoc = windowCenter;
+		}
+
+		// Mu Max
+		if (mu > RSDMuStat->muMax)
+		{
+			RSDMuStat->muMax = mu;
+			RSDMuStat->muMaxLoc = windowCenter;
+		}
+
+		fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)muVar, (double)muSfs, (double)muLd, (double)mu);
+	}
+}
+
+void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
+{
+	assert(RSDCommandLine!=NULL);
+	assert(RSDPatternPool!=NULL);
+
+	int i, size = (int)RSDChunk->chunkSize;
+
+	float windowCenter = 0.0f;
+
+	float muVar = 0.0f;
+	float muSfs = 0.0f;
+	float muLd = 0.0f;
+	float mu = 0.0f;
+
+	// Mu_SFS initialization
+	int dCnt1 = 0, dCntN = 0;
+	for(i=0;i<RSDMuStat->windowSize - 0;i++)
+	{
+		int pID = RSDChunk->patternID[i];
+		
+		if(RSDPatternPool->poolDataWithMissing[pID]==1)
+		{
+			
+			dCnt1 += (RSDPatternPool->poolDataAppliedMaskCount[pID]==1);
+			dCntN += (RSDPatternPool->poolDataAppliedMaskCount[pID]==RSDPatternPool->poolDataMaskCount[pID]-1);
+		}
+		else // This can be ommitted - test more first
+		{
+			dCnt1 += (RSDChunk->derivedAlleleCount[i]==1);
+			dCntN += (RSDChunk->derivedAlleleCount[i]==RSDDataset->setSamples-1);
+
+			
+		}
+	}	
+
+
+
+	for(i=0;i<size-RSDMuStat->windowSize+1;i++)
+	{
+
+		// SNP window range
+		int snpf = i;
+		int snpl = (int)(snpf + RSDMuStat->windowSize - 1);
+
+		int winlsnpf = snpf;
+		int winlsnpl = (int)(winlsnpf + RSDMuStat->windowSize/2 - 1);
+
+		int winrsnpf = winlsnpl + 1;
+		int winrsnpl = snpl;
+		
+		// Window center (bp)
+		windowCenter = (RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0f;
+
+		// Mu_Var
+		muVar = RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf];
+		muVar /= RSDDataset->setRegionLength;
+		muVar /= RSDMuStat->windowSize; 
+
+		// Mu_SFS
+		if(snpf>=1)
+		{
+			int pID = RSDChunk->patternID[snpf-1];
+			
+			if(RSDPatternPool->poolDataWithMissing[pID]==1)
+			{
+				dCnt1 -= (RSDPatternPool->poolDataAppliedMaskCount[pID]==1);
+				dCntN -= (RSDPatternPool->poolDataAppliedMaskCount[pID]==RSDPatternPool->poolDataMaskCount[pID]-1);
+			}
+			else // This can be ommitted - test more first
+			{
+				dCnt1 -= (RSDChunk->derivedAlleleCount[snpf-1]==1);
+				dCntN -= (RSDChunk->derivedAlleleCount[snpf-1]==RSDDataset->setSamples-1);
+			}
+
+			pID = RSDChunk->patternID[snpl];
+
+			if(RSDPatternPool->poolDataWithMissing[pID]==1)
+			{
+				dCnt1 += (RSDPatternPool->poolDataAppliedMaskCount[pID]==1);
+				dCntN += (RSDPatternPool->poolDataAppliedMaskCount[pID]==RSDPatternPool->poolDataMaskCount[pID]-1);
+			}
+			else // This can be ommitted - test more first
+			{
+				dCnt1 += (RSDChunk->derivedAlleleCount[snpl]==1);
+				dCntN += (RSDChunk->derivedAlleleCount[snpl]==RSDDataset->setSamples-1);
+			}
+		}
+		float facN = 1.0;//(float)RSDChunk->derAll1CntTotal/(float)RSDChunk->derAllNCntTotal;
+		muSfs = (float)dCnt1 + (float)dCntN*facN; 
+
+		if(dCnt1+dCntN==0) // Adapt this
+			muSfs = 0.000001f;
+
+		muSfs /= (float)RSDMuStat->windowSize;
+
+		// Mu_Ld
+		int pcntl = 0, pcntr = 0, pcntexll=0, pcntexlr=0;
+		
+		float tempTest = getPatternCounts (RSDMuStat->pCntVec, (int)RSDMuStat->windowSize, RSDChunk->patternID, winlsnpf, winlsnpl, winrsnpf, winrsnpl, &pcntl, &pcntr, &pcntexll, &pcntexlr);
+		muLd = tempTest;
+
+		if(pcntexll + pcntexlr==0) // Adapt this
 		{
 			muLd = 0.000001f;
 		}

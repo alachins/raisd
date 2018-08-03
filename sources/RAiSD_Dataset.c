@@ -1032,7 +1032,7 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 				getGTData_vcf(tstring, gtLoc, data);
 				skipSNP = getGTAlleles_vcf (data, alleleMap, alleleMapSize, data2, &RSDPatternPool->incomingSiteDerivedAlleleCount, &RSDPatternPool->incomingSiteTotalAlleleCount);
 
-				if(skipSNP && RSDCommandLine->imputePerSNP==0)
+				if(skipSNP && RSDCommandLine->imputePerSNP==0 && RSDCommandLine->createPatternPoolMask==0)
 				{
 					//skipline
 					tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
@@ -1042,7 +1042,7 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 					break;
 				}
 
-				if((!skipSNP) || (skipSNP && RSDCommandLine->imputePerSNP==1))
+				if((!skipSNP) || (skipSNP && RSDCommandLine->imputePerSNP==1) || (skipSNP && RSDCommandLine->createPatternPoolMask==1))
 				{
 					sampleSize += strlen(data2);
 
@@ -1070,7 +1070,7 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 		}
 		RSDPatternPool->incomingSite[sampleSize] = '\0';
 
-		if(skipSNP && RSDCommandLine->imputePerSNP==1)
+		if(RSDCommandLine->imputePerSNP==1)
 		{	
 			RSDPatternPool_imputeIncomingSite (RSDPatternPool, RSDDataset->setSamples);
 			assert(RSDPatternPool->incomingSiteTotalAlleleCount==RSDDataset->setSamples);			
@@ -1106,7 +1106,7 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 			free(RSDPatternPool->incomingSite);
 			RSDPatternPool->incomingSite =  NULL;
 			RSDPatternPool->incomingSite = (char*)malloc(sizeof(char)*((unsigned long)(RSDDataset->numberOfSamples+1)));
-			//RSDPatternPool->incomingSite = realloc(RSDPatternPool->incomingSite, sizeof(char)*(RSDDataset->numberOfSamples+1)); // CHECK: this must be the processingsamplesize
+			//RSDPatternPool->incomingSite = realloc(RSDPatternPool->incomingSite, sizeof(char)*(RSDDataset->numberOfSamples+1)); 
 			assert(RSDPatternPool->incomingSite!=NULL);
 		}
 	}

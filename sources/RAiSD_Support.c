@@ -85,8 +85,42 @@ int snpv_cmp (uint64_t * A, uint64_t * B, int size)
 	int i;
 	for(i=0;i!=size;++i)
 		if(A[i]!=B[i])
-		{	return 1;
+		{	
+			return 1;
 		}
+
+	return 0;
+}
+
+int snpv_cmp_cross_masks (uint64_t * A, uint64_t * B, uint64_t * mA, uint64_t * mB, int size)
+{
+	assert(A!=NULL);
+	assert(B!=NULL);
+	assert(size>=1);
+	
+	int i;
+	for(i=0;i!=size;++i)
+		if((A[i]&mB[i])!=(B[i]&mA[i]))
+		{	
+			return 1;
+		}
+
+	return 0;
+}
+
+int isnpv_cmp_cross_masks (uint64_t * A, uint64_t * B, uint64_t * mA, uint64_t * mB, int size)
+{	
+	assert(A!=NULL);
+	assert(B!=NULL);
+	assert(size>=1);
+	
+	int i;
+	for(i=0;i!=size;++i)
+		if(((~A[i])&mA[i]&mB[i])!=(B[i]&mA[i]))
+		{	
+			return 1;
+		}
+
 	return 0;
 }
 
@@ -105,6 +139,31 @@ int isnpv_cmp (uint64_t * A, uint64_t * B, int size, int numberOfSamples)
 		}
 	}
 	uint64_t temp = ~B[size-1];
+	int shiftLast = 64-(numberOfSamples-(size-1)*64);
+	temp = temp << shiftLast;
+	temp = temp >> shiftLast;
+	if(temp!=A[size-1])
+		return 1;
+
+	return 0;
+}
+
+int isnpv_cmp_with_mask (uint64_t * A, uint64_t * B, uint64_t * mA, uint64_t * mB, int size, int numberOfSamples)
+{
+	assert(A!=NULL);
+	assert(B!=NULL);
+	assert(size>=1);
+	
+	int i;
+	for(i=0;i!=size-1;++i)
+	{
+		if(((~A[i])&mA[i])!=B[i])
+		{
+			return 1;
+		}
+	}
+
+	uint64_t temp = (~B[size-1])&mB[size-1];
 	int shiftLast = 64-(numberOfSamples-(size-1)*64);
 	temp = temp << shiftLast;
 	temp = temp >> shiftLast;
@@ -205,25 +264,24 @@ int getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char *
 	{	
 		if(string[i]>=48 && string[i]<=57)
 		{
-			index = string[i]-48;
-
-			if(index>0)
-				(*derivedAlleleCount)++;
-
-			(*totalAlleleCount)++;
-			
-			assert(index<statesTotal);
-		
-			if(string[i]=='0')
-				sampleData[j++] = '0';
-			else
-				sampleData[j++] = '1';
 
 			if(string[i]!='0' && string[i]!='1')
 			{
-				fprintf(stderr, "\n ERROR: Unsupported case!\n\n");
+				fprintf(stderr, "\n ERROR: Invalid character (%c) found!\n\n", string[i]);
 				exit(0);
 			}
+
+			index = string[i]-48;
+
+			assert(index==0 || index==1);
+
+			(*totalAlleleCount)++;
+
+			(*derivedAlleleCount)+=index;
+
+			assert(index<statesTotal);
+
+			sampleData[j++] = string[i];			
 
 			sampleData[j] = '\0';
 		}
@@ -249,6 +307,7 @@ int getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char *
 			}			
 		}
 	}
+
 	dataShuffleKnuth(sampleData, start, end);
 
 	return skipSNP;

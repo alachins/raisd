@@ -23,17 +23,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-//#include <unistd.h>
-//#include <sys/types.h>
-//#include <sys/stat.h>
-//#include <linux/limits.h>
-//#include <ctype.h>
 #include <inttypes.h>
-//#include <math.h>
-//#include <immintrin.h>
 #include <time.h>
-//#include <sys/time.h>
-
 
 /*Testing*/
 extern uint64_t selectionTarget;
@@ -56,7 +47,8 @@ extern int setIndexValid;
 
 
 #define STRING_SIZE 8192
-#define PATTERNPOOL_SIZE 1 // MBs
+#define PATTERNPOOL_SIZE 1 // MBs without the mask (actual memfootprint approx. double)
+#define	PATTERNPOOL_SIZE_MASK_FACTOR 2
 #define CHUNK_MEMSIZE_AND_INCREMENT 1024 // sites
 #define MULTI_STEP_PARSING 0
 #define SINGLE_STEP_PARSING 1 // set this to 0 to deactivate completely
@@ -93,7 +85,10 @@ void 			RSD_header 		(FILE * fpOut);
 unsigned long long 	rdtsc			(void);
 double 			gettime			(void);
 int			snpv_cmp 		(uint64_t * A, uint64_t * B, int size);
+int			snpv_cmp_cross_masks	(uint64_t * A, uint64_t * B, uint64_t * mA, uint64_t * mB, int size);
+int			isnpv_cmp_cross_masks	(uint64_t * A, uint64_t * B, uint64_t * mA, uint64_t * mB, int size);
 int			isnpv_cmp 		(uint64_t * A, uint64_t * B, int size, int numberOfSamples);
+int			isnpv_cmp_with_mask	(uint64_t * A, uint64_t * B, uint64_t * mA, uint64_t * mB, int size, int numberOfSamples);
 int			getGTLocation_vcf 	(char * string);
 void			getGTData_vcf 		(char * string, int location, char * data);
 int			getGTAlleles_vcf	(char * string, char * stateVector, int statesTotal, char * sampleData, int * derivedAlleleCount, int * totalAlleleCount);
@@ -129,6 +124,9 @@ typedef struct
 	double		maf; // Flag: m
 	int64_t		mbs; // Flag: b
 	int64_t		imputePerSNP; //Flag:i
+	int64_t		createPatternPoolMask; //Flag: M
+	int64_t		patternPoolMaskMode; //Flag: M
+	int64_t		displayProgress; // Flag: O
 
 } RSDCommandLine_t;
 
@@ -179,11 +177,19 @@ typedef struct
 	int		incomingSiteDerivedAlleleCount;
 	int		incomingSiteTotalAlleleCount;
 	uint64_t * 	incomingSiteCompact;
+	uint64_t *	incomingSiteCompactMask;
+	int64_t		incomingSiteCompactWithMissing;
 	double		incomingSitePosition;
 
+	uint64_t	createPatternPoolMask; // 0 if no mask used, 1 if mask used
+	uint64_t	patternPoolMaskMode; // 0 for ignoring allele pairs with N, 1 for treating N as extra state
 	uint64_t * 	poolData; // pattern data
+	uint64_t *	poolDataMask; // pattern data mask (for handling N)
 	int *		poolDataAlleleCount; // number of derived alleles per pattern
 	int *		poolDataPatternCount; // number of specific pattern occurences
+	int *		poolDataWithMissing; // yes/no if missing/not per pattern
+	int *		poolDataMaskCount; // popcnt the mask only
+	int *		poolDataAppliedMaskCount; // popcnt data&mask
 
 	uint64_t * 	exchangeBuffer; // used to exchange patterns between location in the pool
 
@@ -198,6 +204,7 @@ int			RSDPatternPool_pushSNP			(RSDPatternPool_t * RSDPatternPool, RSDChunk_t * 
 void			RSDPatternPool_resize 			(RSDPatternPool_t * RSDPatternPool, int64_t setSamples, FILE * fpOut);
 void 			RSDPatternPool_exhangePatterns 		(RSDPatternPool_t * RSDPatternPool, int pID_a, int pID_b);
 void			RSDPatternPool_imputeIncomingSite 	(RSDPatternPool_t * RSDPatternPool, int64_t setSamples);
+void			RSDPatternPool_assessMissing 		(RSDPatternPool_t * RSDPatternPool, int64_t numberOfSamples);
 
 // RAiSD_Dataset.c
 typedef struct
@@ -272,7 +279,8 @@ void 		RSDMuStat_free 			(RSDMuStat_t * mu);
 void 		RSDMuStat_init 			(RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine);
 void 		RSDMuStat_setReportName 	(RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine, FILE * fpOut);
 void 		RSDMuStat_setReportNamePerSet 	(RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine, FILE * fpOut, RSDDataset_t * RSDDataset);
-void 		RSDMuStat_scanChunk 		(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
-
-
+extern void	(*RSDMuStat_scanChunk) 		(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
+void 		RSDMuStat_scanChunkBinary	(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
+void 		RSDMuStat_scanChunkWithMask	(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
+extern float   	getPatternCount		(RSDPatternPool_t * RSDPatternPool, int * pCntVec, int offset, int * patternID, int p0, int p1, int p2, int p3, int * pcntl, int * pcntr, int * pcntexll, int * pcntexlr);
 

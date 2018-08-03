@@ -23,7 +23,7 @@
 
 void RSDHelp (FILE * fp)
 {
-	fprintf(fp, " This is RAiSD version 1.3, released in July 2018.\n\n");
+	fprintf(fp, " This is RAiSD version 1.4, released in August 2018.\n\n");
 
 	fprintf(fp, " RAiSD");
 
@@ -44,8 +44,9 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t[-l FLOATING-POINT]\n");
 	fprintf(fp, "\t[-m FLOATING-POINT]\n");
 	fprintf(fp, "\t[-b]\n");
-	fprintf(fp, "\t[-i]\n");
 	fprintf(fp, "\t[-a INTEGER]\n");
+	fprintf(fp, "\t[-M 0|1|2|3]\n");
+	fprintf(fp, "\t[-O]\n");
 
 	fprintf(fp, "\n");	
 	fprintf(fp, " -n\tProvides a unique run ID that is used to name the output files, i.e., the info file and the report(s).\n");
@@ -64,9 +65,9 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, " -l\tProvides the threshold score, reported by a previous run using a false positive rate (e.g., 0.05, via -k) to report the true positive rate.\n");
 	fprintf(fp, " -m\tProvides the threshold value for excluding SNPs with minor allele frequency < threshold (0.0-1.0).\n");
 	fprintf(fp, " -b\tIndicates that the input file is in mbs format.\n");
-	fprintf(fp, " -i\tImputes missing data per SNP (The default operation is to discard the SNP).\n");
-	fprintf(fp, " -a\tProvides a seed for the random number generator.\n");
-
+	fprintf(fp, " -a\tProvides a seed for the random number generator.\n");	
+	fprintf(fp, " -M\tIndicates the missing-data handling strategy (0: discards SNP (default), 1: imputes N per SNP, 2: represents N through a mask, 3: ignores allele pairs with N).\n");
+	fprintf(fp, " -O\tShows progress on the display device (at snp set granularity).\n");
 
 	fprintf(fp, "\n");
 }
@@ -81,6 +82,7 @@ void RSDVersions(FILE * fp)
 	fprintf(fp, " %d. RAiSD v%d.%d (Mar  7, 2018): MAF threshold option\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Mar 28, 2018): mbs format with -b\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Jul 18, 2018): -i to impute N per SNP, -a for rand seed\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Aug  3, 2018): -M to handle missing data with 4 strategies (removed -i)\n", releaseIndex++, majorIndex, minorIndex++);
 
 	majorIndex++;
 }
@@ -112,6 +114,9 @@ void RSDCommandLine_init(RSDCommandLine_t * RSDCommandLine)
 	strncpy(RSDCommandLine->sampleFileName, "\0", STRING_SIZE);
 	RSDCommandLine->mbs = 0;
 	RSDCommandLine->imputePerSNP = 0;
+	RSDCommandLine->createPatternPoolMask = 0;
+	RSDCommandLine->patternPoolMaskMode = 0;
+	RSDCommandLine->displayProgress = 0;
 }
 
 void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** argv)
@@ -249,13 +254,58 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 		{ 
 			RSDCommandLine->mbs = 1;
 			continue;
-		}		
-		
-		if(!strcmp(argv[i], "-i")) // To impute N per SNP
+		}	
+
+		if(!strcmp(argv[i], "-M")) 
 		{ 
-			RSDCommandLine->imputePerSNP = 1;
+			if (i!=argc-1)
+			{	
+				if((strlen(argv[i+1])!=1) || ((strlen(argv[i+1])==1)&&(argv[i+1][0]!='0' && argv[i+1][0]!='1' && argv[i+1][0]!='2' && argv[i+1][0]!='3')))// && argv[i+1][0]!='3')
+				{
+					fprintf(stderr, "\nERROR: Invalid argument after %s\n\n",argv[i]);
+					exit(0);	
+				}
+
+				int mode = atoi(argv[++i]);
+				switch(mode)
+				{
+					case 1:
+						RSDCommandLine->imputePerSNP = 1;
+						RSDCommandLine->createPatternPoolMask = 0;
+						RSDCommandLine->patternPoolMaskMode = 0;
+					break;
+					case 2:
+						RSDCommandLine->imputePerSNP = 0;
+						RSDCommandLine->createPatternPoolMask = 1;
+						RSDCommandLine->patternPoolMaskMode = 0;
+					break;
+					case 3:
+						RSDCommandLine->imputePerSNP = 0;
+						RSDCommandLine->createPatternPoolMask = 1;
+						RSDCommandLine->patternPoolMaskMode = 1;
+					break;
+					default:
+						RSDCommandLine->imputePerSNP = 0;
+						RSDCommandLine->createPatternPoolMask = 0;
+						RSDCommandLine->patternPoolMaskMode = 0;
+					break;
+				}				
+			}
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
+
 			continue;
 		}
+
+		if(!strcmp(argv[i], "-O")) 
+		{ 
+			RSDCommandLine->displayProgress = 1;
+			continue;
+		}
+
 
 		if(!strcmp(argv[i], "-a")) 
 		{ 
@@ -362,11 +412,13 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 			assert(RAiSD_Info_FP!=NULL);
 		}
 	}
+
 	if(!strcmp(RSDCommandLine->runName, "\0"))
 	{
 		fprintf(stderr, "\nERROR: Missing required input parameter -n\n\n");
 		exit(0);	
 	}
+
 	if(!strcmp(RSDCommandLine->inputFileName, "\0"))
 	{
 		fprintf(stderr, "\nERROR: Missing required input parameter -I\n\n");
@@ -378,6 +430,10 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 		assert(inputFileExists!=NULL);
 		fclose(inputFileExists);
 	}
+
+	if(RSDCommandLine->createPatternPoolMask==1)
+		RSDCommandLine->imputePerSNP = 0;
+
 }
 
 void RSDCommandLine_print(int argc, char ** argv, FILE * fpOut)
