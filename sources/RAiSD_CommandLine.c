@@ -23,7 +23,7 @@
 
 void RSDHelp (FILE * fp)
 {
-	fprintf(fp, " This is RAiSD version 1.4, released in August 2018.\n\n");
+	fprintf(fp, " This is RAiSD version 1.5, released in August 2018.\n\n");
 
 	fprintf(fp, " RAiSD");
 
@@ -47,6 +47,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t[-a INTEGER]\n");
 	fprintf(fp, "\t[-M 0|1|2|3]\n");
 	fprintf(fp, "\t[-O]\n");
+	fprintf(fp, "\t[-R]\n");
 
 	fprintf(fp, "\n");	
 	fprintf(fp, " -n\tProvides a unique run ID that is used to name the output files, i.e., the info file and the report(s).\n");
@@ -68,6 +69,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, " -a\tProvides a seed for the random number generator.\n");	
 	fprintf(fp, " -M\tIndicates the missing-data handling strategy (0: discards SNP (default), 1: imputes N per SNP, 2: represents N through a mask, 3: ignores allele pairs with N).\n");
 	fprintf(fp, " -O\tShows progress on the display device (at snp set granularity).\n");
+	fprintf(fp, " -R\tIncludes additional information (window start and end, and the mu-statistic factors for variation, SFS, and LD) in the report file.\n");
 
 	fprintf(fp, "\n");
 }
@@ -83,6 +85,7 @@ void RSDVersions(FILE * fp)
 	fprintf(fp, " %d. RAiSD v%d.%d (Mar 28, 2018): mbs format with -b\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Jul 18, 2018): -i to impute N per SNP, -a for rand seed\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Aug  3, 2018): -M to handle missing data with 4 strategies (removed -i)\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Aug  4, 2018): -R to include additional information in the report file\n", releaseIndex++, majorIndex, minorIndex++);
 
 	majorIndex++;
 }
@@ -117,6 +120,7 @@ void RSDCommandLine_init(RSDCommandLine_t * RSDCommandLine)
 	RSDCommandLine->createPatternPoolMask = 0;
 	RSDCommandLine->patternPoolMaskMode = 0;
 	RSDCommandLine->displayProgress = 0;
+	RSDCommandLine->fullReport = 0;
 }
 
 void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** argv)
@@ -303,6 +307,12 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 		if(!strcmp(argv[i], "-O")) 
 		{ 
 			RSDCommandLine->displayProgress = 1;
+			continue;
+		}
+
+		if(!strcmp(argv[i], "-R")) 
+		{ 
+			RSDCommandLine->fullReport = 1;
 			continue;
 		}
 

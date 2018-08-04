@@ -720,7 +720,6 @@ void RSDMuStat_scanChunk (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPat
 	for(i=0;i<size-RSDMuStat->windowSize+1;i++)
 	{
 
-
 		windowCenter = window_loc[i];
 		mu =  vec_out[i];//muVar * muSfs * muLd;
 
@@ -776,7 +775,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 
 	int i, size = (int)RSDChunk->chunkSize;
 
-	float windowCenter = 0.0f;
+	float windowCenter = 0.0f, windowStart = 0.0f, windowEnd = 0.0f;
 
 	float muVar = 0.0f;
 	float muSfs = 0.0f;
@@ -808,6 +807,8 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		
 		// Window center (bp)
 		windowCenter = (RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0f;
+		windowStart = RSDChunk->sitePosition[snpf];
+		windowEnd = RSDChunk->sitePosition[snpl];
 
 		// Mu_Var
 		muVar = RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf];
@@ -878,7 +879,9 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 			RSDMuStat->muMaxLoc = windowCenter;
 		}
 
-		fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)muVar, (double)muSfs, (double)muLd, (double)mu);
+		if(RSDCommandLine->fullReport==1)
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)windowStart, (double)windowEnd, (double)muVar, (double)muSfs, (double)muLd, (double)mu);	else
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)windowCenter, (double)mu);	
 	}
 }
 

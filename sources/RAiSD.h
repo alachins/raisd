@@ -127,6 +127,7 @@ typedef struct
 	int64_t		createPatternPoolMask; //Flag: M
 	int64_t		patternPoolMaskMode; //Flag: M
 	int64_t		displayProgress; // Flag: O
+	int64_t		fullReport; // Flag: R
 
 } RSDCommandLine_t;
 
