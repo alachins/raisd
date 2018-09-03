@@ -134,6 +134,8 @@ void RSDMuStat_setReportNamePerSet (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * 
 	strcpy(tstring, RSDMuStat->reportName);
 	strcat(tstring, ".");
 	strcat(tstring, RSDDataset->setID);
+	
+	strcpy(RSDMuStat->reportFPFileName, tstring);	
 
 	RSDMuStat->reportFP = fopen(tstring, "r");
 	if(RSDMuStat->reportFP!=NULL && RSDCommandLine->overwriteOutput==0)
@@ -892,7 +894,7 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 
 	int i, size = (int)RSDChunk->chunkSize;
 
-	float windowCenter = 0.0f;
+	float windowCenter = 0.0f, windowStart = 0.0f, windowEnd = 0.0f;
 
 	float muVar = 0.0f;
 	float muSfs = 0.0f;
@@ -914,9 +916,7 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 		else // This can be ommitted - test more first
 		{
 			dCnt1 += (RSDChunk->derivedAlleleCount[i]==1);
-			dCntN += (RSDChunk->derivedAlleleCount[i]==RSDDataset->setSamples-1);
-
-			
+			dCntN += (RSDChunk->derivedAlleleCount[i]==RSDDataset->setSamples-1);			
 		}
 	}	
 
@@ -937,6 +937,8 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 		
 		// Window center (bp)
 		windowCenter = (RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0f;
+		windowStart = RSDChunk->sitePosition[snpf];
+		windowEnd = RSDChunk->sitePosition[snpl];
 
 		// Mu_Var
 		muVar = RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf];
@@ -1027,7 +1029,10 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 			RSDMuStat->muMaxLoc = windowCenter;
 		}
 
-		fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)muVar, (double)muSfs, (double)muLd, (double)mu);
+		if(RSDCommandLine->fullReport==1)
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)windowStart, (double)windowEnd, (double)muVar, (double)muSfs, (double)muLd, (double)mu);	else
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)windowCenter, (double)mu);	
+
 	}
 }
 #endif

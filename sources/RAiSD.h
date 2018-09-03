@@ -103,7 +103,6 @@ extern int 		flagMatch		(FILE *fp, char flag[], int flaglength, char tmp);
 extern void 		RSD_printTime 		(FILE * fp1, FILE * fp2);
 extern void 		RSD_printMemory 	(FILE * fp1, FILE * fp2);
 
-
 #ifndef _INTRINSIC_POPCOUNT
 extern char	 	POPCNT_U16_LUT [0x1u << 16];
 int 			popcount_u32_iterative	(unsigned int n);
@@ -128,6 +127,8 @@ typedef struct
 	int64_t		patternPoolMaskMode; //Flag: M
 	int64_t		displayProgress; // Flag: O
 	int64_t		fullReport; // Flag: R
+	int64_t		createPlot; // Flag: P
+	double		muThreshold; // Flag: H
 
 } RSDCommandLine_t;
 
@@ -256,6 +257,7 @@ typedef struct
 {
 	char 	reportName [STRING_SIZE];
 	FILE *	reportFP;
+	char	reportFPFileName[STRING_SIZE];
 
 	int64_t	windowSize; // number of SNPs in each window
 
@@ -284,4 +286,20 @@ extern void	(*RSDMuStat_scanChunk) 		(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDC
 void 		RSDMuStat_scanChunkBinary	(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
 void 		RSDMuStat_scanChunkWithMask	(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
 extern float   	getPatternCount		(RSDPatternPool_t * RSDPatternPool, int * pCntVec, int offset, int * patternID, int p0, int p1, int p2, int p3, int * pcntl, int * pcntr, int * pcntexll, int * pcntexlr);
+
+// RAiSD_Plot.c
+void 		RSDPlot_printRscriptVersion 	(RSDCommandLine_t * RSDCommandLine, FILE * fpOut);
+int 		RSDPlot_checkRscript 		(void);
+void 		RSDPlot_createRscriptName 	(RSDCommandLine_t * RSDCommandLine, char * scriptName);
+void 		RSDPlot_generateRscript 	(RSDCommandLine_t * RSDCommandLine);
+void 		RSDPlot_removeRscript 		(RSDCommandLine_t * RSDCommandLine);
+void 		RSDPlot_createPlot 		(RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDataset);
+
+
+
+
+
+
+
+
 

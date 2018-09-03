@@ -102,6 +102,8 @@ int main (int argc, char ** argv)
 	RSDCommandLine_t * RSDCommandLine = RSDCommandLine_new();
 	RSDCommandLine_init(RSDCommandLine);
 	RSDCommandLine_load(RSDCommandLine, argc, argv);
+
+	RSDPlot_generateRscript(RSDCommandLine);
 	
 	RSD_header(stdout);
 	RSD_header(RAiSD_Info_FP);
@@ -114,6 +116,9 @@ int main (int argc, char ** argv)
 	RSDDataset_print(RSDDataset, RSDCommandLine, stdout);
 	RSDDataset_print(RSDDataset, RSDCommandLine, RAiSD_Info_FP);
 
+	RSDPlot_printRscriptVersion (RSDCommandLine, stdout);
+	//RSDPlot_printRscriptVersion (RSDCommandLine, RAiSD_Info_FP);
+
 	RSDPatternPool_t * RSDPatternPool = RSDPatternPool_new();
 	RSDPatternPool_init(RSDPatternPool, RSDCommandLine, RSDDataset->numberOfSamples);
 	RSDPatternPool_print(RSDPatternPool, stdout);
@@ -123,7 +128,7 @@ int main (int argc, char ** argv)
 	RSDChunk_init(RSDChunk, RSDDataset->numberOfSamples);
 
 	RSDMuStat_t * RSDMuStat = RSDMuStat_new();
-	RSDMuStat_setReportName (RSDMuStat, RSDCommandLine, RAiSD_Info_FP);	
+	RSDMuStat_setReportName (RSDMuStat, RSDCommandLine, RAiSD_Info_FP);		
 
 	int setIndex = -1, setDone = 0, setsProcessedTotal=0;
 
@@ -228,12 +233,16 @@ int main (int argc, char ** argv)
 				}
 			}
 
+			if(RSDCommandLine->createPlot==1)
+				RSDPlot_createPlot (RSDCommandLine, RSDDataset);
+
 			setsProcessedTotal++;
 
 			if(RSDCommandLine->displayProgress==1)
 			fprintf(stdout, "\n %d: Set %s | sites %d | snps %d | region %lu - Var %.0f %.3e | SFS %.0f %.3e | LD %.0f %.3e | MuStat %.0f %.3e", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength, (double)RSDMuStat->muVarMaxLoc, (double)RSDMuStat->muVarMax, (double)RSDMuStat->muSfsMaxLoc, (double)RSDMuStat->muSfsMax, (double)RSDMuStat->muLdMaxLoc, (double)RSDMuStat->muLdMax, (double)RSDMuStat->muMaxLoc, (double)RSDMuStat->muMax);
 
 			fprintf(RAiSD_Info_FP, "\n %d: Set %s | sites %d | snps %d | region %lu - Var %.0f %.3e | SFS %.0f %.3e | LD %.0f %.3e | MuStat %.0f %.3e", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength, (double)RSDMuStat->muVarMaxLoc, (double)RSDMuStat->muVarMax, (double)RSDMuStat->muSfsMaxLoc, (double)RSDMuStat->muSfsMax, (double)RSDMuStat->muLdMaxLoc, (double)RSDMuStat->muLdMax, (double)RSDMuStat->muMaxLoc, (double)RSDMuStat->muMax);
+
 
 			// FPR/TPR
 			if(fpr_loc>0.0)
@@ -298,13 +307,14 @@ int main (int argc, char ** argv)
 		fprintf(RAiSD_Info_FP, " SCORE COUNT (Threshold %f)\nTPR\t%f", tpr_thres, tpr_scr/setsProcessedTotal);
 	}
 
+	RSDPlot_removeRscript(RSDCommandLine);
 	RSDCommandLine_free(RSDCommandLine);
 	RSDPatternPool_free(RSDPatternPool, RSDDataset->setSamples);
 	RSDChunk_free(RSDChunk, RSDDataset->setSamples);
 	RSDDataset_free(RSDDataset);
 	fclose(RSDMuStat->reportFP);
 	RSDMuStat_free(RSDMuStat);
-	
+
 	if(scr_svec!=NULL)
 	{
 		MemoryFootprint += sizeof(float)*((unsigned long)scr_svec_sz);

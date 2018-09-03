@@ -25,7 +25,9 @@ void	ignoreLineSpaces	(FILE *fp, char *ent);
 int 	flagMatch		(FILE *fp, char flag[], int flaglength, char tmp);
 void 	RSD_printTime 		(FILE * fp1, FILE * fp2);
 void 	RSD_printMemory 	(FILE * fp1, FILE * fp2);
-
+int 	RSD_Rscript_check	(void);
+void 	RSD_Rscript_generate 	(void);
+void 	RSD_Rscript_remove 	(void);
 
 char POPCNT_U16_LUT [0x1u << 16];
 
@@ -446,3 +448,4 @@ void RSD_printMemory (FILE * fp1, FILE * fp2)
 	fprintf(fp2, " Total memory footprint %.0f kbytes\n", MemoryFootprint/1024.0);
 	fprintf(fp2, "\n");
 }
+

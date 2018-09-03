@@ -23,7 +23,7 @@
 
 void RSDHelp (FILE * fp)
 {
-	fprintf(fp, " This is RAiSD version 1.5, released in August 2018.\n\n");
+	fprintf(fp, " This is RAiSD version 1.6, released in September 2018.\n\n");
 
 	fprintf(fp, " RAiSD");
 
@@ -48,6 +48,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t[-M 0|1|2|3]\n");
 	fprintf(fp, "\t[-O]\n");
 	fprintf(fp, "\t[-R]\n");
+	fprintf(fp, "\t[-P]\n");
 
 	fprintf(fp, "\n");	
 	fprintf(fp, " -n\tProvides a unique run ID that is used to name the output files, i.e., the info file and the report(s).\n");
@@ -70,6 +71,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, " -M\tIndicates the missing-data handling strategy (0: discards SNP (default), 1: imputes N per SNP, 2: represents N through a mask, 3: ignores allele pairs with N).\n");
 	fprintf(fp, " -O\tShows progress on the display device (at snp set granularity).\n");
 	fprintf(fp, " -R\tIncludes additional information (window start and end, and the mu-statistic factors for variation, SFS, and LD) in the report file.\n");
+	fprintf(fp, " -P\tGenerates four plots (for the three mu-statistic factors and the final score) in one PDF file per set of SNPs in the input file using Rscript (activates -s, -t, and -R).\n");
 
 	fprintf(fp, "\n");
 }
@@ -81,11 +83,12 @@ void RSDVersions(FILE * fp)
 	int minorIndex = 0;
 
 	fprintf(fp, " %d. RAiSD v%d.%d (Jun  9, 2017): first release\n", releaseIndex++, majorIndex, minorIndex++);
-	fprintf(fp, " %d. RAiSD v%d.%d (Mar  7, 2018): MAF threshold option\n", releaseIndex++, majorIndex, minorIndex++);
-	fprintf(fp, " %d. RAiSD v%d.%d (Mar 28, 2018): mbs format with -b\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Mar  7, 2018): -m to provide a MAF threshold\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Mar 28, 2018): -b to suppoert the mbs format\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Jul 18, 2018): -i to impute N per SNP, -a for rand seed\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Aug  3, 2018): -M to handle missing data with 4 strategies (removed -i)\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Aug  4, 2018): -R to include additional information in the report file\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Sep  3, 2018): -P to create plots per set of SNPs with Rscript\n", releaseIndex++, majorIndex, minorIndex++);
 
 	majorIndex++;
 }
@@ -121,6 +124,8 @@ void RSDCommandLine_init(RSDCommandLine_t * RSDCommandLine)
 	RSDCommandLine->patternPoolMaskMode = 0;
 	RSDCommandLine->displayProgress = 0;
 	RSDCommandLine->fullReport = 0;
+	RSDCommandLine->createPlot = 0;
+	RSDCommandLine->muThreshold = 0.0;
 }
 
 void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** argv)
@@ -333,6 +338,42 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 			continue;
 		}
 
+		if(!strcmp(argv[i], "-P")) 
+		{ 
+			RSDCommandLine->createPlot = 1;
+			RSDCommandLine->splitOutput = 1; // activating output splitting
+			RSDCommandLine->fullReport = 1; // activating full report
+			RSDCommandLine->setSeparator = 0; // remove separator symbol
+
+			if(RSDPlot_checkRscript()!=0)
+			{
+				fprintf(stderr, "\nERROR: Rscript is not installed, required by %s for plotting with R\n\n",argv[i]);
+				exit(0);
+			}			
+			
+			continue;
+		}
+
+		/*if(!strcmp(argv[i], "-P")) // To provide a threshold for plotting/reporting
+		{ 
+			if (i!=argc-1)
+			{
+				RSDCommandLine->plotThreshold = (double)atof(argv[++i]);
+				if(RSDCommandLine->plotThreshold<0.0)
+				{
+					fprintf(stderr, "\nERROR: Invalid threshold value (valid: >=0.0)\n\n");
+					exit(0);
+				}
+			}
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
+
+			continue;
+		}*/
+
 		/* Testing */
 		if(!strcmp(argv[i], "-T")) 
 		{ 
@@ -391,6 +432,9 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 
 			continue;
 		}
+
+		
+
 		/*if(!strcmp(argv[i], "-set")) 
 		{ 
 			if (i!=argc-1)
