@@ -276,6 +276,10 @@ This will report the respective TPR value as shown in the additional lines in RA
     
 These results demonstrate a TPR of 99.5% when d1 is analyzed.
 
+Generating μ-statistic plots
+----------------------------
+
+The -P parameter can be used to generate a set of four plots in a single PDF file per set of SNPs in the input dataset. This option requires R (https://www.r-project.org/) to be installed and Rscript to be in the default $PATH. 
 
 Change log
 ----------
