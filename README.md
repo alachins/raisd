@@ -287,7 +287,7 @@ This command will generate RAiSD_Plot PDF files with the run name (provided via 
 
 RAiSD_Plot.test_run.0.pdf
 
-An example of such file can be found here: 139.91.162.50/raisd_plots/examples/RAiSD_Plot.test_run.1.pdf	
+An example of such file can be found here: http://139.91.162.50/raisd_plots/examples/RAiSD_Plot.test_run.1.pdf
 
 
 
