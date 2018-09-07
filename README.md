@@ -283,11 +283,11 @@ The -P parameter can be used to generate a set of four plots in a single PDF fil
 
     $ ./RAiSD -n test_run -I d1/msselection1.out -L 100000 -P
     
-This command will generate RAiSD_Plot files, with the with the run name (provided via "-n") followed by the SNP set index (or name in VCF format) as file extension.
+This command will generate RAiSD_Plot PDF files with the run name (provided via "-n") followed by the SNP set index (or name in VCF format) preceding the file extension.
 
-RAiSD_Plot.test_run.0
+RAiSD_Plot.test_run.0.pdf
 
-An example of such file can be found here: 
+An example of such file can be found here: 139.91.162.50/raisd_plots/examples/RAiSD_Plot.test_run.1.pdf	
 
 
 
