@@ -279,7 +279,17 @@ These results demonstrate a TPR of 99.5% when d1 is analyzed.
 Generating μ-statistic plots
 ----------------------------
 
-The -P parameter can be used to generate a set of four plots in a single PDF file per set of SNPs in the input dataset. This option requires R (https://www.r-project.org/) to be installed and Rscript to be in the default $PATH. 
+The -P parameter can be used to generate a set of four plots in a single PDF file per set of SNPs in the input dataset. This option requires R (https://www.r-project.org/) to be installed and Rscript to be in the default $PATH. By default, -P activates the generation of a separate report per set of SNPs (-s option), the removal of the set separator symbol from each report (-t option), and the inclusion of additional information in each report (-R option). The following command shows the use of -P for the test run.
+
+    $ ./RAiSD -n test_run -I d1/msselection1.out -L 100000 -P
+    
+This command will generate RAiSD_Plot files, with the with the run name (provided via "-n") followed by the SNP set index (or name in VCF format) as file extension.
+
+RAiSD_Plot.test_run.0
+
+An example of such file can be found here: 
+
+
 
 Change log
 ----------
