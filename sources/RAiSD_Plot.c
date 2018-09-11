@@ -152,7 +152,7 @@ mu1 <- rsd_data[,4] \n \
 mu2 <- rsd_data[,5] \n \
 mu3 <- rsd_data[,6] \n \
 mu  <- rsd_data[,7] \n \
-postscript(output_file, paper=\"special\", onefile=FALSE, horizontal=F, width=10, height=10) \n \
+pdf(output_file, width=10, height=10) \n \
 par(mfrow=c(2,2)) \n \
 plot(mup, mu1, col=\"darkgray\", pch=16, ylab=bquote(mu ~ \"_var\"), xlab=\"Chromosome position (kb)\", main=bquote(mu ~ \"_var curve for\" ~ .(RUNNAME) ~ \".\" ~ .(ID))) \n \
 plot(mup, mu2, col=\"darkgray\", pch=16, ylab=bquote(mu ~ \"_sfs\"), xlab=\"Chromosome position (kb)\", main=bquote(mu ~ \"_sfs curve for\" ~ .(RUNNAME) ~ \".\" ~ .(ID))) \n \
