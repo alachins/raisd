@@ -154,10 +154,10 @@ mu3 <- rsd_data[,6] \n \
 mu  <- rsd_data[,7] \n \
 pdf(output_file, width=10, height=10) \n \
 par(mfrow=c(2,2)) \n \
-plot(mup, mu1, col=\"darkgray\", pch=16, ylab=bquote(mu ~ \"_var\"), xlab=\"Chromosome position (kb)\", main=bquote(mu ~ \"_var curve for\" ~ .(RUNNAME) ~ \".\" ~ .(ID))) \n \
-plot(mup, mu2, col=\"darkgray\", pch=16, ylab=bquote(mu ~ \"_sfs\"), xlab=\"Chromosome position (kb)\", main=bquote(mu ~ \"_sfs curve for\" ~ .(RUNNAME) ~ \".\" ~ .(ID))) \n \
-plot(mup, mu3, col=\"darkgray\", pch=16, ylab=bquote(mu ~ \"_ld\"), xlab=\"Chromosome position (kb)\", main=bquote(mu ~ \"_ld curve for\" ~ .(RUNNAME) ~ \".\" ~ .(ID))) \n \
-plot(mup, mu, col=\"black\", pch=16, ylab=bquote(mu), xlab=\"Chromosome position (kb)\", main=bquote(mu ~ \"curve for\" ~ .(RUNNAME) ~ \".\" ~ .(ID))) \n \
+plot(mup, mu1, col=\"darkgray\", pch=16, cex = .6, ylab=bquote(mu ~ \"_var\"), xlab=\"Chromosome position (kb)\", main=bquote(mu ~ \"_var curve for\" ~ .(RUNNAME) ~ \".\" ~ .(ID))) \n \
+plot(mup, mu2, col=\"darkgray\", pch=16, cex = .6, ylab=bquote(mu ~ \"_sfs\"), xlab=\"Chromosome position (kb)\", main=bquote(mu ~ \"_sfs curve for\" ~ .(RUNNAME) ~ \".\" ~ .(ID))) \n \
+plot(mup, mu3, col=\"darkgray\", pch=16, cex = .6, ylab=bquote(mu ~ \"_ld\"), xlab=\"Chromosome position (kb)\", main=bquote(mu ~ \"_ld curve for\" ~ .(RUNNAME) ~ \".\" ~ .(ID))) \n \
+plot(mup, mu, col=\"black\", pch=16, cex = .6, ylab=bquote(mu), xlab=\"Chromosome position (kb)\", main=bquote(mu ~ \"curve for\" ~ .(RUNNAME) ~ \".\" ~ .(ID))) \n \
 dev.off() \n";
 
 	fprintf(fp,"%s", tscript);
