@@ -1214,13 +1214,16 @@ void RSDDataset_printSiteReport (RSDDataset_t * RSDDataset, FILE * fp, int setIn
 	{
 		assert(RSDDataset->setSitesDiscarded==RSDDataset->setSitesDiscardedHeaderCheckFailed+RSDDataset->setSitesDiscardedMafCheckFailed+RSDDataset->setSitesDiscardedWithMissing+RSDDataset->setSitesDiscardedMonomorphic);
 
-		fprintf(fp,"\n %d: %s | %d = %d + %d | %d = %d + %d + %d + %d | %d", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscardedHeaderCheckFailed, (int)RSDDataset->setSitesDiscardedMafCheckFailed, (int)RSDDataset->setSitesDiscardedWithMissing, (int)RSDDataset->setSitesDiscardedMonomorphic, (int)RSDDataset->setSitesImputedTotal);
+		fprintf(fp,"\n %d: %s | %d = %d + %d | %d = %d + %d + %d + %d", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscardedHeaderCheckFailed, (int)RSDDataset->setSitesDiscardedMafCheckFailed, (int)RSDDataset->setSitesDiscardedWithMissing, (int)RSDDataset->setSitesDiscardedMonomorphic);
 	}
 	else
 	{
 		assert(RSDDataset->setSitesDiscarded==RSDDataset->setSitesDiscardedHeaderCheckFailed+RSDDataset->setSitesDiscardedMafCheckFailed+RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed);
 
-		fprintf(fp,"\n %d: %s | %d = %d + %d | %d = %d + %d + %d | %d ", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscardedHeaderCheckFailed, (int)RSDDataset->setSitesDiscardedMafCheckFailed, (int)RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed, (int)RSDDataset->setSitesImputedTotal);
+		if(imputePerSNP==1)
+			fprintf(fp,"\n %d: %s | %d = %d + %d | %d = %d + %d + %d | %d ", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscardedHeaderCheckFailed, (int)RSDDataset->setSitesDiscardedMafCheckFailed, (int)RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed, (int)RSDDataset->setSitesImputedTotal);
+		else
+			fprintf(fp,"\n %d: %s | %d = %d + %d | %d = %d + %d + %d ", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscardedHeaderCheckFailed, (int)RSDDataset->setSitesDiscardedMafCheckFailed, (int)RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed);
 	}
 	fflush(fp);
 }

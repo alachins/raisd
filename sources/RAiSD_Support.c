@@ -604,10 +604,14 @@ void RSD_printSiteReportLegend (FILE * fp, int64_t imputePerSNP, int64_t createP
 		return;
 
 	if(imputePerSNP==0 && createPatternPoolMask==0) // M=0
-		fprintf(fp, "\n Index: Name | Sites = SNPs + Discarded | Discarded = HeaderCheckFailed + MAFCheckFailed + WithMissing + Monomorphic | Imputed\n");
+		fprintf(fp, "\n Index: Name | Sites = SNPs + Discarded | Discarded = HeaderCheckFailed + MAFCheckFailed + WithMissing + Monomorphic\n");
 	else
-		fprintf(fp, "\n Index: Name | Sites = SNPs + Discarded | Discarded = HeaderCheckFailed + MAFCheckFailed + PotentiallyMonomorphicSites | Imputed\n");
-
+	{
+		if(imputePerSNP==1) // M=1
+			fprintf(fp, "\n Index: Name | Sites = SNPs + Discarded | Discarded = HeaderCheckFailed + MAFCheckFailed + PotentiallyMonomorphicSites | Imputed\n");
+		else // M=2,3
+			fprintf(fp, "\n Index: Name | Sites = SNPs + Discarded | Discarded = HeaderCheckFailed + MAFCheckFailed + PotentiallyMonomorphicSites\n");
+	}
 	fflush(fp);
 }
 

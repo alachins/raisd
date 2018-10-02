@@ -174,6 +174,7 @@ int main (int argc, char ** argv)
 			setDone = RSDDataset_getFirstSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine, RSDCommandLine->regionLength, RSDCommandLine->maf, RAiSD_Info_FP);
 			if(setDone)
 			{
+				if(RSDCommandLine->displayProgress==1)
 				fprintf(stdout, "\n %d: Set %s | sites %d | snps %d | region %lu - skipped", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength);
 				fprintf(RAiSD_Info_FP, "\n %d: Set %s | sites %d | snps %d | region %lu - skipped", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength);
 
