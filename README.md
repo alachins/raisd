@@ -291,7 +291,7 @@ An example of such file can be found here: http://139.91.162.50/raisd_plots/exam
 Processing VCF (ANGSD version)
 ------------------------------
 
-As of version 1.7, RAiSD can process ANGSD (http://www.popgen.dk/angsd/index.php/ANGSD) VCF files. Such files (see a sample here: http://www.popgen.dk/angsd/index.php/Vcf) only include the GP and GL fields, rather than the GT field that is required by RAiSD. In the absence of GT, diploidy is assumed. Given a [GL:GP] entry [L1,L2,L3:P1,P2,P3], RAiSD constructs unphased genotype data on the fly as follows: a) GT="./." for all-zero GL entries, b) GT="0/0", "0/1", and "1/1" with probabilities P1, P2, and P3, respectively.  
+As of version 1.7, RAiSD can process ANGSD (http://www.popgen.dk/angsd/index.php/ANGSD) VCF files. Such files (see a sample here: http://www.popgen.dk/angsd/index.php/Vcf) only include the GP and GL fields, rather than the GT field that is required by RAiSD. In the absence of GT, diploidy is assumed. Given a [GL:GP] entry [L1,L2,L3:P1,P2,P3], RAiSD constructs unphased genotype data on the fly as follows: a) GT="./." for all-zero GL entries, b) GT="0/0" with probability P1, GT="0/1" with probability P2, GT="1/1" with probability P3.  
 
 Change log
 ----------
@@ -309,6 +309,8 @@ v1.4 (3/8/2018): -M to handle missing data, -O to show progress on the display d
 v1.5 (4/8/2018): -R to include additional information in the report (reduced default to location and score)
 
 v1.6 (3/9/2018): -P to create plots per set of SNPs using Rscript
+
+v1.7 (2/10/2018): -y for ploidy, -D for site report, fixed a bug in the plotting routine
 
 Support
 -------
