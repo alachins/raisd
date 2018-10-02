@@ -200,6 +200,7 @@ VCF format
     $ ./RAiSD -n vcf_run -I input_file.vcf
 
 
+
 Optional Input Parameters
 ------------------------
 
@@ -294,6 +295,10 @@ RAiSD_Plot.test_run.0.pdf
 An example of such file can be found here: http://139.91.162.50/raisd_plots/examples/RAiSD_Plot.test_run.1.pdf
 
 
+Processing VCF (ANGSD version)
+------------------------------
+
+As of version 1.7, RAiSD can process ANGSD (http://www.popgen.dk/angsd/index.php/ANGSD) VCF files.
 
 Change log
 ----------
