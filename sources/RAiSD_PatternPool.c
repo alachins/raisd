@@ -459,7 +459,7 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 		}
 	}
 	else
-	{	// default or with N imputation (-i)
+	{	// default or with N imputation (-M 1)
 		for(j=0;j<numberOfSamples;j++)
 		{
 			assert(RSDPatternPool->incomingSite[j]=='0' || RSDPatternPool->incomingSite[j]=='1');
@@ -674,17 +674,20 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 	return poolFull;
 }
 
-void RSDPatternPool_imputeIncomingSite (RSDPatternPool_t * RSDPatternPool, int64_t setSamples)
+int RSDPatternPool_imputeIncomingSite (RSDPatternPool_t * RSDPatternPool, int64_t setSamples)
 {
 	double prob1 = ((double)RSDPatternPool->incomingSiteDerivedAlleleCount)/((double)RSDPatternPool->incomingSiteTotalAlleleCount);
 	int64_t i;
+	int flag = 0;
 	for(i=0;i<setSamples;i++)
 	{
 		if(RSDPatternPool->incomingSite[i]=='N')
 		{
+			flag = 1;
+
 			int val = rand();
 			double rval = ((double)val) / ((double)RAND_MAX);
-			if(rval<prob1)
+			if(rval<=prob1)
 			{
 				RSDPatternPool->incomingSite[i] = '1';
 				RSDPatternPool->incomingSiteDerivedAlleleCount++;
@@ -697,6 +700,7 @@ void RSDPatternPool_imputeIncomingSite (RSDPatternPool_t * RSDPatternPool, int64
 			}
 		}		
 	}
+	return flag;
 }
 
 void RSDPatternPool_assessMissing  (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSamples)

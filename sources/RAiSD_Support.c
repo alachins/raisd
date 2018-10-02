@@ -175,7 +175,7 @@ int isnpv_cmp_with_mask (uint64_t * A, uint64_t * B, uint64_t * mA, uint64_t * m
 	return 0;
 }
 
-int getGTLocation_vcf (char * string)
+int getGXLocation_vcf (char * string, char * GX)
 {
 	assert(string!=NULL);
 	
@@ -191,7 +191,7 @@ int getGTLocation_vcf (char * string)
 			endIndex =  i;
 			memcpy(tstring, &string[startIndex], (size_t)(endIndex-startIndex));
 			tstring[endIndex]='\0';
-			if(!strcmp(tstring, "GT"))
+			if(!strcmp(tstring, GX))
 				return Location;
 			
 			Location++;
@@ -201,14 +201,84 @@ int getGTLocation_vcf (char * string)
 	endIndex =  i;
 	memcpy(tstring, &string[startIndex], (size_t)endIndex);
 	tstring[endIndex]='\0';
-	if(!strcmp(tstring, "GT"))
+	if(!strcmp(tstring, GX))
 		return Location;
 
 	return -1;	
 }
 
-void getGTData_vcf (char * string, int location, char * data) // from sample
+int diploidyCheck(char * data)
 {
+	unsigned int i, count=0;	
+	for(i=0;i<strlen(data);i++)
+		count += (data[i]==','? 1:0);
+	
+	int check = count==2?1:0;
+	return check;
+}
+
+void getGPProbs (char * data, double *p00, double *p01, double * p11, int isLik)
+{
+	char tstring[STRING_SIZE];
+	unsigned int i;
+	int tstr_i=0;
+	
+	for(i=0;i<strlen(data);i++)
+	{
+		if(data[i]==',')
+		{
+			tstring[tstr_i] = '\0';
+			tstr_i=0;
+
+			if(*p00<0.0)
+				*p00 = atof(tstring);
+			else
+				*p01 = atof(tstring);			
+			
+		}
+		else
+			tstring[tstr_i++] = data[i];
+	}
+
+	tstring[tstr_i] = '\0';
+	*p11 = atof(tstring);	
+
+	if(isLik==0)
+		assert(*p00>=0.0 && *p01>=0.0 && *p11>=0.0);
+	else
+		assert(*p00<=0.0 && *p01<=0.0 && *p11<=0.0);
+}
+
+void reconGT (char * data)
+{
+	assert(diploidyCheck(data)==1);
+
+	double p00 = -1.0, p01 = -1.0, p11 = -1.0;
+	getGPProbs(data, &p00, &p01, &p11, 0);
+
+	double checksum = p00+p01+p11;
+	assert(checksum>=0.999 && checksum<=1.001);
+
+	int val = rand();
+	double rval = ((double)val) / ((double)RAND_MAX);
+	
+	if(rval<p00)
+		strcpy (data, "0/0");
+	else
+	{
+		if(rval>=p00 && rval<p00+p01)
+			strcpy (data, "0/1");
+		else
+			strcpy (data, "1/1");	
+	}
+}
+
+int getGXData_vcf (char * string, int location, char * data)
+{
+	assert(string!=NULL);
+	assert(location>=0);
+	assert(data!=NULL);	
+
 	int tLocation = 0;
 	int i, length = (int)strlen(string);
 	int startIndex = 0;
@@ -222,8 +292,8 @@ void getGTData_vcf (char * string, int location, char * data) // from sample
 			data[endIndex]='\0';
 
 			if(tLocation==location)
-				return;
-			
+				return 1;
+
 			tLocation++;
 			startIndex = i+1;
 		}
@@ -232,10 +302,39 @@ void getGTData_vcf (char * string, int location, char * data) // from sample
 	memcpy(data, &string[startIndex], (size_t)endIndex);
 	data[endIndex]='\0';
 	if(tLocation==location)
-		return;	
+		return 1;
 
-	assert(0);
-	return;
+	return 0;		
+}
+
+void getGTData_vcf (char * string, int locationGT, int locationGP, int locationGL, char * data) // from sample
+{
+	assert(locationGT!=-1 || (locationGP!=-1 && locationGL!=-1));
+
+	if(locationGT!=-1)
+	{
+		int ret = getGXData_vcf(string, locationGT, data);
+		assert(ret==1);
+	}
+	else
+	{
+		int ret = getGXData_vcf(string, locationGL, data);
+		assert(ret==1);
+
+		double p00 = 0.0, p01 = 0.0, p11 = 0.0; // likelihoods
+		getGPProbs(data, &p00, &p01, &p11, 1); 
+
+		if(p00+p01+p11!=0.0)
+		{
+			ret = getGXData_vcf(string, locationGP, data);
+			assert(ret==1);
+		
+			reconGT (data);	
+		}
+		else
+			strcpy (data, "./.");
+			
+	}
 }
 
 void dataShuffleKnuth(char * data, int startIndex, int endIndex)
@@ -256,17 +355,17 @@ void dataShuffleKnuth(char * data, int startIndex, int endIndex)
 	}
 }
 
-int getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char * sampleData, int * derivedAlleleCount, int * totalAlleleCount)
+int getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char * sampleData, int * derivedAlleleCount, int * totalAlleleCount, int ploidy)
 {	
-	int i, j=0, index=0, start=0, end=0, len = (int)strlen(string), skipSNP=0;
-
+	assert(statesTotal>=2);
 	assert(stateVector!=NULL);
 
+	int i, j=0, index=0, start=0, end=0, len = (int)strlen(string), skipSNP=0;
+	
 	for(i=0;i<len;i++)
 	{	
 		if(string[i]>=48 && string[i]<=57)
 		{
-
 			if(string[i]!='0' && string[i]!='1')
 			{
 				fprintf(stderr, "\n ERROR: Invalid character (%c) found!\n\n", string[i]);
@@ -274,7 +373,7 @@ int getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char *
 			}
 
 			index = string[i]-48;
-
+	
 			assert(index==0 || index==1);
 
 			(*totalAlleleCount)++;
@@ -293,7 +392,19 @@ int getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char *
 			{
 				sampleData[j++] = 'N';
 				sampleData[j] = '\0';
-				skipSNP=1; 
+				skipSNP=1;
+	
+				if(ploidy>1 && len==1)
+				{
+					assert(!strcmp(string, "."));
+
+					int cnt = ploidy-1;
+					while(cnt--!=0)
+					{
+						sampleData[j++] = 'N';
+						sampleData[j] = '\0';
+					}
+				}
 			}
 
 			if(string[i]=='/')
@@ -388,8 +499,43 @@ char alleleMask_binary (char c, int * isDerived, int * isValid, FILE * fpOut)
 	}	
 }
 
-int maf_check (int ac, int at, double maf)
+int monomorphic_check (int incomingSiteDerivedAlleleCount, int setSamples, int64_t * cnt, int skipSNP)
 {
+	if(skipSNP==1) // to avoid double counting
+		return 0;
+
+	int check = 1;
+
+	if(incomingSiteDerivedAlleleCount==0 || incomingSiteDerivedAlleleCount==setSamples)
+	{
+		check = 0;
+ 		++(*cnt);
+	}
+
+	return check;	
+}
+
+int strictPolymorphic_check (int incomingSiteDerivedAlleleCount, int incomingSiteTotalAlleleCount, int64_t * cnt, int skipSNP)
+{
+	if(skipSNP==1) // to avoid double counting
+		return 0;
+
+	int check = 1;
+
+	if(incomingSiteDerivedAlleleCount==incomingSiteTotalAlleleCount)
+	{
+		check = 0;
+		++(*cnt);
+	}
+
+	return check;	
+}
+
+int maf_check (int ac, int at, double maf, int64_t * cnt, int skipSNP)
+{
+	if(skipSNP==1) // to avoid double counting
+		return 0;
+
 	if(ac<=0||at<=0)
 		return 0;
 
@@ -399,8 +545,11 @@ int maf_check (int ac, int at, double maf)
 	double adf = ((double)at-ac)/((double)at);
 
 	if(aaf<maf || adf<maf)
+	{
 		check = 0;
-	
+		++(*cnt);
+	}
+
 	return check;
 }
 
@@ -447,5 +596,18 @@ void RSD_printMemory (FILE * fp1, FILE * fp2)
 
 	fprintf(fp2, " Total memory footprint %.0f kbytes\n", MemoryFootprint/1024.0);
 	fprintf(fp2, "\n");
+}
+
+void RSD_printSiteReportLegend (FILE * fp, int64_t imputePerSNP, int64_t createPatternPoolMask)
+{
+	if(fp==NULL)
+		return;
+
+	if(imputePerSNP==0 && createPatternPoolMask==0) // M=0
+		fprintf(fp, "\n Index: Name | Sites = SNPs + Discarded | Discarded = HeaderCheckFailed + MAFCheckFailed + WithMissing + Monomorphic | Imputed\n");
+	else
+		fprintf(fp, "\n Index: Name | Sites = SNPs + Discarded | Discarded = HeaderCheckFailed + MAFCheckFailed + PotentiallyMonomorphicSites | Imputed\n");
+
+	fflush(fp);
 }
 

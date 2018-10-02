@@ -43,11 +43,15 @@ double StartTime;
 double FinishTime;
 double MemoryFootprint;
 FILE * RAiSD_Info_FP;
+FILE * RAiSD_SiteReport_FP;
 struct timespec requestStart;
 struct timespec requestEnd;
 
 void RSD_header (FILE * fpOut)
 {
+	if(fpOut==NULL)
+		return;
+
 	fprintf(fpOut, "\n");
 	fprintf(fpOut, " RAiSD, Raised Accuracy in Sweep Detection\n");
 	fprintf(fpOut, " Copyright (C) 2017, and GNU GPL'd, by Nikolaos Alachiotis and Pavlos Pavlidis\n");
@@ -64,6 +68,7 @@ void RSD_init (void)
 	MemoryFootprint = 0.0;
 
 	RAiSD_Info_FP = NULL;
+	RAiSD_SiteReport_FP = NULL;
 
 	/*Testing*/
 	selectionTarget = 0ull;
@@ -107,9 +112,13 @@ int main (int argc, char ** argv)
 	
 	RSD_header(stdout);
 	RSD_header(RAiSD_Info_FP);
+	RSD_header(RAiSD_SiteReport_FP);
 
 	RSDCommandLine_print(argc, argv, stdout);
 	RSDCommandLine_print(argc, argv, RAiSD_Info_FP);
+	RSDCommandLine_print(argc, argv, RAiSD_SiteReport_FP);
+
+	RSD_printSiteReportLegend(RAiSD_SiteReport_FP, RSDCommandLine->imputePerSNP, RSDCommandLine->createPatternPoolMask);
 
 	RSDDataset_t * RSDDataset = RSDDataset_new();
 	RSDDataset_init(RSDDataset, RSDCommandLine, RAiSD_Info_FP); 
@@ -117,7 +126,7 @@ int main (int argc, char ** argv)
 	RSDDataset_print(RSDDataset, RSDCommandLine, RAiSD_Info_FP);
 
 	RSDPlot_printRscriptVersion (RSDCommandLine, stdout);
-	//RSDPlot_printRscriptVersion (RSDCommandLine, RAiSD_Info_FP);
+	RSDPlot_printRscriptVersion (RSDCommandLine, RAiSD_Info_FP);
 
 	RSDPatternPool_t * RSDPatternPool = RSDPatternPool_new();
 	RSDPatternPool_init(RSDPatternPool, RSDCommandLine, RSDDataset->numberOfSamples);
@@ -165,8 +174,14 @@ int main (int argc, char ** argv)
 			setDone = RSDDataset_getFirstSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine, RSDCommandLine->regionLength, RSDCommandLine->maf, RAiSD_Info_FP);
 			if(setDone)
 			{
-				fprintf(stdout, "\n%d: Set %s | sites %d | snps %d | region %lu - skipped", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength);
-				fprintf(RAiSD_Info_FP, "\n%d: Set %s | sites %d | snps %d | region %lu - skipped", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength);
+				fprintf(stdout, "\n %d: Set %s | sites %d | snps %d | region %lu - skipped", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength);
+				fprintf(RAiSD_Info_FP, "\n %d: Set %s | sites %d | snps %d | region %lu - skipped", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength);
+
+				if(RSDCommandLine->displayDiscardedReport==1)
+					RSDDataset_printSiteReport (RSDDataset, RAiSD_SiteReport_FP, setIndex, RSDCommandLine->imputePerSNP, RSDCommandLine->createPatternPoolMask);
+
+				RSDDataset_resetSiteCounters (RSDDataset);	
+
 				continue;
 			}
 			RSDPatternPool_resize (RSDPatternPool, RSDDataset->setSamples, RAiSD_Info_FP);
@@ -234,15 +249,23 @@ int main (int argc, char ** argv)
 			}
 
 			if(RSDCommandLine->createPlot==1)
-				RSDPlot_createPlot (RSDCommandLine, RSDDataset);
+				RSDPlot_createPlot (RSDCommandLine, RSDDataset, RSDMuStat);
 
 			setsProcessedTotal++;
 
 			if(RSDCommandLine->displayProgress==1)
 			fprintf(stdout, "\n %d: Set %s | sites %d | snps %d | region %lu - Var %.0f %.3e | SFS %.0f %.3e | LD %.0f %.3e | MuStat %.0f %.3e", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength, (double)RSDMuStat->muVarMaxLoc, (double)RSDMuStat->muVarMax, (double)RSDMuStat->muSfsMaxLoc, (double)RSDMuStat->muSfsMax, (double)RSDMuStat->muLdMaxLoc, (double)RSDMuStat->muLdMax, (double)RSDMuStat->muMaxLoc, (double)RSDMuStat->muMax);
 
+			fflush(stdout);
+
+			if(RSDCommandLine->displayDiscardedReport==1)
+				RSDDataset_printSiteReport (RSDDataset, RAiSD_SiteReport_FP, setIndex, RSDCommandLine->imputePerSNP, RSDCommandLine->createPatternPoolMask);
+
+			RSDDataset_resetSiteCounters (RSDDataset);			
+
 			fprintf(RAiSD_Info_FP, "\n %d: Set %s | sites %d | snps %d | region %lu - Var %.0f %.3e | SFS %.0f %.3e | LD %.0f %.3e | MuStat %.0f %.3e", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength, (double)RSDMuStat->muVarMaxLoc, (double)RSDMuStat->muVarMax, (double)RSDMuStat->muSfsMaxLoc, (double)RSDMuStat->muSfsMax, (double)RSDMuStat->muLdMaxLoc, (double)RSDMuStat->muLdMax, (double)RSDMuStat->muMaxLoc, (double)RSDMuStat->muMax);
 
+			fflush(RAiSD_Info_FP);
 
 			// FPR/TPR
 			if(fpr_loc>0.0)
@@ -312,7 +335,6 @@ int main (int argc, char ** argv)
 	RSDPatternPool_free(RSDPatternPool, RSDDataset->setSamples);
 	RSDChunk_free(RSDChunk, RSDDataset->setSamples);
 	RSDDataset_free(RSDDataset);
-	fclose(RSDMuStat->reportFP);
 	RSDMuStat_free(RSDMuStat);
 
 	if(scr_svec!=NULL)
@@ -326,6 +348,9 @@ int main (int argc, char ** argv)
 	RSD_printMemory(stdout, RAiSD_Info_FP);
 
 	fclose(RAiSD_Info_FP);
+
+	if(RAiSD_SiteReport_FP!=NULL)
+		fclose(RAiSD_SiteReport_FP);
 
 	return 0;
 }

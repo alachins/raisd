@@ -60,6 +60,12 @@ RSDMuStat_t * RSDMuStat_new (void)
 void RSDMuStat_free (RSDMuStat_t * mu)
 {
 	assert(mu!=NULL);
+
+	if(mu->reportFP!=NULL)
+	{
+		fclose(mu->reportFP);
+		mu->reportFP = NULL;
+	}
 	
 	MemoryFootprint += sizeof(int)*((unsigned long)(mu->windowSize*4));
 	if(mu->pCntVec!=NULL)
@@ -128,7 +134,10 @@ void RSDMuStat_setReportNamePerSet (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * 
 		return;
 
 	if(RSDMuStat->reportFP!=NULL)
+	{
 		fclose(RSDMuStat->reportFP);
+		RSDMuStat->reportFP = NULL;
+	}
 
 	char tstring[STRING_SIZE];
 	strcpy(tstring, RSDMuStat->reportName);
@@ -146,7 +155,10 @@ void RSDMuStat_setReportNamePerSet (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * 
 	}
 
 	if(RSDMuStat->reportFP!=NULL)
+	{
 		fclose(RSDMuStat->reportFP);
+		RSDMuStat->reportFP = NULL;
+	}
 
 	RSDMuStat->reportFP = fopen(tstring, "w");
 	assert(RSDMuStat->reportFP!=NULL);
@@ -829,7 +841,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		float facN = 1.0;//(float)RSDChunk->derAll1CntTotal/(float)RSDChunk->derAllNCntTotal;
 		muSfs = (float)dCnt1 + (float)dCntN*facN; 
 
-		if(dCnt1+dCntN==0) // TODO
+		if(dCnt1+dCntN==0) 
 			muSfs = 0.000001f;
 
 		muSfs /= (float)RSDMuStat->windowSize;
@@ -840,7 +852,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		float tempTest = getPatternCounts (RSDMuStat->pCntVec, (int)RSDMuStat->windowSize, RSDChunk->patternID, winlsnpf, winlsnpl, winrsnpf, winrsnpl, &pcntl, &pcntr, &pcntexll, &pcntexlr);
 		muLd = tempTest;
 
-		if(pcntexll + pcntexlr==0) // TODO
+		if(pcntexll + pcntexlr==0) 
 		{
 			muLd = 0.000001f;
 		}

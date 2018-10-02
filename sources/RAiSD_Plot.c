@@ -171,7 +171,7 @@ void RSDPlot_removeRscript (RSDCommandLine_t * RSDCommandLine)
 	RSDPlot_createRscriptName (RSDCommandLine, scriptName);
 
 	FILE * fp;
-	fp = fopen(scriptName, "r"); // TODO
+	fp = fopen(scriptName, "r"); 
 	if(fp!=NULL)
 	{
 		fclose(fp);
@@ -181,7 +181,7 @@ void RSDPlot_removeRscript (RSDCommandLine_t * RSDCommandLine)
 	fp=NULL;
 }
 
-void RSDPlot_createPlot (RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDataset)
+void RSDPlot_createPlot (RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDataset, RSDMuStat_t * RSDMuStat)
 {
 	char scriptName[STRING_SIZE]="RSDPlot.R";
 	RSDPlot_createRscriptName (RSDCommandLine, scriptName);
@@ -194,6 +194,12 @@ void RSDPlot_createPlot (RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDa
 	strcat(tstring, " ");
 	strcat(tstring, RSDDataset->setID);
 	strcat(tstring, " > /dev/null 2>&1");
+
+	if(RSDMuStat->reportFP!=NULL)
+	{
+		fclose(RSDMuStat->reportFP);
+		RSDMuStat->reportFP = NULL;
+	}
 
 #ifdef _C1
 	int ret = system(tstring);

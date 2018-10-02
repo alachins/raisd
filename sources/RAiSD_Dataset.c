@@ -67,6 +67,13 @@ RSDDataset_t * RSDDataset_new(void)
 	d->sampleValidList = NULL;
 	d->sampleValid = NULL;
 	d->numberOfSamplesVCF = 0;
+	d->setSitesDiscarded = 0;
+	d->setSitesDiscardedHeaderCheckFailed=0;
+	d->setSitesDiscardedWithMissing = 0;
+	d->setSitesDiscardedMafCheckFailed = 0;
+	d->setSitesDiscardedStrictPolymorphicCheckFailed = 0;
+	d->setSitesDiscardedMonomorphic = 0;
+	d->setSitesImputedTotal = 0;
 
 	return d;
 }
@@ -80,7 +87,6 @@ void RSDDataset_free(RSDDataset_t * d)
 
 	if(d->sampleValidList!=NULL)
 	{
-		// TODO
 		free(d->sampleValidList);
 	}
 
@@ -569,10 +575,10 @@ int RSDDataset_getFirstSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 	}
 	RSDPatternPool->incomingSite[RSDDataset->numberOfSamples] = '\0'; 
 
-	if(RSDPatternPool->incomingSiteDerivedAlleleCount!=0 && RSDPatternPool->incomingSiteDerivedAlleleCount!=RSDDataset->numberOfSamples && maf_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, maf)==1)
+	if(RSDPatternPool->incomingSiteDerivedAlleleCount!=0 && RSDPatternPool->incomingSiteDerivedAlleleCount!=RSDDataset->numberOfSamples && maf_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, maf, &RSDDataset->setSitesDiscardedMafCheckFailed, 0)==1)
 		RSDDataset->setSNPs++;
 
-	while((RSDPatternPool->incomingSiteDerivedAlleleCount==0||RSDPatternPool->incomingSiteDerivedAlleleCount==RSDDataset->numberOfSamples || maf_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, maf)!=1) && setDone==0) // keep loading until first SNP is found
+	while((RSDPatternPool->incomingSiteDerivedAlleleCount==0||RSDPatternPool->incomingSiteDerivedAlleleCount==RSDDataset->numberOfSamples || maf_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, maf, &RSDDataset->setSitesDiscardedMafCheckFailed, 0)!=1) && setDone==0) // keep loading until first SNP is found
 		setDone = RSDDataset_getNextSNP_ms (RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine, length, maf, fpOut);
 
 	return setDone;
@@ -654,12 +660,12 @@ int RSDDataset_getNextSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDP
 		}		
 	}
 
-	if(RSDPatternPool->incomingSiteDerivedAlleleCount!=0 && RSDPatternPool->incomingSiteDerivedAlleleCount!=RSDDataset->numberOfSamples && maf_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, maf)==1)
+	if(RSDPatternPool->incomingSiteDerivedAlleleCount!=0 && RSDPatternPool->incomingSiteDerivedAlleleCount!=RSDDataset->numberOfSamples && maf_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, maf, &RSDDataset->setSitesDiscardedMafCheckFailed, 0)==1)
 		RSDDataset->setSNPs++;
 	else
 		RSDPatternPool->incomingSitePosition = -1.0; // This is only useful if the last site of the set is not a SNP.
 
-	while((RSDPatternPool->incomingSiteDerivedAlleleCount==0||RSDPatternPool->incomingSiteDerivedAlleleCount==RSDDataset->numberOfSamples || maf_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, maf)!=1) && setDone==0) // keep loading until first SNP is found
+	while((RSDPatternPool->incomingSiteDerivedAlleleCount==0||RSDPatternPool->incomingSiteDerivedAlleleCount==RSDDataset->numberOfSamples || maf_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, maf, &RSDDataset->setSitesDiscardedMafCheckFailed, 0)!=1) && setDone==0) // keep loading until first SNP is found
 		setDone = RSDDataset_getNextSNP_ms (RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine, length, maf, fpOut);
 
 	return setDone;
@@ -928,16 +934,17 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 			assert(rcnt==1);
 	}
 	assert(rcnt==1);
-	
 
 	if(strcmp(RSDDataset->setID, tstring))
 	{	
 		fsetpos(RSDDataset->inputFilePtr, &(RSDDataset->setPosition));
 		setDone = 1;
+
+		fseek(RSDDataset->inputFilePtr,-1,SEEK_CUR);
+
 		return setDone; 
 	}
-
-	assert(!strcmp(RSDDataset->setID, tstring)); // make sure we are still in the same chrom
+	assert(!strcmp(RSDDataset->setID, tstring)); // make sure we are still in the same chrom	
 
 	rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // position
 	assert(rcnt==1);
@@ -968,13 +975,13 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 
 	rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // ref
 	assert(rcnt==1);
-
+	
 	if(strlen(tstring)==1)
 	{
 		successSum++;
 		alleleMap[alleleMapSize++] = tstring[0];
-		alleleMap[alleleMapSize] = '\0';
-	}	
+		alleleMap[alleleMapSize] = '\0';		
+	}
 
 	rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // alt
 	assert(rcnt==1);
@@ -998,10 +1005,21 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 	rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // format
 	assert(rcnt==1);
 
-	int gtLoc = getGTLocation_vcf (tstring);
+	int gtLoc = getGXLocation_vcf (tstring, "GT");
 	
 	if(gtLoc!=-1)
 		successSum++;
+
+	int gpLoc = -1, glLoc = -1;
+
+	if(gtLoc==-1)
+	{
+		gpLoc = getGXLocation_vcf (tstring, "GP");
+		glLoc = getGXLocation_vcf (tstring, "GL");
+
+		if(gpLoc!=-1 && glLoc!=-1)
+			successSum++;
+	}
 	
 	int firstSNP = 0;
 	int skipSNP = 0;
@@ -1017,7 +1035,7 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 			firstSNP = 1;
 
 		if(firstSNP)
-			RSDDataset->setSamples = RSDDataset->numberOfSamples; 
+			RSDDataset->setSamples = RSDDataset->numberOfSamples;
 
 		RSDPatternPool->incomingSiteDerivedAlleleCount = 0;
 		RSDPatternPool->incomingSiteTotalAlleleCount = 0;
@@ -1029,20 +1047,10 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 
 			if(RSDDataset->sampleValid[i]==SAMPLE_IS_VALID)
 			{
-				getGTData_vcf(tstring, gtLoc, data);
-				skipSNP = getGTAlleles_vcf (data, alleleMap, alleleMapSize, data2, &RSDPatternPool->incomingSiteDerivedAlleleCount, &RSDPatternPool->incomingSiteTotalAlleleCount);
+				getGTData_vcf(tstring, gtLoc, gpLoc, glLoc, data);
+				skipSNP = getGTAlleles_vcf (data, alleleMap, alleleMapSize, data2, &RSDPatternPool->incomingSiteDerivedAlleleCount, &RSDPatternPool->incomingSiteTotalAlleleCount, (int)RSDCommandLine->ploidy);
 
-				if(skipSNP && RSDCommandLine->imputePerSNP==0 && RSDCommandLine->createPatternPoolMask==0)
-				{
-					//skipline
-					tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
-					while(tstring[0]!='\n')
-						tstring[0] = (char)fgetc(RSDDataset->inputFilePtr); // get to the end of the line
-
-					break;
-				}
-
-				if((!skipSNP) || (skipSNP && RSDCommandLine->imputePerSNP==1) || (skipSNP && RSDCommandLine->createPatternPoolMask==1))
+				if(RSDCommandLine->imputePerSNP==1 || RSDCommandLine->createPatternPoolMask==1 || (!skipSNP))
 				{
 					sampleSize += strlen(data2);
 
@@ -1062,22 +1070,44 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 							fprintf(stderr, "\n\nERROR: Wrong SNP size (L) found!\n\n\n");
 							exit(0);
 						}
-					}				
+					}
 			
 					memcpy(&(RSDPatternPool->incomingSite[((unsigned long)sampleSize)-strlen(data2)]), data2, strlen(data2));
+				}
+				else
+				{
+					//skipline
+					tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
+					while(tstring[0]!='\n')
+						tstring[0] = (char)fgetc(RSDDataset->inputFilePtr); // get to the end of the line
+
+					RSDDataset->setSitesDiscardedWithMissing++;
+
+					assert(skipSNP==1);
+								
+					break;
 				}
 			}			
 		}
 		RSDPatternPool->incomingSite[sampleSize] = '\0';
 
-		if(RSDCommandLine->imputePerSNP==1)
-		{	
-			RSDPatternPool_imputeIncomingSite (RSDPatternPool, RSDDataset->setSamples);
-			assert(RSDPatternPool->incomingSiteTotalAlleleCount==RSDDataset->setSamples);			
+		if(RSDCommandLine->imputePerSNP==1 || RSDCommandLine->createPatternPoolMask==1)
+		{
+			skipSNP = strictPolymorphic_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, &RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed, 0)==1?0:1;
+
+			if(RSDCommandLine->imputePerSNP==1 && (!skipSNP))
+			{
+				RSDDataset->setSitesImputedTotal+=RSDPatternPool_imputeIncomingSite (RSDPatternPool, RSDDataset->setSamples);
+				assert(RSDPatternPool->incomingSiteTotalAlleleCount==RSDDataset->setSamples);
+				skipSNP=0; // assume snp after impute
+			}	
 		}
 	}
 	else
 	{
+		assert(skipSNP==0);
+		skipSNP=1; // no snp if header-check failed
+
 		successSum = 0;
 		RSDPatternPool->incomingSiteDerivedAlleleCount = 0;
 		RSDPatternPool->incomingSiteTotalAlleleCount = 0;
@@ -1088,16 +1118,19 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 		while(tstring[0]!='\n')
 			tstring[0] = (char)fgetc(RSDDataset->inputFilePtr); // get to the end of the line
 
+		RSDDataset->setSitesDiscardedHeaderCheckFailed++;		
 	}
 
-	skipSNP = maf_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, maf)==1?skipSNP:1;
+	// snp checks
+	skipSNP = monomorphic_check(RSDPatternPool->incomingSiteDerivedAlleleCount, (int)RSDDataset->setSamples, &RSDDataset->setSitesDiscardedMonomorphic, skipSNP)==1?0:1;
+	skipSNP = maf_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, maf, &RSDDataset->setSitesDiscardedMafCheckFailed, skipSNP)==1?0:1;
+	
+	if(skipSNP)
+	{
+		assert(skipSNP==1);
 
-	if(!skipSNP && RSDPatternPool->incomingSiteDerivedAlleleCount!=0 && RSDPatternPool->incomingSiteDerivedAlleleCount!=RSDDataset->setSamples) // SNP is found
-	{
-		RSDDataset->setSNPs++;
-	}
-	else
-	{
+		RSDDataset->setSitesDiscarded++;
+
 		RSDPatternPool->incomingSitePosition = -1.0; // This is only useful if the last site of the set is not a SNP
 
 		if(firstSNP)
@@ -1106,13 +1139,13 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 			free(RSDPatternPool->incomingSite);
 			RSDPatternPool->incomingSite =  NULL;
 			RSDPatternPool->incomingSite = (char*)malloc(sizeof(char)*((unsigned long)(RSDDataset->numberOfSamples+1)));
-			//RSDPatternPool->incomingSite = realloc(RSDPatternPool->incomingSite, sizeof(char)*(RSDDataset->numberOfSamples+1)); 
 			assert(RSDPatternPool->incomingSite!=NULL);
 		}
 	}
-
-	//while((RSDPatternPool->incomingSiteDerivedAlleleCount==0||RSDPatternPool->incomingSiteDerivedAlleleCount==RSDDataset->setSamples) && setDone==0) // keep loading until first SNP is found
-	//	setDone = RSDDataset_getNextSNP_vcf (RSDDataset, RSDPatternPool, RSDChunk, length);
+	else
+	{
+		RSDDataset->setSNPs++;
+	}
 	
 	return setDone;
 }
@@ -1158,5 +1191,37 @@ void RSDDataset_initParser (RSDDataset_t * RSDDataset, FILE * fpOut, RSDCommandL
 
 	assert(0);
 	return;	
+}
+
+void RSDDataset_resetSiteCounters (RSDDataset_t * RSDDataset)
+{
+	RSDDataset->setSitesDiscarded = 0;
+	RSDDataset->setSitesDiscardedHeaderCheckFailed = 0;
+	RSDDataset->setSitesDiscardedWithMissing = 0;
+	RSDDataset->setSitesDiscardedMafCheckFailed = 0;
+	RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed = 0;
+	RSDDataset->setSitesDiscardedMonomorphic = 0;
+	RSDDataset->setSitesImputedTotal = 0;
+}
+
+void RSDDataset_printSiteReport (RSDDataset_t * RSDDataset, FILE * fp, int setIndex, int64_t imputePerSNP, int64_t createPatternPoolMask)
+{
+	assert(fp!=NULL);
+
+	assert(RSDDataset->setSize==RSDDataset->setSNPs+RSDDataset->setSitesDiscarded);
+
+	if(imputePerSNP==0 && createPatternPoolMask==0) // M=0
+	{
+		assert(RSDDataset->setSitesDiscarded==RSDDataset->setSitesDiscardedHeaderCheckFailed+RSDDataset->setSitesDiscardedMafCheckFailed+RSDDataset->setSitesDiscardedWithMissing+RSDDataset->setSitesDiscardedMonomorphic);
+
+		fprintf(fp,"\n %d: %s | %d = %d + %d | %d = %d + %d + %d + %d | %d", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscardedHeaderCheckFailed, (int)RSDDataset->setSitesDiscardedMafCheckFailed, (int)RSDDataset->setSitesDiscardedWithMissing, (int)RSDDataset->setSitesDiscardedMonomorphic, (int)RSDDataset->setSitesImputedTotal);
+	}
+	else
+	{
+		assert(RSDDataset->setSitesDiscarded==RSDDataset->setSitesDiscardedHeaderCheckFailed+RSDDataset->setSitesDiscardedMafCheckFailed+RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed);
+
+		fprintf(fp,"\n %d: %s | %d = %d + %d | %d = %d + %d + %d | %d ", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscardedHeaderCheckFailed, (int)RSDDataset->setSitesDiscardedMafCheckFailed, (int)RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed, (int)RSDDataset->setSitesImputedTotal);
+	}
+	fflush(fp);
 }
 

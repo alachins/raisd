@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <inttypes.h>
 #include <time.h>
+#include <unistd.h>
 
 /*Testing*/
 extern uint64_t selectionTarget;
@@ -78,30 +79,39 @@ extern double StartTime;
 extern double FinishTime;
 extern double MemoryFootprint;
 extern FILE * RAiSD_Info_FP;
+extern FILE * RAiSD_SiteReport_FP;
 
-void 			RSD_header 		(FILE * fpOut);
+
+void 			RSD_header 			(FILE * fpOut);
 
 // RAiSD_Support.c
-unsigned long long 	rdtsc			(void);
-double 			gettime			(void);
-int			snpv_cmp 		(uint64_t * A, uint64_t * B, int size);
-int			snpv_cmp_cross_masks	(uint64_t * A, uint64_t * B, uint64_t * mA, uint64_t * mB, int size);
-int			isnpv_cmp_cross_masks	(uint64_t * A, uint64_t * B, uint64_t * mA, uint64_t * mB, int size);
-int			isnpv_cmp 		(uint64_t * A, uint64_t * B, int size, int numberOfSamples);
-int			isnpv_cmp_with_mask	(uint64_t * A, uint64_t * B, uint64_t * mA, uint64_t * mB, int size, int numberOfSamples);
-int			getGTLocation_vcf 	(char * string);
-void			getGTData_vcf 		(char * string, int location, char * data);
-int			getGTAlleles_vcf	(char * string, char * stateVector, int statesTotal, char * sampleData, int * derivedAlleleCount, int * totalAlleleCount);
-int			rsd_popcnt_u64		(uint64_t input);
-float 			DIST 			(float a, float b);
-float * 		putInSortVector		(int * size, float * vector, float value);
-char 			alleleMask_binary 	(char c, int * isDerived, int *isValid, FILE * fpOut);
-int 			maf_check 		(int ac, int at, double maf);
-void 			dataShuffleKnuth	(char * data, int startIndex, int endIndex);
-extern void		ignoreLineSpaces	(FILE *fp, char *ent);
-extern int 		flagMatch		(FILE *fp, char flag[], int flaglength, char tmp);
-extern void 		RSD_printTime 		(FILE * fp1, FILE * fp2);
-extern void 		RSD_printMemory 	(FILE * fp1, FILE * fp2);
+unsigned long long 	rdtsc				(void);
+double 			gettime				(void);
+int			snpv_cmp 			(uint64_t * A, uint64_t * B, int size);
+int			snpv_cmp_cross_masks		(uint64_t * A, uint64_t * B, uint64_t * mA, uint64_t * mB, int size);
+int			isnpv_cmp_cross_masks		(uint64_t * A, uint64_t * B, uint64_t * mA, uint64_t * mB, int size);
+int			isnpv_cmp 			(uint64_t * A, uint64_t * B, int size, int numberOfSamples);
+int			isnpv_cmp_with_mask		(uint64_t * A, uint64_t * B, uint64_t * mA, uint64_t * mB, int size, int numberOfSamples);
+int			getGXLocation_vcf 		(char * string, char * GX);
+int 			getGXData_vcf 			(char * string, int location, char * data);
+void			getGTData_vcf 			(char * string, int locationGT, int locationGP, int locationGL, char * data);
+int			getGTAlleles_vcf		(char * string, char * stateVector, int statesTotal, char * sampleData, int * derivedAlleleCount, int * totalAlleleCount, int ploidy);
+int			rsd_popcnt_u64			(uint64_t input);
+float 			DIST 				(float a, float b);
+float * 		putInSortVector			(int * size, float * vector, float value);
+char 			alleleMask_binary 		(char c, int * isDerived, int *isValid, FILE * fpOut);
+int 			monomorphic_check 		(int incomingSiteDerivedAlleleCount, int setSamples, int64_t * cnt, int skipSNP);
+int 			maf_check 			(int ac, int at, double maf, int64_t * cnt, int skipSNP);
+int 			strictPolymorphic_check 	(int incomingSiteDerivedAlleleCount, int incomingSiteTotalAlleleCount, int64_t * cnt, int skipSNP);
+void 			dataShuffleKnuth		(char * data, int startIndex, int endIndex);
+extern void		ignoreLineSpaces		(FILE *fp, char *ent);
+extern int 		flagMatch			(FILE *fp, char flag[], int flaglength, char tmp);
+extern void 		RSD_printTime 			(FILE * fp1, FILE * fp2);
+extern void 		RSD_printMemory 		(FILE * fp1, FILE * fp2);
+int 			diploidyCheck			(char * data);
+void 			getGPProbs 			(char * data, double *p00, double *p01, double * p11, int isLik);
+void 			reconGT 			(char * data);
+void 			RSD_printSiteReportLegend 	(FILE * fp, int64_t imputePerSNP, int64_t createPatternPoolMask);
 
 #ifndef _INTRINSIC_POPCOUNT
 extern char	 	POPCNT_U16_LUT [0x1u << 16];
@@ -122,13 +132,15 @@ typedef struct
 	char 		sampleFileName[STRING_SIZE]; // Flag: S
 	double		maf; // Flag: m
 	int64_t		mbs; // Flag: b
-	int64_t		imputePerSNP; //Flag:i
+	int64_t		imputePerSNP; //Flag: i
 	int64_t		createPatternPoolMask; //Flag: M
 	int64_t		patternPoolMaskMode; //Flag: M
 	int64_t		displayProgress; // Flag: O
 	int64_t		fullReport; // Flag: R
 	int64_t		createPlot; // Flag: P
 	double		muThreshold; // Flag: H
+	int64_t		ploidy; // Flag: y
+	int64_t		displayDiscardedReport; // Flag: D
 
 } RSDCommandLine_t;
 
@@ -205,7 +217,7 @@ void 			RSDPatternPool_reset 			(RSDPatternPool_t * RSDPatternPool, int64_t numb
 int			RSDPatternPool_pushSNP			(RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, int64_t numberOfSamples);
 void			RSDPatternPool_resize 			(RSDPatternPool_t * RSDPatternPool, int64_t setSamples, FILE * fpOut);
 void 			RSDPatternPool_exhangePatterns 		(RSDPatternPool_t * RSDPatternPool, int pID_a, int pID_b);
-void			RSDPatternPool_imputeIncomingSite 	(RSDPatternPool_t * RSDPatternPool, int64_t setSamples);
+int			RSDPatternPool_imputeIncomingSite 	(RSDPatternPool_t * RSDPatternPool, int64_t setSamples);
 void			RSDPatternPool_assessMissing 		(RSDPatternPool_t * RSDPatternPool, int64_t numberOfSamples);
 
 // RAiSD_Dataset.c
@@ -233,6 +245,15 @@ typedef struct
 	int		sampleValidListSize; // number of names in the sampleValidList
 	int		numberOfSamplesVCF; // this is the full number of samples in the vcf file
 	int *		sampleValid; // this must be of size numberOfSamples with sampleValidListSize number of 1s or less, indicates which of the dataset samples are valid
+
+	int64_t		setSitesDiscarded;
+	int64_t		setSitesDiscardedHeaderCheckFailed;
+	int64_t		setSitesDiscardedWithMissing;
+	int64_t		setSitesDiscardedMafCheckFailed;
+	int64_t		setSitesDiscardedStrictPolymorphicCheckFailed;
+	int64_t		setSitesDiscardedMonomorphic;
+	int64_t		setSitesImputedTotal;
+
 } RSDDataset_t;
 
 RSDDataset_t * 	RSDDataset_new				(void);
@@ -251,6 +272,8 @@ int 		RSDDataset_getNextSNP_ms 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * 
 int 		RSDDataset_getNextSNP_vcf 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut);
 void		RSDDataset_getSetRegionLength_ms	(RSDDataset_t * RSDDataset, uint64_t length);
 void		RSDDataset_getSetRegionLength_vcf	(RSDDataset_t * RSDDataset);
+void 		RSDDataset_printSiteReport 		(RSDDataset_t * RSDDataset, FILE * fp, int setIndex, int64_t imputePerSNP, int64_t createPatternPoolMask);
+void 		RSDDataset_resetSiteCounters 		(RSDDataset_t * RSDDataset);
 
 // RAiSD_MuStatistic.c
 typedef struct
@@ -293,7 +316,7 @@ int 		RSDPlot_checkRscript 		(void);
 void 		RSDPlot_createRscriptName 	(RSDCommandLine_t * RSDCommandLine, char * scriptName);
 void 		RSDPlot_generateRscript 	(RSDCommandLine_t * RSDCommandLine);
 void 		RSDPlot_removeRscript 		(RSDCommandLine_t * RSDCommandLine);
-void 		RSDPlot_createPlot 		(RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDataset);
+void 		RSDPlot_createPlot 		(RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDataset, RSDMuStat_t * RSDMuStat);
 
 
 

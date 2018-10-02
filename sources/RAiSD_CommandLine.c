@@ -23,7 +23,7 @@
 
 void RSDHelp (FILE * fp)
 {
-	fprintf(fp, " This is RAiSD version 1.6, released in September 2018.\n\n");
+	fprintf(fp, " This is RAiSD version 1.7, released in October 2018.\n\n");
 
 	fprintf(fp, " RAiSD");
 
@@ -49,6 +49,8 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t[-O]\n");
 	fprintf(fp, "\t[-R]\n");
 	fprintf(fp, "\t[-P]\n");
+	fprintf(fp, "\t[-y INTEGER]\n");
+	fprintf(fp, "\t[-D]\n");
 
 	fprintf(fp, "\n");	
 	fprintf(fp, " -n\tProvides a unique run ID that is used to name the output files, i.e., the info file and the report(s).\n");
@@ -72,6 +74,8 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, " -O\tShows progress on the display device (at snp set granularity).\n");
 	fprintf(fp, " -R\tIncludes additional information (window start and end, and the mu-statistic factors for variation, SFS, and LD) in the report file.\n");
 	fprintf(fp, " -P\tGenerates four plots (for the three mu-statistic factors and the final score) in one PDF file per set of SNPs in the input file using Rscript (activates -s, -t, and -R).\n");
+	fprintf(fp, " -y\tProvides the ploidy (integer value), use to correctly represent missing data.\n");
+	fprintf(fp, " -D\tGenerates a site report, e.g., total, discarded, imputed etc.\n");
 
 	fprintf(fp, "\n");
 }
@@ -89,6 +93,7 @@ void RSDVersions(FILE * fp)
 	fprintf(fp, " %d. RAiSD v%d.%d (Aug  3, 2018): -M to handle missing data with 4 strategies (removed -i)\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Aug  4, 2018): -R to include additional information in the report file\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Sep  3, 2018): -P to create plots per set of SNPs with Rscript\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Oct  2, 2018): -y for ploidy, -D for site report, fixed a bug in the plotting routine\n", releaseIndex++, majorIndex, minorIndex++);
 
 	majorIndex++;
 }
@@ -126,13 +131,14 @@ void RSDCommandLine_init(RSDCommandLine_t * RSDCommandLine)
 	RSDCommandLine->fullReport = 0;
 	RSDCommandLine->createPlot = 0;
 	RSDCommandLine->muThreshold = 0.0;
+	RSDCommandLine->ploidy = 2; // default
 }
 
 void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** argv)
 {
 	int i;
 	int info_exists = 0;
-	char tstring [STRING_SIZE];
+	char tstring [STRING_SIZE], tstring2[STRING_SIZE];
 	for(i=1; i<argc; ++i)
 	{
 		if(!strcmp(argv[i], "-n")) 
@@ -263,6 +269,26 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 		{ 
 			RSDCommandLine->mbs = 1;
 			continue;
+		}
+
+		if(!strcmp(argv[i], "-y")) 
+		{ 
+			if (i!=argc-1)
+			{
+				int ploidy = atoi(argv[++i]);
+				if(ploidy<=0)
+				{
+					fprintf(stderr, "\nERROR: Invalid argument after %s\n\n",argv[i]);
+					exit(0);
+				}
+				RSDCommandLine->ploidy = ploidy;
+			}
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
+			continue;
 		}	
 
 		if(!strcmp(argv[i], "-M")) 
@@ -318,6 +344,20 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 		if(!strcmp(argv[i], "-R")) 
 		{ 
 			RSDCommandLine->fullReport = 1;
+			continue;
+		}
+
+		if(!strcmp(argv[i], "-D")) 
+		{ 
+			RSDCommandLine->displayDiscardedReport = 1;
+			
+			tstring2[0]='\0';
+			strcpy(tstring2, "RAiSD_SiteReport.");
+			strcat(tstring2, RSDCommandLine->runName);
+
+			RAiSD_SiteReport_FP = fopen(tstring2, "w");
+			assert(RAiSD_SiteReport_FP!=NULL);
+
 			continue;
 		}
 
@@ -492,6 +532,9 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 
 void RSDCommandLine_print(int argc, char ** argv, FILE * fpOut)
 {
+	if(fpOut==NULL)
+		return;
+
 	fprintf(fpOut, " Command: ");
 	int i;
 	for(i=0; i<argc; ++i)
