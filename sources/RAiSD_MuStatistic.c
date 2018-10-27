@@ -315,10 +315,10 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 	/* Exclusive SNPs left */
 	/* */
 	int excntsnpsl = 0;
-	for(i=p0+1;i<=p1;i++)
+	for(i=p0;i<=p1;i++)
 	{
 		int match = 0;
-		for(j=p2+1;j<=p3;j++)
+		for(j=p2;j<=p3;j++)
 		{
 			if(patternID[i]==patternID[j])
 			{
@@ -336,10 +336,10 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 	*pcntexll = (*pcntexll) * excntsnpsl;
 
 	int excntsnpsr = 0;
-	for(i=p2+1;i<=p3;i++)
+	for(i=p2;i<=p3;i++)
 	{
 		int match = 0;
-		for(j=p0+1;j<=p1;j++)
+		for(j=p0;j<=p1;j++)
 		{
 			if(patternID[i]==patternID[j])
 			{
@@ -356,7 +356,7 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 	}
 	*pcntexlr = (*pcntexlr) * excntsnpsr;
 
-	return 0;//tempTest;
+	return 0;
 }
 
 #ifdef _HW
