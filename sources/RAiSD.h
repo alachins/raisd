@@ -164,7 +164,9 @@ typedef struct
 
 	float * 	sitePosition;
 	int * 		derivedAlleleCount;
-	int * 		patternID;	
+	int * 		patternID;
+
+	float *		chunkData; // type casting for alleleCount and patternID
 
 	int		derAll1CntTotal;
 	int		derAllNCntTotal; 
@@ -173,8 +175,36 @@ typedef struct
 
 RSDChunk_t *	RSDChunk_new 			(void);
 void 		RSDChunk_free			(RSDChunk_t * ch, int64_t numberOfSamples);
-void 		RSDChunk_init			(RSDChunk_t * RSDChunk, int64_t numberOfSamples);
-void		RSDChunk_reset			(RSDChunk_t * RSDChunk);
+void 		RSDChunk_init			(RSDChunk_t * RSDChunk, int64_t numberOfSamples, int64_t createPatternPoolMask);
+void		RSDChunk_reset			(RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine);
+
+
+// RAiSD_HashMap.c
+typedef struct
+{
+	int64_t		addressListSize; // = sampleSize for convenience
+	uint64_t **	addressList;
+
+	uint64_t	addressListEntryMaxSize;
+	uint64_t *	addressListEntrySize;
+	int64_t		addressListEntryFull;
+
+	int64_t		mainKey;
+	int64_t		secondaryKey;
+
+	uint64_t *	mainAddress;
+	uint64_t *	secondaryAddress;
+
+	uint64_t *	poolDataFractions;	
+
+} RSDHashMap_t;
+
+RSDHashMap_t * 	RSDHashMap_new				(void);
+void		RSDHashMap_init 			(RSDHashMap_t * RSDHashMap, int64_t numberOfSamples, uint64_t * poolData, int maxSize, int patternSize);
+void 		RSDHashMap_free 			(RSDHashMap_t * hm);
+void		RSDHashMap_setMainKey 			(RSDHashMap_t * RSDHashMap, int64_t mainKey);
+void		RSDHashMap_setSecondaryKey 		(RSDHashMap_t * RSDHashMap, int64_t secondaryKey);
+int 		RSDHashMap_scanPatternPoolFractions 	(RSDHashMap_t * RSDHashMap, uint64_t * incomingSiteCompact, int patternSize, int numberOfSamples, int * match);
 
 // RAiSD_PatternPool.c
 typedef struct
@@ -207,16 +237,19 @@ typedef struct
 
 	uint64_t * 	exchangeBuffer; // used to exchange patterns between location in the pool
 
+	RSDHashMap_t *	hashMap;
+
 } RSDPatternPool_t;
 
 RSDPatternPool_t * 	RSDPatternPool_new			(void);
 void 			RSDPatternPool_free			(RSDPatternPool_t * pp, int64_t numberOfSamples);
 void 			RSDPatternPool_init 			(RSDPatternPool_t * RSDPatternPool, RSDCommandLine_t * RSDCommandLine, int64_t numberOfSamples);
 void 			RSDPatternPool_print			(RSDPatternPool_t * RSDPatternPool, FILE * fpOut);
-void 			RSDPatternPool_reset 			(RSDPatternPool_t * RSDPatternPool, int64_t numberOfSamples, int64_t setSamples, RSDChunk_t * RSDChunk);
-int			RSDPatternPool_pushSNP			(RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, int64_t numberOfSamples);
+void 			RSDPatternPool_reset 			(RSDPatternPool_t * RSDPatternPool, int64_t numberOfSamples, int64_t setSamples, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine);
+int			RSDPatternPool_pushSNP			(RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, int64_t numberOfSamples, RSDCommandLine_t * RSDCommandLine);
 void			RSDPatternPool_resize 			(RSDPatternPool_t * RSDPatternPool, int64_t setSamples, FILE * fpOut);
-void 			RSDPatternPool_exhangePatterns 		(RSDPatternPool_t * RSDPatternPool, int pID_a, int pID_b);
+void 			RSDPatternPool_exchangePatterns 	(RSDPatternPool_t * RSDPatternPool, int pID_a, int pID_b);
+void 			RSDPatternPool_exchangePatternsFractions(RSDPatternPool_t * RSDPatternPool, int pID_a, int pID_b);
 int			RSDPatternPool_imputeIncomingSite 	(RSDPatternPool_t * RSDPatternPool, int64_t setSamples);
 void			RSDPatternPool_assessMissing 		(RSDPatternPool_t * RSDPatternPool, int64_t numberOfSamples);
 
@@ -278,25 +311,30 @@ void 		RSDDataset_resetSiteCounters 		(RSDDataset_t * RSDDataset);
 // RAiSD_MuStatistic.c
 typedef struct
 {
-	char 	reportName [STRING_SIZE];
-	FILE *	reportFP;
-	char	reportFPFileName[STRING_SIZE];
+	char 		reportName [STRING_SIZE];
+	FILE *		reportFP;
+	char		reportFPFileName[STRING_SIZE];
 
-	int64_t	windowSize; // number of SNPs in each window
+	int64_t		windowSize; // number of SNPs in each window
 
-	int *	pCntVec;    // temp array used to count pattern occurences, contains (sequentially and at a stride): pattern count left, pattern count right, pattern count exclusive left, pattern count exclusive right
+	int *		pCntVec;    // temp array used to count pattern occurences, contains (sequentially and at a stride): pattern count left, pattern count right, pattern count exclusive left, pattern count exclusive right
 	
-	float 	muVarMax; 
-	float 	muVarMaxLoc;
+	float 		muVarMax; 
+	float 		muVarMaxLoc;
 
-	float 	muSfsMax; 
-	float 	muSfsMaxLoc;
+	float 		muSfsMax; 
+	float 		muSfsMaxLoc;
 
-	float 	muLdMax; 
-	float 	muLdMaxLoc;
+	float 		muLdMax; 
+	float		muLdMaxLoc;
 
-	float 	muMax; 
-	float 	muMaxLoc;
+	float 		muMax; 
+	float 		muMaxLoc;
+
+#ifdef _MUMEM
+	int64_t		muReportBufferSize;
+	float * 	muReportBuffer;
+#endif
 
 } RSDMuStat_t;
 

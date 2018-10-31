@@ -134,7 +134,7 @@ int main (int argc, char ** argv)
 	RSDPatternPool_print(RSDPatternPool, RAiSD_Info_FP);
 
 	RSDChunk_t * RSDChunk = RSDChunk_new();
-	RSDChunk_init(RSDChunk, RSDDataset->numberOfSamples);
+	RSDChunk_init(RSDChunk, RSDDataset->numberOfSamples, RSDCommandLine->createPatternPoolMask);
 
 	RSDMuStat_t * RSDMuStat = RSDMuStat_new();
 	RSDMuStat_setReportName (RSDMuStat, RSDCommandLine, RAiSD_Info_FP);		
@@ -167,10 +167,10 @@ int main (int argc, char ** argv)
 			setDone = 0;
 
 			RSDChunk->chunkID = -1;	
-			RSDChunk_reset(RSDChunk);
+			RSDChunk_reset(RSDChunk, RSDCommandLine);
 
-			RSDPatternPool_reset(RSDPatternPool, RSDDataset->numberOfSamples, RSDDataset->setSamples, RSDChunk);	
-		
+			RSDPatternPool_reset(RSDPatternPool, RSDDataset->numberOfSamples, RSDDataset->setSamples, RSDChunk, RSDCommandLine);	
+
 			setDone = RSDDataset_getFirstSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine, RSDCommandLine->regionLength, RSDCommandLine->maf, RAiSD_Info_FP);
 			if(setDone)
 			{
@@ -186,7 +186,12 @@ int main (int argc, char ** argv)
 				continue;
 			}
 			RSDPatternPool_resize (RSDPatternPool, RSDDataset->setSamples, RAiSD_Info_FP);
-			RSDPatternPool_pushSNP (RSDPatternPool, RSDChunk, RSDDataset->setSamples);
+#ifdef _HM
+			RSDHashMap_free(RSDPatternPool->hashMap);
+			RSDPatternPool->hashMap = RSDHashMap_new();
+			RSDHashMap_init (RSDPatternPool->hashMap, RSDDataset->setSamples, RSDPatternPool->poolData, RSDPatternPool->maxSize, RSDPatternPool->patternSize);
+#endif
+			RSDPatternPool_pushSNP (RSDPatternPool, RSDChunk, RSDDataset->setSamples, RSDCommandLine);
 
 			int sitesloaded = 0;
 			int patternsloaded = 0;
@@ -202,7 +207,7 @@ int main (int argc, char ** argv)
 				while(!poolFull && !setDone) 
 				{
 					setDone = RSDDataset_getNextSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine, RSDDataset->setRegionLength, RSDCommandLine->maf, RAiSD_Info_FP);
-					poolFull = RSDPatternPool_pushSNP (RSDPatternPool, RSDChunk, RSDDataset->setSamples); 
+					poolFull = RSDPatternPool_pushSNP (RSDPatternPool, RSDChunk, RSDDataset->setSamples, RSDCommandLine); 
 				}
 	
 				RSDPatternPool_assessMissing (RSDPatternPool, RSDDataset->setSamples);
@@ -213,8 +218,8 @@ int main (int argc, char ** argv)
 				sitesloaded+=RSDChunk->chunkSize;
 				patternsloaded += RSDPatternPool->dataSize;
 
-				RSDChunk_reset(RSDChunk);
-				RSDPatternPool_reset(RSDPatternPool, RSDDataset->numberOfSamples, RSDDataset->setSamples, RSDChunk);
+				RSDChunk_reset(RSDChunk, RSDCommandLine);
+				RSDPatternPool_reset(RSDPatternPool, RSDDataset->numberOfSamples, RSDDataset->setSamples, RSDChunk, RSDCommandLine);
 			}
 
 			// Dist and Succ
@@ -255,7 +260,7 @@ int main (int argc, char ** argv)
 			setsProcessedTotal++;
 
 			if(RSDCommandLine->displayProgress==1)
-			fprintf(stdout, "\n %d: Set %s | sites %d | snps %d | region %lu - Var %.0f %.3e | SFS %.0f %.3e | LD %.0f %.3e | MuStat %.0f %.3e", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength, (double)RSDMuStat->muVarMaxLoc, (double)RSDMuStat->muVarMax, (double)RSDMuStat->muSfsMaxLoc, (double)RSDMuStat->muSfsMax, (double)RSDMuStat->muLdMaxLoc, (double)RSDMuStat->muLdMax, (double)RSDMuStat->muMaxLoc, (double)RSDMuStat->muMax);
+			fprintf(stdout, " %d: Set %s | sites %d | snps %d | region %lu - Var %.0f %.3e | SFS %.0f %.3e | LD %.0f %.3e | MuStat %.0f %.3e\n", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength, (double)RSDMuStat->muVarMaxLoc, (double)RSDMuStat->muVarMax, (double)RSDMuStat->muSfsMaxLoc, (double)RSDMuStat->muSfsMax, (double)RSDMuStat->muLdMaxLoc, (double)RSDMuStat->muLdMax, (double)RSDMuStat->muMaxLoc, (double)RSDMuStat->muMax);
 
 			fflush(stdout);
 
@@ -282,7 +287,7 @@ int main (int argc, char ** argv)
 			
 	}
 
-	fprintf(stdout, "\n\n");
+	fprintf(stdout, "\n");
 	fprintf(stdout, " Sets (total):     %d\n", setIndex+1);
 	fprintf(stdout, " Sets (processed): %d\n", setsProcessedTotal);
 	fprintf(stdout, " Sets (skipped):   %d", setIndex+1-setsProcessedTotal);

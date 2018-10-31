@@ -90,7 +90,7 @@ int snpv_cmp (uint64_t * A, uint64_t * B, int size)
 		{	
 			return 1;
 		}
-
+	
 	return 0;
 }
 

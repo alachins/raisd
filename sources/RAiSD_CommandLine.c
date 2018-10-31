@@ -132,6 +132,7 @@ void RSDCommandLine_init(RSDCommandLine_t * RSDCommandLine)
 	RSDCommandLine->createPlot = 0;
 	RSDCommandLine->muThreshold = 0.0;
 	RSDCommandLine->ploidy = 2; // default
+	RSDCommandLine->displayDiscardedReport = 0;
 }
 
 void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** argv)

@@ -655,8 +655,7 @@ int RSDDataset_getNextSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDP
 		{
 			RSDPatternPool->incomingSite[i] = alleleMask_binary(RSDPatternPool->incomingSite[i], &drvAll_incr, &totAll_incr, fpOut);
 			RSDPatternPool->incomingSiteDerivedAlleleCount += drvAll_incr;
-			RSDPatternPool->incomingSiteTotalAlleleCount += totAll_incr;
-			
+			RSDPatternPool->incomingSiteTotalAlleleCount += totAll_incr;			
 		}		
 	}
 
@@ -954,10 +953,8 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 
 	if(vali>(double)length)
 	{
-		printf("%f vs %f\n", vali, (double)length);
-		fflush(stdout);
-
-		assert(vali<=(double)length);
+		fprintf(stderr, "\nERROR: Data is found at position %.0f, whereas the region size is set to %.0f via -L.\n       (-L is not required with VCF files)\n\n",vali, (double)length);
+		exit(0);
 	}
 
 	RSDDataset->setSize++;

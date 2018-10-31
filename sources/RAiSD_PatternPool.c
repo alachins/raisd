@@ -47,7 +47,8 @@ RSDPatternPool_t * RSDPatternPool_new(void)
 	pp->poolDataWithMissing = NULL;
 	pp->poolDataMaskCount = NULL;
 	pp->poolDataAppliedMaskCount = NULL;
-	pp->exchangeBuffer = NULL;
+	pp->exchangeBuffer = NULL;	
+	pp->hashMap=NULL;
 
 	return pp;
 }
@@ -91,6 +92,9 @@ void RSDPatternPool_free(RSDPatternPool_t * pp, int64_t numberOfSamples)
 
 	MemoryFootprint += sizeof(uint64_t)*((unsigned long)pp->patternSize);
 	free(pp->exchangeBuffer);
+
+	if(pp->hashMap!=NULL)
+		RSDHashMap_free(pp->hashMap);
 
 	free(pp);	
 }
@@ -146,6 +150,14 @@ void RSDPatternPool_init (RSDPatternPool_t * RSDPatternPool, RSDCommandLine_t * 
 
 	RSDPatternPool->exchangeBuffer = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
 	assert(RSDPatternPool->exchangeBuffer!=NULL);
+
+#ifdef _HM
+	if(RSDPatternPool->createPatternPoolMask==0)
+		RSDPatternPool->hashMap = RSDHashMap_new();
+	else
+		assert(0);
+#endif
+
 }
 
 void RSDPatternPool_resize (RSDPatternPool_t * RSDPatternPool, int64_t setSamples, FILE * fpOut)
@@ -203,7 +215,7 @@ void RSDPatternPool_print(RSDPatternPool_t * RSDPatternPool, FILE * fpOut)
 	fflush(fpOut);
 }
 
-void RSDPatternPool_exhangePatterns (RSDPatternPool_t * RSDPatternPool, int pID_a, int pID_b)
+void RSDPatternPool_exchangePatterns (RSDPatternPool_t * RSDPatternPool, int pID_a, int pID_b)
 {
 	if(pID_a==pID_b)
 		return;
@@ -217,6 +229,45 @@ void RSDPatternPool_exhangePatterns (RSDPatternPool_t * RSDPatternPool, int pID_
 	RSDPatternPool->poolDataPatternCount[pID_a] = 0; //RSDPatternPool->poolDataPatternCount[pID_b];	
 
 	memcpy(&(RSDPatternPool->poolData[pID_b*RSDPatternPool->patternSize]), RSDPatternPool->exchangeBuffer, (unsigned long)(RSDPatternPool->patternSize*8));
+	RSDPatternPool->poolDataAlleleCount[pID_b] = alleleCount;
+	RSDPatternPool->poolDataPatternCount[pID_b] = patternCount;	
+	
+	if(RSDPatternPool->createPatternPoolMask==1)
+	{
+		int withMissing =   RSDPatternPool->poolDataWithMissing[pID_a];
+		RSDPatternPool->poolDataWithMissing[pID_a] = RSDPatternPool->poolDataWithMissing[pID_b];
+		RSDPatternPool->poolDataWithMissing[pID_b] = withMissing;
+
+		int maskCount = RSDPatternPool->poolDataMaskCount[pID_a];
+		RSDPatternPool->poolDataMaskCount[pID_a] = RSDPatternPool->poolDataMaskCount[pID_b];
+		RSDPatternPool->poolDataMaskCount[pID_b] = maskCount;
+
+		int appliedMaskCount = RSDPatternPool->poolDataAppliedMaskCount[pID_a];
+		RSDPatternPool->poolDataAppliedMaskCount[pID_a] = RSDPatternPool->poolDataAppliedMaskCount[pID_b];
+		RSDPatternPool->poolDataAppliedMaskCount[pID_b] = appliedMaskCount;
+
+		memcpy(RSDPatternPool->exchangeBuffer, &(RSDPatternPool->poolDataMask[pID_a*RSDPatternPool->patternSize]), (unsigned long)(RSDPatternPool->patternSize*8));
+		memcpy(&(RSDPatternPool->poolDataMask[pID_a*RSDPatternPool->patternSize]), &(RSDPatternPool->poolDataMask[pID_b*RSDPatternPool->patternSize]), (unsigned long)(RSDPatternPool->patternSize*8));
+		memcpy(&(RSDPatternPool->poolDataMask[pID_b*RSDPatternPool->patternSize]), RSDPatternPool->exchangeBuffer, (unsigned long)(RSDPatternPool->patternSize*8));
+	}
+}
+
+void RSDPatternPool_exchangePatternsFractions (RSDPatternPool_t * RSDPatternPool, int pID_a, int pID_b)
+{
+	if(pID_a==pID_b)
+		return;
+
+	RSDHashMap_t * RSDHashMap = RSDPatternPool->hashMap;	
+
+	memcpy(RSDPatternPool->exchangeBuffer, &(RSDHashMap->poolDataFractions[pID_a*RSDPatternPool->patternSize]), (unsigned long)(RSDPatternPool->patternSize*8));
+	int alleleCount =  RSDPatternPool->poolDataAlleleCount[pID_a];
+	int patternCount =  0; //RSDPatternPool->poolDataPatternCount[pID_a]; // Not copying the patterncount because it changes per chunk		
+
+	memcpy(&(RSDHashMap->poolDataFractions[pID_a*RSDPatternPool->patternSize]), &(RSDHashMap->poolDataFractions[pID_b*RSDPatternPool->patternSize]), (unsigned long)(RSDPatternPool->patternSize*8));
+	RSDPatternPool->poolDataAlleleCount[pID_a] = RSDPatternPool->poolDataAlleleCount[pID_b];
+	RSDPatternPool->poolDataPatternCount[pID_a] = 0; //RSDPatternPool->poolDataPatternCount[pID_b];	
+
+	memcpy(&(RSDHashMap->poolDataFractions[pID_b*RSDPatternPool->patternSize]), RSDPatternPool->exchangeBuffer, (unsigned long)(RSDPatternPool->patternSize*8));
 	RSDPatternPool->poolDataAlleleCount[pID_b] = alleleCount;
 	RSDPatternPool->poolDataPatternCount[pID_b] = patternCount;	
 	
@@ -260,8 +311,10 @@ void RSDPatternPool_partialReset (RSDPatternPool_t * RSDPatternPool)
 	}	
 }
 
-void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSamples, int64_t setSamples, RSDChunk_t * RSDChunk)
+void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSamples, int64_t setSamples, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine)
 {
+	assert(RSDCommandLine!=NULL);
+
 	int i;
 
 	if(RSDChunk->chunkID==-1)
@@ -288,14 +341,16 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSa
 		}
 		RSDPatternPool->incomingSitePosition = -1.0;
 
-		for(i=0;i<RSDPatternPool->patternSize*RSDPatternPool->dataSize;i++)
+#ifdef _HM
+		for(i=0;i<RSDPatternPool->patternSize*RSDPatternPool->maxSize;i++)
 		{
 			RSDPatternPool->poolData[i] = 0ull;
 
 			if(RSDPatternPool->createPatternPoolMask==1)
 				RSDPatternPool->poolDataMask[i] = 0ull;
 		}
-		for(i=0;i<RSDPatternPool->dataSize;i++)
+
+		for(i=0;i<RSDPatternPool->maxSize;i++)
 		{
 			RSDPatternPool->poolDataAlleleCount[i] = 0;
 			RSDPatternPool->poolDataPatternCount[i] = 0;
@@ -308,6 +363,34 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSa
 			}
 		}
 
+		for(i=0;i<RSDPatternPool->hashMap->addressListSize;i++)
+			RSDPatternPool->hashMap->addressListEntrySize[i] = 0;
+
+		RSDPatternPool->hashMap->addressListEntryFull = 0;
+#else
+
+		for(i=0;i<RSDPatternPool->patternSize*RSDPatternPool->dataSize;i++)
+		{
+			RSDPatternPool->poolData[i] = 0ull;
+
+			if(RSDPatternPool->createPatternPoolMask==1)
+				RSDPatternPool->poolDataMask[i] = 0ull;
+		}
+
+		for(i=0;i<RSDPatternPool->dataSize;i++)
+		{
+			RSDPatternPool->poolDataAlleleCount[i] = 0;
+			RSDPatternPool->poolDataPatternCount[i] = 0;
+
+			if(RSDPatternPool->createPatternPoolMask==1)
+			{
+				RSDPatternPool->poolDataWithMissing[i] = 0;
+				RSDPatternPool->poolDataMaskCount[i] = 0;
+				RSDPatternPool->poolDataAppliedMaskCount[i] = 0;
+			}
+		}
+		
+#endif
 		RSDPatternPool->dataSize = 0;
 	}
 	else
@@ -337,17 +420,173 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSa
 
 
 		// End part of chunk relocated to the beginning
-		int j;
+		int j = 0;
 		int pLoc = 0;
+
+#ifdef _MLT
+#ifdef _HM  // HM and MLT
+		RSDHashMap_t * RSDHashMap = RSDPatternPool->hashMap;
+
+		for(i=1;i<RSDHashMap->addressListSize;i++)
+			RSDHashMap->addressListEntrySize[i] = 0;
+
+		for(i=1;i<RSDHashMap->addressListSize;i++)
+		{
+			int base = (i-1)*(int)RSDHashMap->addressListEntryMaxSize;
+
+			for(j=0;j<RSDChunk->chunkSize;j++)
+			{
+				int pID = (int)RSDChunk->chunkData[j*3+2];
+				
+				if(pID>=base && pID<base+(int)RSDHashMap->addressListEntryMaxSize) 
+				{	
+					int pID_a = pID;
+					int pID_b = base+(int)RSDHashMap->addressListEntrySize[i];
+	
+					if(pID_a >= pID_b)
+					{
+						RSDPatternPool_exchangePatternsFractions (RSDPatternPool, pID_a, pID_b);
+				
+						int k;
+						for(k=j;k<RSDChunk->chunkSize;k++)
+						{
+							if((int)RSDChunk->chunkData[k*3+2]==pID_a)
+							{
+								RSDChunk->chunkData[k*3+2] = (float)pID_b;
+								RSDPatternPool->poolDataPatternCount[pID_b]++;
+							}
+							else
+							{
+								if((int)RSDChunk->chunkData[k*3+2]==pID_b)
+									RSDChunk->chunkData[k*3+2] = (float)pID_a;
+							}
+						}
+
+						RSDHashMap->addressListEntrySize[i]++;
+					}
+				}
+			}
+		}
+
+		RSDPatternPool->hashMap->addressListEntryFull = 0;
+		
+#else  // MLT, no HM, only for runs without mask
+		if(RSDCommandLine->createPatternPoolMask==1)
+		{
+			for(i=0;i<RSDChunk->chunkSize;i++)
+			{
+				int pID_a = RSDChunk->patternID[i];
+				int pID_b = pLoc;
+		
+				if(pID_a >= pID_b)
+				{
+					RSDPatternPool_exchangePatterns (RSDPatternPool, pID_a, pID_b);
+
+					for(j=i;j<RSDChunk->chunkSize;j++)
+					{
+						if(RSDChunk->patternID[j]==pID_a)
+						{
+							RSDChunk->patternID[j] = pID_b;
+							RSDPatternPool->poolDataPatternCount[pLoc]++;
+						}
+						else
+						{
+							if(RSDChunk->patternID[j]==pID_b)
+								RSDChunk->patternID[j] = pID_a;
+						}
+					}
+
+					pLoc++;
+				}
+			}
+		}
+		else
+		{
+			for(i=0;i<RSDChunk->chunkSize;i++)
+			{
+				int pID_a = (int)RSDChunk->chunkData[i*3+2];
+				int pID_b = pLoc;
+		
+				if(pID_a >= pID_b)
+				{
+					RSDPatternPool_exchangePatterns (RSDPatternPool, pID_a, pID_b);
+
+					for(j=i;j<RSDChunk->chunkSize;j++)
+					{
+						if(((int)RSDChunk->chunkData[j*3+2])==pID_a)
+						{
+							RSDChunk->chunkData[j*3+2] = (float)pID_b;
+							RSDPatternPool->poolDataPatternCount[pLoc]++;
+						}
+						else
+						{
+							if(((int)RSDChunk->chunkData[j*3+2])==pID_b)
+								RSDChunk->chunkData[j*3+2] = (float)pID_a;
+						}
+					}
+
+					pLoc++;
+				}
+			}			
+		}
+#endif
+#else
+#ifdef _HM // HM, no MLT
+		RSDHashMap_t * RSDHashMap = RSDPatternPool->hashMap;
+
+		for(i=1;i<RSDHashMap->addressListSize;i++)
+			RSDHashMap->addressListEntrySize[i] = 0;
+
+		for(i=1;i<RSDHashMap->addressListSize;i++)
+		{
+			int base = (i-1)*(int)RSDPatternPool->hashMap->addressListEntryMaxSize;
+
+			for(j=0;j<RSDChunk->chunkSize;j++)
+			{
+				int pID = RSDChunk->patternID[j];
+				
+				if(pID>=base && pID<base+(int)RSDHashMap->addressListEntryMaxSize) 
+				{	
+					int pID_a = pID;
+					int pID_b = base+(int)RSDHashMap->addressListEntrySize[i];
+	
+					if(pID_a >= pID_b)
+					{
+						RSDPatternPool_exchangePatternsFractions (RSDPatternPool, pID_a, pID_b);
+				
+						int k;
+						for(k=j;k<RSDChunk->chunkSize;k++)
+						{
+							if(RSDChunk->patternID[k]==pID_a)
+							{
+								RSDChunk->patternID[k] = pID_b;
+								RSDPatternPool->poolDataPatternCount[pID_b]++;
+							}
+							else
+							{
+								if(RSDChunk->patternID[k]==pID_b)
+									RSDChunk->patternID[k] = pID_a;
+							}
+						}
+
+						RSDHashMap->addressListEntrySize[i]++;
+					}
+				}
+			}
+		}
+
+		RSDPatternPool->hashMap->addressListEntryFull = 0;
+
+#else // Default: no HM, no MLT
 
 		for(i=0;i<RSDChunk->chunkSize;i++)
 		{
 			int pID_a = RSDChunk->patternID[i];
 			int pID_b = pLoc;
-		
+	
 			if(pID_a >= pID_b)
 			{
-				RSDPatternPool_exhangePatterns (RSDPatternPool, pID_a, pID_b);
+				RSDPatternPool_exchangePatterns (RSDPatternPool, pID_a, pID_b);
 
 				for(j=i;j<RSDChunk->chunkSize;j++)
 				{
@@ -362,10 +601,11 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSa
 							RSDChunk->patternID[j] = pID_a;
 					}
 				}
-
 				pLoc++;
 			}
 		}
+#endif
+#endif
 
 		for(i=pLoc*RSDPatternPool->patternSize;i<RSDPatternPool->patternSize*RSDPatternPool->dataSize;i++)
 		{
@@ -390,15 +630,16 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSa
 
 		RSDPatternPool->dataSize = pLoc; // The new pattern pool corresponds to the number of patterns found in the WINDOW_SIZE snps of the chunk.
 	}
-
 }
 
-int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, int64_t numberOfSamples)
+int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, int64_t numberOfSamples, RSDCommandLine_t * RSDCommandLine)
 {
 	if(RSDPatternPool->incomingSitePosition<=-1.0)
 		return 0;
 
-	int i, j, lcnt=0, acnt=0, vcnt=0, avcnt=0;
+	assert(RSDCommandLine!=NULL);
+
+	int i, j, lcnt=0, acnt=0, vcnt=0, avcnt=0, match=0;
 
 	//init compact
 	for(i=0;i<RSDPatternPool->patternSize;i++)
@@ -495,11 +736,37 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 	}
 
 	assert(i==RSDPatternPool->patternSize-1);
-	
+
+
+#ifdef _HM
+	RSDHashMap_t * RSDHashMap = RSDPatternPool->hashMap;
+	assert(RSDHashMap!=NULL);
+
+	match = 0;
 	i = 0;
+
+	RSDHashMap_setMainKey (RSDHashMap, (int64_t)acnt);
+	RSDHashMap_setSecondaryKey (RSDHashMap, numberOfSamples-((int64_t)acnt));
+	i = RSDHashMap_scanPatternPoolFractions (RSDHashMap, RSDPatternPool->incomingSiteCompact, RSDPatternPool->patternSize, (int)numberOfSamples, &match);
+
+	if(match)
+	{
+		RSDPatternPool->poolDataPatternCount[i] += 1;
+	}
+	else
+	{	
+		memcpy(&(RSDHashMap->poolDataFractions[i*RSDPatternPool->patternSize]), RSDPatternPool->incomingSiteCompact, (unsigned long)(RSDPatternPool->patternSize*8));
+		RSDPatternPool->poolDataAlleleCount[i] =  RSDPatternPool->incomingSiteDerivedAlleleCount;
+		RSDPatternPool->poolDataPatternCount[i] = 1;
+		RSDPatternPool->dataSize++;	
+	}
+#else
+	match = 0;
+	i = 0;
+
 	if(RSDPatternPool->dataSize==0)
 	{
-		memcpy(&(RSDPatternPool->poolData[i]), RSDPatternPool->incomingSiteCompact, (unsigned long)(RSDPatternPool->patternSize*8));
+		memcpy(&(RSDPatternPool->poolData[i*RSDPatternPool->patternSize]), RSDPatternPool->incomingSiteCompact, (unsigned long)(RSDPatternPool->patternSize*8));
 
 		if(RSDPatternPool->createPatternPoolMask==1)
 		{
@@ -527,8 +794,7 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 	}
 	else
 	{
-		int match = 0;
-
+		match = 0;
 		if(RSDPatternPool->createPatternPoolMask==1)
 		{
 			if(RSDPatternPool->patternPoolMaskMode==0)
@@ -609,7 +875,7 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 					match=1;
 					break;
 				}	
-			}
+			}	
 
 		}
 
@@ -647,29 +913,63 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 			RSDPatternPool->dataSize++;
 		}
 	}
-
+#endif
 	RSDChunk->chunkSize++;
 	
 	if(RSDChunk->chunkSize>RSDChunk->chunkMemSize)
 	{
 		RSDChunk->chunkMemSize += CHUNK_MEMSIZE_AND_INCREMENT;
+
+#ifdef _MLT
+		if(RSDCommandLine->createPatternPoolMask==1)
+		{
+			RSDChunk->sitePosition = realloc(RSDChunk->sitePosition, sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
+			RSDChunk->derivedAlleleCount = realloc(RSDChunk->derivedAlleleCount, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
+			RSDChunk->patternID = realloc(RSDChunk->patternID, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
+		}
+		else
+		{
+			RSDChunk->chunkData = realloc(RSDChunk->chunkData, sizeof(float)*((unsigned long)RSDChunk->chunkMemSize*3));
+			assert(RSDChunk->chunkData!=NULL);
+		}
+#else
 		RSDChunk->sitePosition = realloc(RSDChunk->sitePosition, sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
 		RSDChunk->derivedAlleleCount = realloc(RSDChunk->derivedAlleleCount, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
 		RSDChunk->patternID = realloc(RSDChunk->patternID, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
+#endif
 	}
 
+#ifdef _MLT
+	if(RSDCommandLine->createPatternPoolMask==1)
+	{
+		RSDChunk->sitePosition[RSDChunk->chunkSize-1] = (float) RSDPatternPool->incomingSitePosition;
+		RSDChunk->derivedAlleleCount[RSDChunk->chunkSize-1] = RSDPatternPool->incomingSiteDerivedAlleleCount;
+		RSDChunk->patternID[RSDChunk->chunkSize-1] = i;
+	}
+	else
+	{
+		RSDChunk->chunkData[(RSDChunk->chunkSize-1)*3+0] =  (float) RSDPatternPool->incomingSitePosition;
+		RSDChunk->chunkData[(RSDChunk->chunkSize-1)*3+1] =  (float) RSDPatternPool->incomingSiteDerivedAlleleCount;
+		RSDChunk->chunkData[(RSDChunk->chunkSize-1)*3+2] =  (float) i;
+	}
+#else
 	RSDChunk->sitePosition[RSDChunk->chunkSize-1] = (float) RSDPatternPool->incomingSitePosition;
 	RSDChunk->derivedAlleleCount[RSDChunk->chunkSize-1] = RSDPatternPool->incomingSiteDerivedAlleleCount;
 	RSDChunk->patternID[RSDChunk->chunkSize-1] = i;
-
+#endif
 	RSDChunk->derAll1CntTotal += RSDPatternPool->incomingSiteDerivedAlleleCount==1?1:0;
 	RSDChunk->derAllNCntTotal += RSDPatternPool->incomingSiteDerivedAlleleCount==numberOfSamples-1?1:0;
 
 	// pattern pool full check
-	int poolFull = 0;		
+	int poolFull = 0;
 
+#ifdef _HM
+	if(RSDHashMap->addressListEntryFull==1)
+		poolFull = 1;
+#else
 	if(RSDPatternPool->dataSize == RSDPatternPool->maxSize)
 		poolFull = 1;
+#endif		
 
 	return poolFull;
 }
@@ -737,21 +1037,3 @@ void RSDPatternPool_assessMissing  (RSDPatternPool_t * RSDPatternPool, int64_t n
 		assert(RSDPatternPool->poolDataAppliedMaskCount[i]==RSDPatternPool->poolDataAlleleCount[i]);
 	}	
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -54,6 +54,11 @@ RSDMuStat_t * RSDMuStat_new (void)
 	mu->muMax = 0.0f; 
 	mu->muMaxLoc = 0.0f;
 
+#ifdef _MUMEM
+	mu->muReportBufferSize = 1;
+	mu->muReportBuffer = (float*)malloc(sizeof(float)*7);
+	assert(mu->muReportBuffer!=NULL);
+#endif
 	return mu;
 }
 
@@ -70,6 +75,16 @@ void RSDMuStat_free (RSDMuStat_t * mu)
 	MemoryFootprint += sizeof(int)*((unsigned long)(mu->windowSize*4));
 	if(mu->pCntVec!=NULL)
 		free(mu->pCntVec);
+
+#ifdef _MUMEM	
+	if(mu->muReportBuffer!=NULL)
+	{
+		MemoryFootprint += sizeof(float)*((unsigned long)(mu->muReportBufferSize*7));
+
+		free(mu->muReportBuffer);
+		mu->muReportBuffer =  NULL;
+	}
+#endif
 
 	free(mu);
 }
@@ -100,7 +115,7 @@ void RSDMuStat_init (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine)
 		RSDMuStat_scanChunk = &RSDMuStat_scanChunkWithMask;
 	else
 		RSDMuStat_scanChunk = &RSDMuStat_scanChunkBinary;
-	
+		
 }
 
 void RSDMuStat_setReportName (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine, FILE * fpOut)
@@ -674,7 +689,6 @@ void pru3_ld_scan (int * vec_c_in, float * vec_c_tmp, int iterations, int window
 		vec_c_tmp[i] = muLD;
 	}
 
-
 	// Free
 	free(tmp_vec_a);
 	free(tmp_vec_b);
@@ -768,10 +782,6 @@ void RSDMuStat_scanChunk (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPat
 		fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", windowCenter, muVar, muSfs, muLd, mu);
 	}
 
-
-
-
-
 	// Free
 	free(vec_a_in);
 	free(vec_b_in); 
@@ -780,6 +790,852 @@ void RSDMuStat_scanChunk (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPat
 	free(vec_b_tmp); 
 	free(vec_c_tmp);
 
+}
+#else
+#ifdef _MLT
+void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
+{
+	assert(RSDCommandLine!=NULL);
+	assert(RSDPatternPool!=NULL);
+
+	int i = 0, j = 0, 
+	    size = (int)RSDChunk->chunkSize,
+	    dCnt1 = 0,
+	    dCntN = 0,
+	    prevDerivedAllele = -1,
+            patternMemLeftSize = 0,
+	    patternMemLeft[WINDOW_SIZE],
+	    patternMemRightSize = 0,
+	    patternMemRight[WINDOW_SIZE],
+            patternMemExclusiveSize = 0,
+	    patternMemLeftExclusive[WINDOW_SIZE],
+	    patternMemRightExclusive[WINDOW_SIZE],
+	    rotbufIndex = 0,
+	    firstLeftID_prev=-1, 
+	    firstRightID_prev=-1,
+	    patternsLeftExclusive = 0, 
+	    patternsRightExclusive = 0, 
+	    snpsLeftExclusive = 0, 
+	    snpsRightExclusive = 0,
+	    pcntl = 0, 
+	    pcntr = 0, 
+	    pcntexll=0, 
+	    pcntexlr=0,
+	    sitePositionL=-1,
+	    derivedAlleleL=-1,
+	    patternIDL=-1,
+	    sitePositionF=-1,
+	    derivedAlleleF=-1,
+	    firstLeftID=-1,
+	    firstRightID=-1;
+
+	float windowCenter = 0.0f, 
+	      windowStart = 0.0f, 
+	      windowEnd = 0.0f,
+	      muVar = 0.0f,
+	      muSfs = 0.0f,
+	      muLd = 0.0f,
+	      mu = 0.0f,
+	      rotbuf[WINDOW_SIZE*3]; // circular queue
+
+#ifdef _MUMEM
+	int muReportBufferIndex = -1;
+
+	if(size>RSDMuStat->muReportBufferSize)
+	{
+		RSDMuStat->muReportBufferSize = size;
+		RSDMuStat->muReportBuffer = realloc(RSDMuStat->muReportBuffer, sizeof(float)*(unsigned long)RSDMuStat->muReportBufferSize*7);
+		assert(RSDMuStat->muReportBuffer);	
+	}
+#endif
+
+	// Circular queue init
+	memcpy(rotbuf, RSDChunk->chunkData, WINDOW_SIZE*sizeof(float)*3);
+
+	// SFS preprocessing
+	for(i=0;i<RSDMuStat->windowSize;i++)
+	{
+		dCnt1 += (((int)RSDChunk->chunkData[i*3+1])==1);
+		dCntN += (((int)RSDChunk->chunkData[i*3+1])==RSDDataset->setSamples-1);
+	}
+		
+	// LD preprocessing: init
+	for(i=0;i<WINDOW_SIZE/2;i++)
+	{
+		patternMemLeft[i*2+0] = -1; // ID 
+		patternMemLeft[i*2+1] = 0; // count
+	
+		patternMemLeftExclusive[i*2+0] = -1;
+		patternMemLeftExclusive[i*2+1] = 0;
+
+		patternMemRight[i*2+0] = -1;
+		patternMemRight[i*2+1] = 0;
+
+		patternMemRightExclusive[i*2+0] = -1;		
+		patternMemRightExclusive[i*2+1] = 0;
+	}
+
+	// LD preprocessing: patternMemLeft
+	for(i=0;i<RSDMuStat->windowSize/2;i++)
+	{
+		int k, match=0;
+		for(k=0;k<patternMemLeftSize;k++)
+		{
+			if(patternMemLeft[k*2+0]==(int)RSDChunk->chunkData[i*3+2])
+			{
+				match=1;
+				patternMemLeft[k*2+1]++;
+			}	
+		}
+		if(match==0)
+		{	k = patternMemLeftSize;
+			patternMemLeft[k*2+0] = (int)RSDChunk->chunkData[i*3+2];
+			patternMemLeft[k*2+1]++;
+			patternMemLeftSize++;
+		}		
+	}
+
+	// LD preprocessing: patternMemRight
+	for(;i<RSDMuStat->windowSize;i++)
+	{
+		int k, match=0;
+		for(k=0;k<patternMemRightSize;k++)
+		{
+			if(patternMemRight[k*2+0]==(int)RSDChunk->chunkData[i*3+2])
+			{
+				match=1;
+				patternMemRight[k*2+1]++;
+			}	
+		}
+		if(match==0)
+		{	k = patternMemRightSize;
+			patternMemRight[k*2+0] = (int)RSDChunk->chunkData[i*3+2];
+			patternMemRight[k*2+1]++;
+			patternMemRightSize++;
+		}
+	}
+
+	// LD preprocessing: patternMemLeftExclusive
+	patternMemExclusiveSize = 0;
+	for(i=0;i<patternMemLeftSize;i++)
+	{
+		int k, match = 0;
+		for(k=0;k<patternMemRightSize;k++)
+		{
+			if(patternMemLeft[i*2+0]==patternMemRight[k*2+0])
+			{
+				match=1;
+				k = patternMemRightSize;
+			}
+		}
+		if(match==0)
+		{
+			k = patternMemExclusiveSize;
+			patternMemLeftExclusive[k*2+0] = patternMemLeft[i*2+0];
+			patternMemLeftExclusive[k*2+1] += patternMemLeft[i*2+1];
+			patternMemExclusiveSize++;
+		}		
+	}
+
+	// LD preprocessing: patternMemRightExclusive
+	patternMemExclusiveSize = 0;
+	for(i=0;i<patternMemRightSize;i++)
+	{
+		int k, match = 0;
+		for(k=0;k<patternMemLeftSize;k++)
+		{
+			if(patternMemRight[i*2+0]==patternMemLeft[k*2+0])
+			{
+				match=1;
+				k = patternMemLeftSize;
+			}
+		}
+		if(match==0)
+		{
+			k = patternMemExclusiveSize;
+			patternMemRightExclusive[k*2+0] = patternMemRight[i*2+0];
+			patternMemRightExclusive[k*2+1] += patternMemRight[i*2+1];
+			patternMemExclusiveSize++;
+		}
+		
+	}
+
+	
+	// Pattern count preprocessing
+	for(i=0;i<WINDOW_SIZE/2;i++)
+	{
+		pcntl += (patternMemLeft[i*2+1]!=0?1:0);
+		pcntr += (patternMemRight[i*2+1]!=0?1:0);
+		patternsLeftExclusive += (patternMemLeftExclusive[i*2+1]!=0?1:0);
+		patternsRightExclusive += (patternMemRightExclusive[i*2+1]!=0?1:0);
+		snpsLeftExclusive += patternMemLeftExclusive[i*2+1];
+		snpsRightExclusive += patternMemRightExclusive[i*2+1]; 		
+	}
+
+	// Iteration 0
+	i=(int)RSDMuStat->windowSize-1;
+	{
+		// mem access
+		sitePositionL = (int)RSDChunk->chunkData[i*3]; 
+		derivedAlleleL = (int)RSDChunk->chunkData[i*3+1];
+		patternIDL = (int)RSDChunk->chunkData[i*3+2];
+
+		// rotbuf access
+		sitePositionF = (int)rotbuf[rotbufIndex*3]; 
+		derivedAlleleF = (int)rotbuf[rotbufIndex*3+1];
+		firstLeftID = (int)rotbuf[rotbufIndex*3+2]; 
+		
+		// we need to load the previous sliding step's right window's first pattern ID
+		int rotbufIndex_temp = rotbufIndex + (WINDOW_SIZE/2);
+
+		if(rotbufIndex>=(WINDOW_SIZE/2)-1)
+			rotbufIndex_temp -= (WINDOW_SIZE-1);
+
+		firstRightID = (int)rotbuf[rotbufIndex_temp*3+2];
+
+		// rotbuf update
+		rotbuf[rotbufIndex*3] = (float)sitePositionL;		
+		rotbuf[rotbufIndex*3+1] = (float)derivedAlleleL;
+		rotbuf[rotbufIndex*3+2] = (float)patternIDL; 	
+	
+		rotbufIndex++;
+		if(rotbufIndex==RSDMuStat->windowSize-1)
+			rotbufIndex = 0;
+		
+		// Window center (bp)
+		windowCenter = (sitePositionF + sitePositionL) / 2.0f;
+		windowStart = sitePositionF;
+		windowEnd = sitePositionL;
+
+		// Var
+		muVar = sitePositionL - sitePositionF;
+		muVar /= RSDDataset->setRegionLength;
+		muVar /= RSDMuStat->windowSize;		
+
+		pcntexll = patternsLeftExclusive*snpsLeftExclusive;
+		pcntexlr = patternsRightExclusive*snpsRightExclusive;
+
+		// Mu_Sfs
+		muSfs = dCnt1+dCntN==0?0.000001f:(((float)dCnt1)+((float)dCntN));		
+		muSfs /= (float)RSDMuStat->windowSize;		
+	
+		// Mu_Ld
+		muLd = pcntexll + pcntexlr==0?0.000001f:((((float)pcntexll)+((float)pcntexlr))/((float)(pcntl*pcntr)));
+	
+		// Mu
+		mu =  muVar * muSfs * muLd;
+
+		// Set for the next iteration
+		prevDerivedAllele = derivedAlleleF; 
+		firstLeftID_prev = firstLeftID; 
+		firstRightID_prev = firstRightID;	
+
+		
+		// MuVar Max
+		RSDMuStat->muVarMax = muVar;
+		RSDMuStat->muVarMaxLoc = windowCenter;
+		
+		// MuSfs Max
+		RSDMuStat->muSfsMax = muSfs;
+		RSDMuStat->muSfsMaxLoc = windowCenter;
+		
+		// MuLd Max
+		RSDMuStat->muLdMax = muLd;
+		RSDMuStat->muLdMaxLoc = windowCenter;
+		
+		// Mu Max
+		RSDMuStat->muMax = mu;
+		RSDMuStat->muMaxLoc = windowCenter;
+#ifdef _MUMEM
+		muReportBufferIndex++;
+		RSDMuStat->muReportBuffer[muReportBufferIndex*7+0] = windowCenter;
+		RSDMuStat->muReportBuffer[muReportBufferIndex*7+1] = windowStart;
+		RSDMuStat->muReportBuffer[muReportBufferIndex*7+2] = windowEnd;
+		RSDMuStat->muReportBuffer[muReportBufferIndex*7+3] = muVar;
+		RSDMuStat->muReportBuffer[muReportBufferIndex*7+4] = muSfs;
+		RSDMuStat->muReportBuffer[muReportBufferIndex*7+5] = muLd;
+		RSDMuStat->muReportBuffer[muReportBufferIndex*7+6] = mu;
+#else		
+		if(RSDCommandLine->fullReport==1)
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)windowStart, (double)windowEnd, (double)muVar, (double)muSfs, (double)muLd, (double)mu);	
+		else
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)windowCenter, (double)mu);	
+#endif
+	}
+	
+	// Scan chunk: all sliding window steps except for the first
+	for(i=(int)RSDMuStat->windowSize;i<size;i++)
+	{
+		// mem access
+		sitePositionL = (int)RSDChunk->chunkData[i*3]; 
+		derivedAlleleL = (int)RSDChunk->chunkData[i*3+1];
+		patternIDL = (int)RSDChunk->chunkData[i*3+2];
+
+		// rotbuf access
+		sitePositionF = (int)rotbuf[rotbufIndex*3]; 
+		derivedAlleleF = (int)rotbuf[rotbufIndex*3+1];
+		firstLeftID = (int)rotbuf[rotbufIndex*3+2]; 
+		
+		// we need to load the previous sliding step's right window's first pattern ID
+		int rotbufIndex_temp = rotbufIndex + (WINDOW_SIZE/2);
+
+		if(rotbufIndex>=(WINDOW_SIZE/2)-1)
+			rotbufIndex_temp -= (WINDOW_SIZE-1);
+
+		firstRightID = (int)rotbuf[rotbufIndex_temp*3+2];
+
+		// rotbuf update
+		rotbuf[rotbufIndex*3] = (float)sitePositionL;		
+		rotbuf[rotbufIndex*3+1] = (float)derivedAlleleL;
+		rotbuf[rotbufIndex*3+2] = (float)patternIDL; 	
+	
+		rotbufIndex++;
+		if(rotbufIndex==RSDMuStat->windowSize-1)
+			rotbufIndex = 0;
+		
+		// Window center (bp)
+		windowCenter = (sitePositionF + sitePositionL) / 2.0f;
+		windowStart = sitePositionF;
+		windowEnd = sitePositionL;
+
+		// Var
+		muVar = sitePositionL - sitePositionF;
+		muVar /= RSDDataset->setRegionLength;
+		muVar /= RSDMuStat->windowSize;		
+		
+		// SFS update
+		dCnt1 -= (prevDerivedAllele==1);
+		dCnt1 += (derivedAlleleL==1);
+
+		dCntN -= (prevDerivedAllele==RSDDataset->setSamples-1);
+		dCntN += (derivedAlleleL==RSDDataset->setSamples-1);
+
+		// LD update
+		int A = firstLeftID_prev;
+		int B = firstRightID_prev;
+		int C = patternIDL;
+
+		int * LMem = patternMemLeft;
+		int * RMem = patternMemRight;
+		int * xLMem = patternMemLeftExclusive;
+		int * xRMem = patternMemRightExclusive;
+		
+		int A_Le_ind=-1, A_Le_cnt=0;
+		int B_Le_ind=-1, B_Le_cnt=0;
+		int C_Le_ind=-1;//, C_Le_cnt=0;
+
+		int A_Ri_ind=-1, A_Ri_cnt=0;
+		int B_Ri_ind=-1, B_Ri_cnt=0;
+		int C_Ri_ind=-1, C_Ri_cnt=0;
+
+		int A_xLe_ind=-1, A_xLe_cnt=0;
+		int B_xLe_ind=-1, B_xLe_cnt=0;
+		int C_xLe_ind=-1, C_xLe_cnt=0;
+
+		int A_xRi_ind=-1, A_xRi_cnt=0;
+		int B_xRi_ind=-1, B_xRi_cnt=0;
+		int C_xRi_ind=-1, C_xRi_cnt=0;
+
+		int F_Le_vec[WINDOW_SIZE/2], F_Le_ind=-1; // stacks
+		int F_Ri_vec[WINDOW_SIZE/2], F_Ri_ind=-1;
+		int F_xLe_vec[WINDOW_SIZE/2], F_xLe_ind=-1;
+		int F_xRi_vec[WINDOW_SIZE/2], F_xRi_ind=-1;
+
+		for(j=0;j<WINDOW_SIZE/2;j++)
+		{
+			// Mem read
+			int curID_Le = LMem[j*2+0]; // ID
+			int curSZ_Le = LMem[j*2+1]; // Count
+
+			int curID_Ri = RMem[j*2+0];
+			int curSZ_Ri = RMem[j*2+1];
+
+			int curID_xLe = xLMem[j*2+0];
+			int curSZ_xLe = xLMem[j*2+1];
+
+			int curID_xRi = xRMem[j*2+0];
+			int curSZ_xRi = xRMem[j*2+1];
+
+
+			// Comp Le
+			if(curID_Le==A)
+			{	
+				A_Le_ind = j;
+				A_Le_cnt = curSZ_Le;
+			}
+
+			if(curID_Le==B)
+			{	
+				B_Le_ind = j;
+				B_Le_cnt = curSZ_Le;
+			}
+
+			if(curID_Le==C)
+			{	
+				C_Le_ind = i;
+				//C_Le_cnt = curSZ_Le;
+			}
+
+			if(curID_Le==-1)
+			{
+				F_Le_ind++;
+				F_Le_vec[F_Le_ind] = j;
+			}
+
+			// Comp Ri
+			if(curID_Ri==A)
+			{	
+				A_Ri_ind = j;
+				A_Ri_cnt = curSZ_Ri;
+			}
+
+			if(curID_Ri==B)
+			{	
+				B_Ri_ind = j;
+				B_Ri_cnt = curSZ_Ri;
+			}
+
+			if(curID_Ri==C)
+			{	
+				C_Ri_ind = j;
+				C_Ri_cnt = curSZ_Ri;
+			}
+
+			if(curID_Ri==-1)
+			{
+				F_Ri_ind++;
+				F_Ri_vec[F_Ri_ind] = j;
+			}
+
+
+			// Comp xLe
+			if(curID_xLe==A)
+			{	
+				A_xLe_ind = j;
+				A_xLe_cnt = curSZ_xLe;
+			}
+
+			if(curID_xLe==B)
+			{	
+				B_xLe_ind = j;
+				B_xLe_cnt = curSZ_xLe;
+			}
+
+			if(curID_xLe==C)
+			{	
+				C_xLe_ind = j;
+				C_xLe_cnt = curSZ_xLe;
+			}
+
+			if(curID_xLe==-1)
+			{
+				F_xLe_ind++;
+				F_xLe_vec[F_xLe_ind] = j;
+			}
+
+			// Comp Ri
+			if(curID_xRi==A)
+			{	
+				A_xRi_ind = j;
+				A_xRi_cnt = curSZ_xRi;
+			}
+
+			if(curID_xRi==B)
+			{	
+				B_xRi_ind = j;
+				B_xRi_cnt = curSZ_xRi;
+			}
+
+			if(curID_xRi==C)
+			{	
+				C_xRi_ind = j;
+				C_xRi_cnt = curSZ_xRi;
+			}
+
+			if(curID_xRi==-1)
+			{
+				F_xRi_ind++;
+				F_xRi_vec[F_xRi_ind] = j;
+			}
+
+		}
+
+		assert(A_Le_ind!=-1);
+		assert(B_Ri_ind!=-1);
+
+		/************** Left **************/
+		if(A!=B)
+		{
+			// Removing A
+			if(A_Le_cnt==1)
+			{
+				assert(A_Le_ind>=0);
+
+				LMem[A_Le_ind*2+0] = -1;
+				LMem[A_Le_ind*2+1] = 0;
+
+				F_Le_ind++;
+				F_Le_vec[F_Le_ind] = A_Le_ind;
+				
+				A_Le_ind = -1;
+				A_Le_cnt = 0;
+
+				pcntl--;
+			}
+			else // A_Le_cnt!=1
+			{
+				A_Le_cnt--;
+				LMem[A_Le_ind*2+1] = A_Le_cnt;				
+			}
+
+			// Adding B
+			if(B_Le_ind==-1)
+			{
+				assert(F_Le_ind>=0);
+
+				B_Le_ind = F_Le_vec[F_Le_ind];
+				F_Le_ind--;
+
+				B_Le_cnt = 1;
+
+				assert(B_Le_ind>=0);
+				
+				LMem[B_Le_ind*2+0] = B;
+				LMem[B_Le_ind*2+1] = B_Le_cnt;
+				
+				pcntl++;
+			}
+			else
+			{
+				B_Le_cnt++;
+				LMem[B_Le_ind*2+1] = B_Le_cnt;
+			}
+		}
+		// Checking C
+		if(C_Le_ind!=-1 && C==A)
+		{
+			C_Le_ind = A_Le_ind;
+			//C_Le_cnt = A_Le_cnt;
+		}
+
+		if(C==B)
+		{
+			C_Le_ind = B_Le_ind;
+			//C_Le_cnt = B_Le_cnt;
+		}
+		/************** End Left **************/
+
+		/************** Right **************/
+		if(B!=C)
+		{
+			// Removing B
+			if(B_Ri_cnt==1)
+			{
+				assert(B_Ri_ind>=0);
+
+				RMem[B_Ri_ind*2+0] = -1;
+				RMem[B_Ri_ind*2+1] = 0;
+
+				F_Ri_ind++;
+				F_Ri_vec[F_Ri_ind] = B_Ri_ind;
+				
+				B_Ri_ind = -1;
+				B_Ri_cnt = 0;
+
+				pcntr--;
+			}
+			else // B_Ri_cnt!=1
+			{
+				B_Ri_cnt--;
+				RMem[B_Ri_ind*2+1] = B_Ri_cnt;				
+			}
+
+			// Adding C
+			if(C_Ri_ind==-1)
+			{
+				assert(F_Ri_ind>=0);
+
+				C_Ri_ind = F_Ri_vec[F_Ri_ind];
+				F_Ri_ind--;
+
+				C_Ri_cnt = 1;
+
+				assert(C_Ri_ind>=0);
+				
+				RMem[C_Ri_ind*2+0] = C;
+				RMem[C_Ri_ind*2+1] = C_Ri_cnt;
+
+				pcntr++;
+			}
+			else
+			{
+				C_Ri_cnt++;
+				RMem[C_Ri_ind*2+1] = C_Ri_cnt;
+			}
+		}
+		// Checking A
+		if(A_Ri_ind!=-1 && A==B)
+		{
+			A_Ri_ind = B_Ri_ind;
+			A_Ri_cnt = B_Ri_cnt;
+		}
+		if(A==C)
+		{
+			A_Ri_ind = C_Ri_ind;
+			A_Ri_cnt = C_Ri_cnt;
+		}
+		/************** End Right **************/
+
+		/************** xLeft **************/			
+		if(A!=B)
+		{
+			// Removing A 
+			if(A_xLe_ind!=-1)
+			{
+				if(A_xLe_cnt==1) // remove A
+				{
+					assert(A_xLe_ind>=0);
+
+					xLMem[A_xLe_ind*2+0] = -1;
+					xLMem[A_xLe_ind*2+1] = 0;
+
+					F_xLe_ind++;
+					F_xLe_vec[F_xLe_ind] = A_xLe_ind;
+
+					snpsLeftExclusive -= A_xLe_cnt; 
+		
+					A_xLe_ind = -1;
+					A_xLe_cnt = 0;
+
+					patternsLeftExclusive--;
+				}
+				else // A_xLe_cnt!=1
+				{
+					if(A_Ri_ind==-1)
+					{
+						A_xLe_cnt--;
+						xLMem[A_xLe_ind*2+1] = A_xLe_cnt;
+						snpsLeftExclusive--;
+					}
+					else
+					{
+						assert(A_xLe_ind>=0);
+
+						xLMem[A_xLe_ind*2+0] = -1;
+						xLMem[A_xLe_ind*2+1] = 0;
+
+						F_xLe_ind++;
+						F_xLe_vec[F_xLe_ind] = A_xLe_ind;
+
+						snpsLeftExclusive -= A_xLe_cnt; 
+		
+						A_xLe_ind = -1;
+						A_xLe_cnt = 0;
+
+						patternsLeftExclusive--;
+					}				
+				}
+			}
+		}
+
+		// Adding B
+		if(B_Ri_ind==-1)
+		{
+			assert(F_xLe_ind>=0);
+
+			B_xLe_ind = F_xLe_vec[F_xLe_ind];
+			F_xLe_ind--;
+
+			B_xLe_cnt = B_Le_cnt;
+
+			assert(B_xLe_ind>=0);
+		
+			xLMem[B_xLe_ind*2+0] = B;
+			xLMem[B_xLe_ind*2+1] = B_xLe_cnt;
+
+			snpsLeftExclusive += B_xLe_cnt; 
+
+			patternsLeftExclusive++;
+		}
+
+		if(C_xLe_ind!=-1 && A!=C) // Remove C
+		{
+			xLMem[C_xLe_ind*2+0] = -1;
+			xLMem[C_xLe_ind*2+1] = 0;
+
+			F_xLe_ind++;
+			F_xLe_vec[F_xLe_ind] = C_xLe_ind;
+
+			snpsLeftExclusive -= C_xLe_cnt; 
+
+			C_xLe_ind = -1;
+			C_xLe_cnt = 0;
+
+			patternsLeftExclusive--;
+		}
+		/************** End xLeft **************/
+
+		/************** xRight **************/
+		if(B!=C)
+		{
+			// Removing B
+			if(B_xRi_ind!=-1)
+			{
+				assert(B_xRi_ind>=0);
+
+				xRMem[B_xRi_ind*2+0] = -1;
+				xRMem[B_xRi_ind*2+1] = 0;
+
+				F_xRi_ind++;
+				F_xRi_vec[F_xRi_ind] = B_xRi_ind;
+
+				snpsRightExclusive -= B_xRi_cnt;
+			
+				B_xRi_ind = -1;
+				B_xRi_cnt = 0;
+
+				patternsRightExclusive--;
+			}
+		}
+
+		// Adding C
+		if(C_Le_ind==-1)
+		{
+			if(C_xRi_ind==-1)
+			{
+				assert(F_xRi_ind>=0);
+
+				C_xRi_ind = F_xRi_vec[F_xRi_ind];
+				F_xRi_ind--;
+
+				C_xRi_cnt = C_Ri_cnt;
+
+				assert(C_xRi_ind>=0);
+			
+				xRMem[C_xRi_ind*2+0] = C;
+				xRMem[C_xRi_ind*2+1] = C_xRi_cnt;
+
+				patternsRightExclusive++;
+				snpsRightExclusive += C_xRi_cnt;
+			}
+			else
+			{
+				xRMem[C_xRi_ind*2+1] = C_Ri_cnt; // C_Ri_cnt equals the previous value of xRMem[C_xRi_ind*2+1] + 1
+				snpsRightExclusive++;
+			}
+			
+		}
+		else
+		{
+			if(C_xRi_ind!=-1) // removing C
+			{
+				assert(C_xRi_ind>=0);
+
+				xRMem[C_xRi_ind*2+0] = -1;
+				xRMem[C_xRi_ind*2+1] = 0;
+
+				F_xRi_ind++;
+				F_xRi_vec[F_xRi_ind] = C_xRi_ind;
+
+				snpsRightExclusive -= C_xRi_cnt;
+			
+				C_xRi_ind = -1;
+				C_xRi_cnt = 0;
+
+				patternsRightExclusive--;
+			}				
+		}
+
+		// Checking to add A
+		if(A_Ri_ind!=-1 && A_Le_ind==-1 && A!=C)
+		{
+			assert(F_xRi_ind>=0);
+
+			A_xRi_ind = F_xRi_vec[F_xRi_ind];
+			F_xRi_ind--;
+
+			A_xRi_cnt = A_Ri_cnt;
+
+			assert(A_xRi_ind>=0);
+		
+			xRMem[A_xRi_ind*2+0] = A;
+			xRMem[A_xRi_ind*2+1] = A_xRi_cnt;
+
+			patternsRightExclusive++;
+			snpsRightExclusive += A_xRi_cnt;
+		}
+		/************** End Right **************/		
+
+		pcntexll = patternsLeftExclusive*snpsLeftExclusive;
+		pcntexlr = patternsRightExclusive*snpsRightExclusive;
+
+		// Mu_Sfs
+		muSfs = dCnt1+dCntN==0?0.000001f:(((float)dCnt1)+((float)dCntN));		
+		muSfs /= (float)RSDMuStat->windowSize;		
+	
+		// Mu_Ld
+		muLd = pcntexll + pcntexlr==0?0.000001f:((((float)pcntexll)+((float)pcntexlr))/((float)(pcntl*pcntr)));
+	
+		// Mu
+		mu =  muVar * muSfs * muLd;
+
+		// Set for the next iteration
+		prevDerivedAllele = derivedAlleleF; 
+		firstLeftID_prev = firstLeftID; 
+		firstRightID_prev = firstRightID;
+		
+		// MuVar Max
+		RSDMuStat->muVarMaxLoc = muVar > RSDMuStat->muVarMax?windowCenter:RSDMuStat->muVarMaxLoc;
+		RSDMuStat->muVarMax = muVar > RSDMuStat->muVarMax?muVar:RSDMuStat->muVarMax;
+
+		// MuSfs Max
+		RSDMuStat->muSfsMaxLoc = muSfs > RSDMuStat->muSfsMax?windowCenter:RSDMuStat->muSfsMaxLoc;
+		RSDMuStat->muSfsMax = muSfs > RSDMuStat->muSfsMax?muSfs:RSDMuStat->muSfsMax;
+
+		// MuLd Max
+		RSDMuStat->muLdMaxLoc = muLd > RSDMuStat->muLdMax?windowCenter:RSDMuStat->muLdMaxLoc;
+		RSDMuStat->muLdMax = muLd > RSDMuStat->muLdMax?muLd:RSDMuStat->muLdMax;
+
+		// Mu Max
+		RSDMuStat->muMaxLoc = mu > RSDMuStat->muMax?windowCenter:RSDMuStat->muMaxLoc;
+		RSDMuStat->muMax = mu > RSDMuStat->muMax?mu:RSDMuStat->muMax;
+		
+#ifdef _MUMEM
+		muReportBufferIndex++;
+		RSDMuStat->muReportBuffer[muReportBufferIndex*7+0] = windowCenter;
+		RSDMuStat->muReportBuffer[muReportBufferIndex*7+1] = windowStart;
+		RSDMuStat->muReportBuffer[muReportBufferIndex*7+2] = windowEnd;
+		RSDMuStat->muReportBuffer[muReportBufferIndex*7+3] = muVar;
+		RSDMuStat->muReportBuffer[muReportBufferIndex*7+4] = muSfs;
+		RSDMuStat->muReportBuffer[muReportBufferIndex*7+5] = muLd;
+		RSDMuStat->muReportBuffer[muReportBufferIndex*7+6] = mu;
+#else		
+		if(RSDCommandLine->fullReport==1)
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)windowStart, (double)windowEnd, (double)muVar, (double)muSfs, (double)muLd, (double)mu);	
+		else
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)windowCenter, (double)mu);	
+#endif
+	}
+
+#ifdef _MUMEM
+	if(RSDCommandLine->fullReport==1)
+	{
+		for(i=0;i<=muReportBufferIndex;i++)
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)RSDMuStat->muReportBuffer[i*7+0], 
+												   (double)RSDMuStat->muReportBuffer[i*7+1], 
+												   (double)RSDMuStat->muReportBuffer[i*7+2], 
+												   (double)RSDMuStat->muReportBuffer[i*7+3], 
+												   (double)RSDMuStat->muReportBuffer[i*7+4],
+												   (double)RSDMuStat->muReportBuffer[i*7+5],
+												   (double)RSDMuStat->muReportBuffer[i*7+6]);
+	}
+	else
+	{
+		for(i=0;i<=muReportBufferIndex;i++)
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)RSDMuStat->muReportBuffer[i*7+0], 
+								     (double)RSDMuStat->muReportBuffer[i*7+6]);
+	}
+#endif
 }
 #else
 void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
@@ -803,8 +1659,6 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		dCnt1 += (RSDChunk->derivedAlleleCount[i]==1);
 		dCntN += (RSDChunk->derivedAlleleCount[i]==RSDDataset->setSamples-1);
 	}
-
-
 
 	for(i=0;i<size-RSDMuStat->windowSize+1;i++)
 	{
@@ -898,6 +1752,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 			fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)windowCenter, (double)mu);	
 	}
 }
+#endif
 
 void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
 {
@@ -930,13 +1785,10 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 			dCnt1 += (RSDChunk->derivedAlleleCount[i]==1);
 			dCntN += (RSDChunk->derivedAlleleCount[i]==RSDDataset->setSamples-1);			
 		}
-	}	
-
-
+	}
 
 	for(i=0;i<size-RSDMuStat->windowSize+1;i++)
 	{
-
 		// SNP window range
 		int snpf = i;
 		int snpl = (int)(snpf + RSDMuStat->windowSize - 1);
@@ -1008,7 +1860,6 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 		{
 			muLd = (((float)pcntexll)+((float)pcntexlr)) / ((float)(pcntl * pcntr));
 		}
-
 
 		// Mu
 		mu =  muVar * muSfs * muLd;

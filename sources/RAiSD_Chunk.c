@@ -34,9 +34,12 @@ RSDChunk_t * RSDChunk_new(void)
 	ch->chunkMemSize = CHUNK_MEMSIZE_AND_INCREMENT;
 
 	ch->chunkSize = 0;
+
 	ch->sitePosition = NULL;
 	ch->derivedAlleleCount = NULL;
 	ch->patternID = NULL;	
+	
+	ch->chunkData = NULL;
 
 	return ch;
 }
@@ -51,28 +54,47 @@ void RSDChunk_free(RSDChunk_t * ch, int64_t numberOfSamples)
 	if(ch->seqPosition!=NULL)
 		free(ch->seqPosition);
 
-	MemoryFootprint += sizeof(float)*((unsigned long)ch->chunkMemSize);
+	MemoryFootprint += 3*sizeof(int)*((unsigned long)ch->chunkMemSize);
 
 	if(ch->sitePosition!=NULL)
 		free(ch->sitePosition);
-
-	MemoryFootprint += sizeof(int)*((unsigned long)ch->chunkMemSize);
 	
 	if(ch->derivedAlleleCount!=NULL)
 		free(ch->derivedAlleleCount);
 
-	MemoryFootprint += sizeof(int)*((unsigned long)ch->chunkMemSize);
-
 	if(ch->patternID!=NULL)
 		free(ch->patternID);
+
+	if(ch->chunkData!=NULL)
+		free(ch->chunkData);
 
 	free(ch);
 }
 
-void RSDChunk_init(RSDChunk_t * RSDChunk, int64_t numberOfSamples)
+void RSDChunk_init(RSDChunk_t * RSDChunk, int64_t numberOfSamples, int64_t createPatternPoolMask)
 {
 	RSDChunk->seqPosition = (fpos_t*)malloc(sizeof(fpos_t)*((unsigned long)numberOfSamples));
 	assert(RSDChunk->seqPosition!=NULL);
+
+#ifdef _MLT
+	if(createPatternPoolMask==1)
+	{
+		RSDChunk->sitePosition = (float*)malloc(sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
+		assert(RSDChunk->sitePosition != NULL);
+
+		RSDChunk->derivedAlleleCount = (int*)malloc(sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
+		assert(RSDChunk->derivedAlleleCount != NULL);
+
+		RSDChunk->patternID = (int*)malloc(sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
+		assert(RSDChunk->patternID != NULL);
+	}
+	else
+	{
+		RSDChunk->chunkData = (float*)malloc(sizeof(float)*((unsigned long)RSDChunk->chunkMemSize*3));
+		assert(RSDChunk->chunkData!=NULL);
+	}
+#else
+	assert(createPatternPoolMask==0 || createPatternPoolMask==1);
 
 	RSDChunk->sitePosition = (float*)malloc(sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
 	assert(RSDChunk->sitePosition != NULL);
@@ -82,23 +104,44 @@ void RSDChunk_init(RSDChunk_t * RSDChunk, int64_t numberOfSamples)
 
 	RSDChunk->patternID = (int*)malloc(sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
 	assert(RSDChunk->patternID != NULL);
+#endif
 
 	RSDChunk->derAll1CntTotal = 0;
 	RSDChunk->derAllNCntTotal = 0;
 }
 
-void RSDChunk_reset(RSDChunk_t * RSDChunk)
+void RSDChunk_reset(RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine)
 {
+	assert(RSDCommandLine!=NULL);
+
 	int i;
 
 	if(RSDChunk->chunkID==-1)
 	{
+
+#ifdef _MLT
+		if(RSDCommandLine->createPatternPoolMask==1)
+		{
+			for(i=0;i<RSDChunk->chunkMemSize;i++)
+			{
+				RSDChunk->sitePosition[i] = 0.0;
+				RSDChunk->derivedAlleleCount[i] = 0;
+				RSDChunk->patternID[i] = 0;
+			}
+		}
+		else
+		{
+			for(i=0;i<RSDChunk->chunkMemSize*3;i++)
+				RSDChunk->chunkData[i] = 0.0f;
+		}
+#else
 		for(i=0;i<RSDChunk->chunkMemSize;i++)
 		{
 			RSDChunk->sitePosition[i] = 0.0;
 			RSDChunk->derivedAlleleCount[i] = 0;
 			RSDChunk->patternID[i] = 0;
 		}
+#endif
 
 		RSDChunk->chunkSize = 0;
 	}
@@ -114,18 +157,52 @@ void RSDChunk_reset(RSDChunk_t * RSDChunk)
 
 		RSDChunk->chunkSize = WINDOW_SIZE - 1;
 
+#ifdef _MLT
+		if(RSDCommandLine->createPatternPoolMask==1)
+		{
+			for(i=0;i<RSDChunk->chunkSize;i++)
+			{
+				RSDChunk->sitePosition[i] = RSDChunk->sitePosition[i_offset+i];
+				RSDChunk->derivedAlleleCount[i] = RSDChunk->derivedAlleleCount[i_offset+i];
+				RSDChunk->patternID[i] = RSDChunk->patternID[i_offset+i];
+			}
+			for(;i<RSDChunk->chunkMemSize;i++)
+			{
+				RSDChunk->sitePosition[i] = 0.0;
+				RSDChunk->derivedAlleleCount[i] = 0;
+				RSDChunk->patternID[i] = 0;	
+			}
+		}
+		else
+		{
+			for(i=0;i<RSDChunk->chunkSize;i++)
+			{
+				RSDChunk->chunkData[i*3+0] = RSDChunk->chunkData[(i_offset+i)*3+0];
+				RSDChunk->chunkData[i*3+1] = RSDChunk->chunkData[(i_offset+i)*3+1];
+				RSDChunk->chunkData[i*3+2] = RSDChunk->chunkData[(i_offset+i)*3+2];
+			}
+
+			for(;i<RSDChunk->chunkMemSize;i++)
+			{
+				RSDChunk->chunkData[i*3+0] = 0.0f;
+				RSDChunk->chunkData[i*3+1] = 0.0f;
+				RSDChunk->chunkData[i*3+2] = 0.0f;
+			}
+		}
+#else
 		for(i=0;i<RSDChunk->chunkSize;i++)
 		{
 			RSDChunk->sitePosition[i] = RSDChunk->sitePosition[i_offset+i];
 			RSDChunk->derivedAlleleCount[i] = RSDChunk->derivedAlleleCount[i_offset+i];
 			RSDChunk->patternID[i] = RSDChunk->patternID[i_offset+i];
 		}
-	
 		for(;i<RSDChunk->chunkMemSize;i++)
 		{
 			RSDChunk->sitePosition[i] = 0.0;
 			RSDChunk->derivedAlleleCount[i] = 0;
-			RSDChunk->patternID[i] = 0;
+			RSDChunk->patternID[i] = 0;	
 		}
-	}	
+#endif
+	}
+
 }
