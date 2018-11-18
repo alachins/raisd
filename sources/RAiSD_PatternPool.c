@@ -23,6 +23,12 @@
 
 void RSDPatternPool_partialReset (RSDPatternPool_t * RSDPatternPool);
 
+#ifdef _PTIMES
+struct timespec requestStartOoC;
+struct timespec requestEndOoC;
+double TotalOoCTime;
+#endif
+
 RSDPatternPool_t * RSDPatternPool_new(void)
 {
 	RSDPatternPool_t * pp = NULL;
@@ -634,6 +640,10 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSa
 
 int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, int64_t numberOfSamples, RSDCommandLine_t * RSDCommandLine)
 {
+#ifdef _PTIMES
+	clock_gettime(CLOCK_REALTIME, &requestStartOoC);
+#endif
+
 	if(RSDPatternPool->incomingSitePosition<=-1.0)
 		return 0;
 
@@ -969,7 +979,13 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 #else
 	if(RSDPatternPool->dataSize == RSDPatternPool->maxSize)
 		poolFull = 1;
-#endif		
+#endif	
+
+#ifdef _PTIMES
+	clock_gettime(CLOCK_REALTIME, &requestEndOoC);
+	double OoCTime = (requestEndOoC.tv_sec-requestStartOoC.tv_sec)+ (requestEndOoC.tv_nsec-requestStartOoC.tv_nsec) / BILLION;
+	TotalOoCTime += OoCTime;
+#endif	
 
 	return poolFull;
 }

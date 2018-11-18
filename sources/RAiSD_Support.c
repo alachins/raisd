@@ -587,6 +587,11 @@ void RSD_printTime (FILE * fp1, FILE * fp2)
 
 	fprintf(fp2, "\n\n");
 	fprintf(fp2, " Total execution time %.5f seconds\n", TotalTime);
+
+#ifdef _PTIMES
+	fprintf(fp1, " Total OoC time %.5f seconds\n", TotalOoCTime);
+	fprintf(fp2, " Total OoC time %.5f seconds\n", TotalOoCTime);
+#endif
 }
 
 void RSD_printMemory (FILE * fp1, FILE * fp2)

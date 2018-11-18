@@ -94,6 +94,11 @@ void RSD_init (void)
 #endif	
 
 	srand((unsigned int)time(NULL)); // if no seed given
+
+#ifdef _PTIMES
+	TotalOoCTime = 0.0;
+#endif
+
 }
 	
 

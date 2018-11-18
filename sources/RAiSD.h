@@ -46,6 +46,12 @@ extern double tpr_scr;
 extern int setIndexValid;
 /**/
 
+#ifdef _PTIMES
+extern struct timespec requestStartOoC;
+extern struct timespec requestEndOoC;
+extern double TotalOoCTime;
+#endif
+
 
 #define STRING_SIZE 8192
 #define PATTERNPOOL_SIZE 1 // MBs without the mask (actual memfootprint approx. double)
