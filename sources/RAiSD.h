@@ -313,7 +313,7 @@ void 		RSDDataset_init				(RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDComm
 void 		RSDDataset_print 			(RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine, FILE * fpOut);
 void 		RSDDataset_setPosition 			(RSDDataset_t * RSDDataset, int * setIndex);
 
-void 		RSDDataset_initParser			(RSDDataset_t * RSDDataset, FILE * fpOut, RSDCommandLine_t * RSDCommandLine);
+void 		RSDDataset_initParser			(RSDDataset_t * RSDDataset, FILE * fpOut, RSDCommandLine_t * RSDCommandLine, int isGZ);
 extern char	(*RSDDataset_goToNextSet) 		(RSDDataset_t * RSDDataset);
 extern int	(*RSDDataset_getNumberOfSamples) 	(RSDDataset_t * RSDDataset);
 extern int 	(*RSDDataset_getValidSampleList) 	(RSDDataset_t * RSDDataset);

@@ -37,7 +37,7 @@ int 	RSDDataset_getNumberOfSamples_ms 	(RSDDataset_t * RSDDataset);
 int 	RSDDataset_getValidSampleList_ms 	(RSDDataset_t * RSDDataset);
 char 	RSDDataset_goToNextSet_ms 		(RSDDataset_t * RSDDataset);
 void 	RSDDataset_reportMissing 		(RSDDataset_t * RSDDataset, FILE * fpOut);
-void 	RSDDataset_detectFormat			(RSDDataset_t * RSDDataset);
+int 	RSDDataset_detectFormat			(RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
 #ifdef _ZLIB
 void 	RSDDataset_detectFormatGZ		(RSDDataset_t * RSDDataset);
 char 	RSDDataset_goToNextSet_vcf_gz 		(RSDDataset_t * RSDDataset);
@@ -200,10 +200,14 @@ void RSDDataset_detectFormatGZ (RSDDataset_t * RSDDataset)
 }
 #endif
 
-void RSDDataset_detectFormat(RSDDataset_t * RSDDataset)
+int RSDDataset_detectFormat(RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
 {
 	FILE * fp = RSDDataset->inputFilePtr;
-	
+
+	int isGZ = 0;
+	if(!strcmp(RSDCommandLine->inputFileName+strlen(RSDCommandLine->inputFileName)-3, ".gz"))
+		isGZ=1;
+
 	char tmp;
 
 	int cnt = 0;
@@ -247,7 +251,7 @@ void RSDDataset_detectFormat(RSDDataset_t * RSDDataset)
 		  	{
 			    	format = FASTA_FORMAT;
 				strcpy(RSDDataset->inputFileFormat, "fasta");
-				assert(0);
+				assert(isGZ==1);
 			    	break;
 		  	}
 			else
@@ -258,7 +262,7 @@ void RSDDataset_detectFormat(RSDDataset_t * RSDDataset)
 			    	{
 					strcpy(RSDDataset->inputFileFormat, "macs");
 					format = MACS_FORMAT;
-					assert(0);
+					assert(isGZ==1);
 					break;
 				}
 			  else
@@ -331,6 +335,8 @@ void RSDDataset_detectFormat(RSDDataset_t * RSDDataset)
 	
 	if(format == -999)
 	  	format = OTHER_FORMAT;
+
+	return isGZ;
 }
 
 void RSDDataset_init (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine, FILE * fpOut)
@@ -343,7 +349,8 @@ void RSDDataset_init (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLi
 
 	fgetpos(RSDDataset->inputFilePtr, &(RSDDataset->setPosition));
 
-	RSDDataset_detectFormat(RSDDataset);
+	int isGZ = RSDDataset_detectFormat(RSDDataset, RSDCommandLine);
+	assert(isGZ==0 || isGZ==1);
 
 	fclose(RSDDataset->inputFilePtr);
 
@@ -351,7 +358,7 @@ void RSDDataset_init (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLi
 	assert(RSDDataset->inputFilePtr!=NULL);
 
 #ifdef _ZLIB
-	if(!strcmp(RSDDataset->inputFileFormat, "invalid"))
+	if(!strcmp(RSDDataset->inputFileFormat, "invalid") || isGZ==1)
 	{
 		RSDDataset->inputFilePtrGZ = gzopen(RSDCommandLine->inputFileName, "r");
 		assert(RSDDataset->inputFilePtrGZ!=NULL);
@@ -403,7 +410,7 @@ void RSDDataset_init (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLi
 
 	} 
 	
-	RSDDataset_initParser (RSDDataset, fpOut, RSDCommandLine);
+	RSDDataset_initParser (RSDDataset, fpOut, RSDCommandLine, isGZ);
 
 	if(strcmp(RSDCommandLine->sampleFileName, "\0")) // gets in here when sample file is provided as input
 		RSDDataset_getValidSampleList (RSDDataset);
@@ -1747,7 +1754,7 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 /* Parser */
 /**********/
 
-void RSDDataset_initParser (RSDDataset_t * RSDDataset, FILE * fpOut, RSDCommandLine_t * RSDCommandLine)
+void RSDDataset_initParser (RSDDataset_t * RSDDataset, FILE * fpOut, RSDCommandLine_t * RSDCommandLine, int isGZ)
 {
 	assert(RSDDataset!=NULL);
 
@@ -1795,6 +1802,12 @@ void RSDDataset_initParser (RSDDataset_t * RSDDataset, FILE * fpOut, RSDCommandL
 	}
 #endif
 
+	if(isGZ==1)
+	{
+		fprintf(fpOut, "\nERROR: parser initialization failed (supported file formats are ms and VCF, recompile with MakefileZLIB for vcf.gz files)\n\n");
+		fprintf(stderr, "\nERROR: parser initialization failed (supported file formats are ms and VCF, recompile with MakefileZLIB for vcf.gz files)\n\n");
+		exit(0);
+	}
 	assert(0);
 	return;	
 }
