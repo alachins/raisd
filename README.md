@@ -25,7 +25,9 @@ Other Related Publications
 --------------------
 
 1. Accelerated Inference of Positive Selection on Whole Genomes
+
 https://ieeexplore.ieee.org/abstract/document/8533493
+
 [BibTex](https://scholar.googleusercontent.com/scholar.bib?q=info:F9Iile4NCpgJ:scholar.google.com/&output=citation&scisig=AAGBfm0AAAAAXCqG2QaAzg-MxmZH8bR-Cm_GsleB74ng&scisf=4&ct=citation&cd=-1&hl=en)
 
 Download and Compile
