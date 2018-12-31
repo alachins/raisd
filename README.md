@@ -21,8 +21,7 @@ The main article describing RAiSD and the μ statistic is published in Communica
 https://www.nature.com/articles/s42003-018-0085-8   
 [BibTex](https://scholar.googleusercontent.com/scholar.bib?q=info:ebSsH9m3aQ4J:scholar.google.com/&output=citation&scisig=AAGBfm0AAAAAXCqE0PB044MQPVpziWnNiNWUMfjuX2xj&scisf=4&ct=citation&cd=-1&hl=en)
 
-Related Publications
---------------------
+Related publications:
 
 2. Accelerated Inference of Positive Selection on Whole Genomes   
 https://ieeexplore.ieee.org/abstract/document/8533493  
