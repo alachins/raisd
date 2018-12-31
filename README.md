@@ -6,9 +6,9 @@ Authors: Nikolaos Alachiotis (n.alachiotis@gmail.com), Pavlos Pavlidis (pavlidis
 
 First release: 9/6/2017 
 
-Last update: 2/10/2018       
+Last update: 31/12/2018       
 
-Version: 1.7
+Version: 1.8
 
 About
 -----
@@ -18,6 +18,11 @@ RAiSD (Raised Accuracy in Sweep Detection) is a stand-alone software implementat
 An article describing the method and the software in detail is published in Communications Biology:
 
 https://www.nature.com/articles/s42003-018-0085-8
+
+Related Publications
+--------------------
+
+FPL2018: https://ieeexplore.ieee.org/abstract/document/8533493
 
 Download and Compile
 --------------------
@@ -293,6 +298,16 @@ Processing VCF (ANGSD version)
 
 As of version 1.7, RAiSD can process ANGSD (http://www.popgen.dk/angsd/index.php/ANGSD) VCF files. Such files (see a sample here: http://www.popgen.dk/angsd/index.php/Vcf) only include the GP and GL fields, rather than the GT field that is required by RAiSD. In the absence of GT, diploidy is assumed. Given a [GL:GP] entry [L1,L2,L3:P1,P2,P3], RAiSD constructs unphased genotype data on the fly as follows: a) GT="./." for all-zero GL entries, b) GT="0/0" with probability P1, GT="0/1" with probability P2, GT="1/1" with probability P3.  
 
+Processing VCF in GZ file format
+--------------------------------
+Since version 1.8, RAiSD can process compressed VCF files in GZ file format. To activate this feature, compile the source code using the dedicated makefile MakefileZLIB as follows:
+
+    $ make -f MakefileZLIB
+    
+The zlib library (https://zlib.net/) needs to be installed prior to compilation. In Ubuntu, the zlib library can be installed with the following command:
+
+    $ sudo apt-get install zlib1g-dev
+
 Generating RAiSD_SiteReport
 ---------------------------
 
@@ -317,6 +332,8 @@ v1.5 (4/8/2018): -R to include additional information in the report (reduced def
 v1.6 (3/9/2018): -P to create plots per set of SNPs using Rscript
 
 v1.7 (2/10/2018): -y for ploidy, -D for site report, fixed a bug in the plotting routine
+
+v.18 (31/12/2018): MakefileZLIB to parse VCF files in gzip file format (requires the zlib library)
 
 Support
 -------
