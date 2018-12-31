@@ -26,6 +26,9 @@
 #include <inttypes.h>
 #include <time.h>
 #include <unistd.h>
+#ifdef _ZLIB
+#include "zlib.h"
+#endif
 
 /*Testing*/
 extern uint64_t selectionTarget;
@@ -123,6 +126,10 @@ void 			RSD_printSiteReportLegend 	(FILE * fp, int64_t imputePerSNP, int64_t cre
 extern char	 	POPCNT_U16_LUT [0x1u << 16];
 int 			popcount_u32_iterative	(unsigned int n);
 void 			popcount_u64_init 	(void);
+#endif
+
+#ifdef _ZLIB
+int 			gzscanf 		(gzFile fp, char * string);
 #endif
 
 // RAiSD_CommandLine.c
@@ -263,13 +270,18 @@ void			RSDPatternPool_assessMissing 		(RSDPatternPool_t * RSDPatternPool, int64_
 typedef struct
 {
 	FILE * 		inputFilePtr;
+#ifdef _ZLIB
+	gzFile 		inputFilePtrGZ;
+#endif
 	char 		inputFileFormat[STRING_SIZE];
 	char		setID[STRING_SIZE]; // for vcf this is the chrom number
 	int 		inputFileIsMBS;
 	int 		numberOfSamples; // -1 when unitialized
 
 	fpos_t 		setPosition; // set position, first "/" in ms or first line with dif chrom number in VCF
-
+#ifdef _ZLIB
+	z_off_t		setPositionGZ;
+#endif
 	int64_t		setParsingMode;
 	
 	int64_t		setSamples; // number of samples in the set - differs from numberOfSamples in vcf because of ploidy
@@ -313,6 +325,10 @@ void		RSDDataset_getSetRegionLength_ms	(RSDDataset_t * RSDDataset, uint64_t leng
 void		RSDDataset_getSetRegionLength_vcf	(RSDDataset_t * RSDDataset);
 void 		RSDDataset_printSiteReport 		(RSDDataset_t * RSDDataset, FILE * fp, int setIndex, int64_t imputePerSNP, int64_t createPatternPoolMask);
 void 		RSDDataset_resetSiteCounters 		(RSDDataset_t * RSDDataset);
+#ifdef _ZLIB
+void		RSDDataset_getSetRegionLength_vcf_gz	(RSDDataset_t * RSDDataset);
+int 		RSDDataset_getNextSNP_vcf_gz 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut);
+#endif
 
 // RAiSD_MuStatistic.c
 typedef struct

@@ -156,7 +156,7 @@ int main (int argc, char ** argv)
 
 		if(setIndexValid!=-1 && setIndex!=setIndexValid)
 		{
-			char tchar = (char)fgetc(RSDDataset->inputFilePtr);
+			char tchar = (char)fgetc(RSDDataset->inputFilePtr); // Note: this might generate a segfault with MakefileZLIB
 			assert(tchar==tchar);
 		}
 

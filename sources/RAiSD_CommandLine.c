@@ -23,7 +23,7 @@
 
 void RSDHelp (FILE * fp)
 {
-	fprintf(fp, " This is RAiSD version 1.7, released in October 2018.\n\n");
+	fprintf(fp, " This is RAiSD version 1.8, released in December 2018.\n\n");
 
 	fprintf(fp, " RAiSD");
 
@@ -94,6 +94,7 @@ void RSDVersions(FILE * fp)
 	fprintf(fp, " %d. RAiSD v%d.%d (Aug  4, 2018): -R to include additional information in the report file\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Sep  3, 2018): -P to create plots per set of SNPs with Rscript\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Oct  2, 2018): -y for ploidy, -D for site report, fixed a bug in the plotting routine\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Dec 31, 2018): MakefileZLIB to parse VCF files in gzip file format (requires the zlib library)\n", releaseIndex++, majorIndex, minorIndex++);
 
 	majorIndex++;
 }

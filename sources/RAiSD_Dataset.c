@@ -38,7 +38,14 @@ int 	RSDDataset_getValidSampleList_ms 	(RSDDataset_t * RSDDataset);
 char 	RSDDataset_goToNextSet_ms 		(RSDDataset_t * RSDDataset);
 void 	RSDDataset_reportMissing 		(RSDDataset_t * RSDDataset, FILE * fpOut);
 void 	RSDDataset_detectFormat			(RSDDataset_t * RSDDataset);
+#ifdef _ZLIB
+void 	RSDDataset_detectFormatGZ		(RSDDataset_t * RSDDataset);
+char 	RSDDataset_goToNextSet_vcf_gz 		(RSDDataset_t * RSDDataset);
+int 	RSDDataset_getValidSampleList_vcf_gz 	(RSDDataset_t * RSDDataset);
+int 	RSDDataset_getNumberOfSamples_vcf_gz 	(RSDDataset_t * RSDDataset);
+int 	RSDDataset_getFirstSNP_vcf_gz 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut);
 
+#endif
 
 /***********/
 /* Dataset */
@@ -52,6 +59,9 @@ RSDDataset_t * RSDDataset_new(void)
 	assert(d!=NULL);
 
 	d->inputFilePtr = NULL;
+#ifdef _ZLIB
+	d->inputFilePtrGZ = NULL;
+#endif
 	strcpy(d->inputFileFormat, "invalid");
 	d->inputFileIsMBS = 0;
 	d->numberOfSamples = -1;
@@ -85,6 +95,12 @@ void RSDDataset_free(RSDDataset_t * d)
 	if(d->inputFilePtr!=NULL)
 		fclose(d->inputFilePtr);
 
+#ifdef _ZLIB
+	if(d->inputFilePtrGZ!=NULL)
+		gzclose(d->inputFilePtrGZ);
+	
+#endif
+
 	if(d->sampleValidList!=NULL)
 	{
 		free(d->sampleValidList);
@@ -95,6 +111,94 @@ void RSDDataset_free(RSDDataset_t * d)
 
 	free(d);
 }
+#ifdef _ZLIB
+void RSDDataset_detectFormatGZ (RSDDataset_t * RSDDataset)
+{
+	gzFile fp = RSDDataset->inputFilePtrGZ;
+
+	char tmp = (char) gzgetc(fp);
+
+	char macsFLAG[] = "COMMAND";
+
+	int flaglength = 7,j;
+	
+	char vcfFLAG[] = "##fileformat=VCF";
+
+	int flaglengthVCF = 16;
+
+	while(tmp!=EOF)
+	{
+		if(tmp=='/')
+		{
+			tmp = (char) gzgetc(fp);
+
+			if(tmp=='/')
+			{
+				strcpy(RSDDataset->inputFileFormat, "ms");
+				break;
+			}
+			else
+				tmp = (char) gzgetc(fp);				
+	
+		}
+		else
+		{
+			if(tmp=='>')
+			{
+				strcpy(RSDDataset->inputFileFormat, "fasta");
+				assert(0);
+				break;
+			}
+			else
+			{
+				int counter = 0;
+				while(counter < flaglength)
+				{
+					if(tmp != macsFLAG[counter])
+						break;
+
+					tmp = (char) gzgetc(fp);
+
+					++counter;
+				}
+				j = counter;
+
+				if(j == flaglength)
+				{
+					strcpy(RSDDataset->inputFileFormat, "macs");
+					assert(0);
+					break;
+				}
+				else
+				{
+					gzseek(fp, -j - 1, SEEK_CUR);
+					tmp = (char) gzgetc( fp);
+			
+					counter = 0;
+
+					while(counter < flaglengthVCF)
+					{
+						if(tmp != vcfFLAG[counter])
+							break;
+
+						tmp = (char) gzgetc(fp);
+						++counter;
+					}
+					j = counter;
+
+					if(j == flaglengthVCF)
+					{
+						strcpy(RSDDataset->inputFileFormat, "vcf.gz");
+						break;
+					}
+					else
+						tmp = (char) gzgetc(fp);
+				}
+			}
+		}		
+	}
+}
+#endif
 
 void RSDDataset_detectFormat(RSDDataset_t * RSDDataset)
 {
@@ -243,6 +347,33 @@ void RSDDataset_init (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLi
 
 	fclose(RSDDataset->inputFilePtr);
 
+	RSDDataset->inputFilePtr = fopen(RSDCommandLine->inputFileName, "r");
+	assert(RSDDataset->inputFilePtr!=NULL);
+
+#ifdef _ZLIB
+	if(!strcmp(RSDDataset->inputFileFormat, "invalid"))
+	{
+		RSDDataset->inputFilePtrGZ = gzopen(RSDCommandLine->inputFileName, "r");
+		assert(RSDDataset->inputFilePtrGZ!=NULL);
+
+		RSDDataset_detectFormatGZ (RSDDataset);
+
+		gzclose(RSDDataset->inputFilePtrGZ);
+
+		if(strcmp(RSDDataset->inputFileFormat, "vcf.gz"))
+		{
+			fprintf(stderr, "\nERROR: Only VCF files can be parsed in gzip file format.\n\n");
+			exit(0);
+		}
+
+		fclose(RSDDataset->inputFilePtr);
+		RSDDataset->inputFilePtr = NULL;
+
+		RSDDataset->inputFilePtrGZ = gzopen(RSDCommandLine->inputFileName, "r");
+		assert(RSDDataset->inputFilePtrGZ!=NULL);		
+	}
+#endif
+
 	// Last command line check for length value, required with ms files.
 	if(RSDCommandLine->regionLength==0ull && !strcmp(RSDDataset->inputFileFormat, "ms"))
 	{
@@ -250,8 +381,7 @@ void RSDDataset_init (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLi
 		exit(0);
 	}
 
-	RSDDataset->inputFilePtr = fopen(RSDCommandLine->inputFileName, "r");
-	assert(RSDDataset->inputFilePtr!=NULL);
+
 
 	if(RSDCommandLine->printSampleList==1)
 	{
@@ -347,7 +477,12 @@ void RSDDataset_setPosition (RSDDataset_t * RSDDataset, int * setIndex)
 
 	(*setIndex)++;
 
-	fsetpos(RSDDataset->inputFilePtr, &(RSDDataset->setPosition));
+#ifdef	_ZLIB
+	gzseek(RSDDataset->inputFilePtrGZ, RSDDataset->setPositionGZ, SEEK_SET);
+#endif
+
+	if(RSDDataset->inputFilePtr!=NULL)
+		fsetpos(RSDDataset->inputFilePtr, &(RSDDataset->setPosition));
 
 	RSDDataset->setSize = 0;
 	RSDDataset->setSNPs = 0;
@@ -670,6 +805,467 @@ int RSDDataset_getNextSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDP
 	return setDone;
 }
 
+#ifdef _ZLIB
+/*****************/
+/* vcf.gz format */
+/*****************/
+char RSDDataset_goToNextSet_vcf_gz (RSDDataset_t * RSDDataset)
+{
+	assert(RSDDataset->inputFilePtrGZ!=NULL);
+
+	RSDDataset->setPositionGZ = gztell(RSDDataset->inputFilePtrGZ);
+	//fgetpos(RSDDataset->inputFilePtr, &(RSDDataset->setPosition));
+	char tchar=(char)gzgetc(RSDDataset->inputFilePtrGZ);
+
+	//printf("tchar %c\n", tchar);
+	//fflush(stdout);
+	//assert(0);
+
+	char tstring[STRING_SIZE];
+	while(tchar!=EOF)
+	{
+		if(tchar=='\n')
+		{
+			int rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+			assert(rcnt==1);
+
+			if(strcmp(tstring, RSDDataset->setID))
+			{
+				strcpy(RSDDataset->setID, tstring);
+				return tchar;
+			}
+		}
+
+		//fgetpos(RSDDataset->inputFilePtr, &(RSDDataset->setPosition));
+		RSDDataset->setPositionGZ = gztell(RSDDataset->inputFilePtrGZ);
+		tchar=(char)gzgetc(RSDDataset->inputFilePtrGZ);
+	}
+
+	return EOF;
+}
+
+int RSDDataset_getValidSampleList_vcf_gz (RSDDataset_t * RSDDataset)
+{
+	char tstring[STRING_SIZE];
+
+	int rcnt = fscanf(RSDDataset->sampleFilePtr, "%s", tstring);
+
+	RSDDataset->sampleValidListSize=0;
+	while(rcnt==1)
+	{
+		RSDDataset->sampleValidListSize++;
+
+		RSDDataset->sampleValidList = realloc(RSDDataset->sampleValidList, sizeof(char**)*((unsigned long)RSDDataset->sampleValidListSize));
+		assert(RSDDataset->sampleValidList);
+
+		RSDDataset->sampleValidList[RSDDataset->sampleValidListSize-1] = (char*)malloc(sizeof(char)*STRING_SIZE);
+		assert(RSDDataset->sampleValidList[RSDDataset->sampleValidListSize-1]!=NULL);
+
+		strcpy(RSDDataset->sampleValidList[RSDDataset->sampleValidListSize-1], tstring);		
+
+		rcnt = fscanf(RSDDataset->sampleFilePtr, "%s", tstring);
+	}
+
+	return 0;
+}
+
+int RSDDataset_getNumberOfSamples_vcf_gz (RSDDataset_t * RSDDataset)
+{
+	char tstring[STRING_SIZE];
+
+	int rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+	while(rcnt==1 && strcmp(tstring, "#CHROM"))
+		rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+
+	if(rcnt!=1)
+	{
+		RSDDataset->numberOfSamples = 0;
+		assert(RSDDataset->numberOfSamples>=1);
+		return RSDDataset->numberOfSamples;
+	}
+
+	if(rcnt==1 && !strcmp(tstring, "#CHROM"))
+	{
+		int i;
+		for(i=0;i<8 && rcnt==1;i++)
+			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+		
+		assert(rcnt==1); // check for incomplete vcf header line 
+
+		int sampleCntr = 0;
+		int sampleIndex = -1;
+
+		tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+		char tchar=tstring[0]; 
+		char sampleName [STRING_SIZE];
+	
+		while(tstring[0]!='\n' && tstring[0]!=EOF && tstring[0]!='\r')
+		{
+			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+			assert(rcnt==1);
+
+			if(RSDDataset->sampleFilePtr!=NULL)
+			{
+				if(sampleCntr==0)
+				{
+					strcpy(sampleName, tstring);
+				}
+				else
+				{
+					sampleName[0] = tchar;
+					sampleName[1] = '\0';
+					strcat(sampleName, tstring);
+				}
+				
+				fprintf(RSDDataset->sampleFilePtr, "%s\n", sampleName);
+			}
+		
+			sampleCntr++; // this counts the number of samples in the file, dont care about validity yet
+
+			sampleIndex = sampleCntr-1;
+			RSDDataset->sampleValid = realloc(RSDDataset->sampleValid, sizeof(int)*((unsigned long)sampleCntr));
+			assert(RSDDataset->sampleValid!=NULL);
+			RSDDataset->sampleValid[sampleIndex]=SAMPLE_IS_VALID; // default operation: all samples are valid
+
+			if(RSDDataset->sampleValidListSize!=ALL_SAMPLES_VALID)
+				RSDDataset_validateSample(RSDDataset, sampleName, sampleIndex);
+
+			tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+			tchar = tstring[0];
+
+			while(tstring[0]==' ' || tstring[0]=='\t')
+			{
+				tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+				tchar = tstring[0];
+			}
+		}
+		assert(tstring[0]=='\n' || tstring[0]=='\r');
+		gzungetc(tstring[0], RSDDataset->inputFilePtrGZ);		
+
+		RSDDataset->numberOfSamplesVCF = sampleCntr;
+		RSDDataset->numberOfSamples = RSDDataset_getValidSampleSize (RSDDataset);
+
+		return RSDDataset->numberOfSamples;
+	}
+
+	assert(0);
+	return -1;	
+}
+
+void RSDDataset_getSetRegionLength_vcf_gz (RSDDataset_t * RSDDataset)
+{
+	double setRegionSize=0.0, setSizeTmp=0.0;
+	int rcnt=0, setDone = 0;
+	char tstring[STRING_SIZE], chromosome[STRING_SIZE];
+
+	z_off_t setPositionGZ = gztell(RSDDataset->inputFilePtrGZ); 
+	//fpos_t 	setPosition;
+	//fgetpos(RSDDataset->inputFilePtr, &setPosition); // start position
+	//RSDDataset->setPositionGZ = gztell(RSDDataset->inputFilePtrGZ);
+
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, chromosome);
+	assert(rcnt==1);
+
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+	assert(rcnt==1);
+
+	setRegionSize = (double)atof(tstring);
+
+	tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+	while(tstring[0]!='\n' && tstring[0]!=EOF)
+		tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ); // get to the end of the line
+
+	while(setDone==0)
+	{
+		rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+		if(rcnt!=1)
+			setDone = 1;		
+
+		if(setDone==0 && !strcmp(tstring, chromosome))
+		{
+			assert(rcnt==1); 
+
+			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+			assert(rcnt==1);
+
+			setSizeTmp = (double)atof(tstring);
+
+			assert(setSizeTmp>=setRegionSize);
+			setRegionSize = setSizeTmp;
+
+			tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+			while(tstring[0]!='\n' && tstring[0]!=EOF)
+				tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ); // get to the end of the line
+
+			if(tstring[0]==EOF)
+				setDone = 1;
+		}
+		else
+		{
+			setDone = 1;
+		}	
+	}
+
+	gzseek(RSDDataset->inputFilePtrGZ, setPositionGZ, SEEK_SET);
+	//fsetpos(RSDDataset->inputFilePtr, &setPosition); // restore start position
+	RSDDataset->setRegionLength = (uint64_t)setRegionSize;
+}
+
+int RSDDataset_getFirstSNP_vcf_gz (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut)
+{
+	if(length!=0ull)
+		RSDDataset->setRegionLength = length;
+	else
+		RSDDataset_getSetRegionLength_vcf_gz (RSDDataset);
+
+	int setDone = 0;
+	while(!setDone && RSDPatternPool->incomingSitePosition<=-1.0) 
+		setDone = RSDDataset_getNextSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine, RSDDataset->setRegionLength, maf, fpOut);
+
+	return setDone;
+}
+
+int RSDDataset_getNextSNP_vcf_gz (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut)
+{
+	assert(RSDChunk!=NULL);
+
+	char tstring[STRING_SIZE];
+	int setDone = 0;
+
+	//fgetpos(RSDDataset->inputFilePtr, &(RSDDataset->setPosition));
+	RSDDataset->setPositionGZ = gztell(RSDDataset->inputFilePtrGZ);
+
+	RSDPatternPool->incomingSitePosition = -1.0;
+
+	int rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // chrom
+	if(rcnt!=1) // hit eof
+	{
+		tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+		if(tstring[0]==EOF)
+		{
+			setDone = 1;
+			return setDone;
+		}
+		else
+			assert(rcnt==1);
+	}
+	assert(rcnt==1);
+
+	if(strcmp(RSDDataset->setID, tstring))
+	{	
+		//fsetpos(RSDDataset->inputFilePtr, &(RSDDataset->setPosition));
+		gzseek(RSDDataset->inputFilePtrGZ, RSDDataset->setPositionGZ, SEEK_SET);	
+		setDone = 1;
+
+		gzseek(RSDDataset->inputFilePtrGZ,-1,SEEK_CUR);
+
+		return setDone; 
+	}
+	assert(!strcmp(RSDDataset->setID, tstring)); // make sure we are still in the same chrom	
+
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // position
+	assert(rcnt==1);
+
+	double vali = (double)atof(tstring);
+	RSDPatternPool->incomingSitePosition = vali;
+
+	if(vali>(double)length)
+	{
+		fprintf(stderr, "\nERROR: Data is found at position %.0f, whereas the region size is set to %.0f via -L.\n       (-L is not required with VCF files)\n\n",vali, (double)length);
+		exit(0);
+	}
+
+	RSDDataset->setSize++;
+	RSDDataset->setProgress++; // site loaded
+	RSDDataset->setSNPs += 0; // Init to 0 since we dont know yet whether this is a polymorphic one or not
+
+	//fgetpos(RSDDataset->inputFilePtr, &(RSDChunk->posPosition)); // not used
+
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // id
+	assert(rcnt==1);
+
+	int successSum = 0;
+	int alleleMapSize = 0;
+	char alleleMap[STRING_SIZE];
+
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // ref
+	assert(rcnt==1);
+
+	if(strlen(tstring)==1)
+	{
+		successSum++;
+		alleleMap[alleleMapSize++] = tstring[0];
+		alleleMap[alleleMapSize] = '\0';		
+	}
+
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // alt
+	assert(rcnt==1);
+
+	if(strlen(tstring)==1)
+	{
+		successSum++;
+		alleleMap[alleleMapSize++] = tstring[0];
+		alleleMap[alleleMapSize] = '\0';
+	}
+
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // qual
+	assert(rcnt==1);
+	
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // filter
+	assert(rcnt==1);
+
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // info
+	assert(rcnt==1);
+
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // format
+	assert(rcnt==1);
+
+	int gtLoc = getGXLocation_vcf (tstring, "GT");
+	
+	if(gtLoc!=-1)
+		successSum++;
+
+	int gpLoc = -1, glLoc = -1;
+
+	if(gtLoc==-1)
+	{
+		gpLoc = getGXLocation_vcf (tstring, "GP");
+		glLoc = getGXLocation_vcf (tstring, "GL");
+
+		if(gpLoc!=-1 && glLoc!=-1)
+			successSum++;
+	}
+	
+	int firstSNP = 0;
+	int skipSNP = 0;
+
+	if(successSum>=3)
+	{
+		successSum = 1;
+	
+		int i, sampleSize = 0;
+		char data[STRING_SIZE], data2[STRING_SIZE];
+		
+		if(RSDDataset->setSamples==-1)
+			firstSNP = 1;
+
+		if(firstSNP)
+			RSDDataset->setSamples = RSDDataset->numberOfSamples;
+
+		RSDPatternPool->incomingSiteDerivedAlleleCount = 0;
+		RSDPatternPool->incomingSiteTotalAlleleCount = 0;
+
+		for(i=0;i<RSDDataset->numberOfSamplesVCF;i++) 
+		{
+			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // format
+			assert(rcnt==1);
+
+			if(RSDDataset->sampleValid[i]==SAMPLE_IS_VALID)
+			{
+				getGTData_vcf(tstring, gtLoc, gpLoc, glLoc, data);
+				skipSNP = getGTAlleles_vcf (data, alleleMap, alleleMapSize, data2, &RSDPatternPool->incomingSiteDerivedAlleleCount, &RSDPatternPool->incomingSiteTotalAlleleCount, (int)RSDCommandLine->ploidy);
+
+				if(RSDCommandLine->imputePerSNP==1 || RSDCommandLine->createPatternPoolMask==1 || (!skipSNP))
+				{
+					sampleSize += strlen(data2);
+
+					//resize
+					if((sampleSize>RSDDataset->setSamples))
+					{
+						if(firstSNP)
+						{
+							RSDDataset->setSamples = sampleSize;
+							RSDPatternPool->incomingSite = realloc(RSDPatternPool->incomingSite, sizeof(char)*((unsigned long)(RSDDataset->setSamples+1)));
+							assert(RSDPatternPool->incomingSite!=NULL);
+						}
+						else
+						{
+							// ERROR with snp larger than the first
+							fprintf(fpOut, "\n\nERROR: Wrong SNP size (L) found!\n\n\n");
+							fprintf(stderr, "\n\nERROR: Wrong SNP size (L) found!\n\n\n");
+							exit(0);
+						}
+					}
+			
+					memcpy(&(RSDPatternPool->incomingSite[((unsigned long)sampleSize)-strlen(data2)]), data2, strlen(data2));
+				}
+				else
+				{
+					//skipline
+					tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+					while(tstring[0]!='\n')
+						tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ); // get to the end of the line
+
+					RSDDataset->setSitesDiscardedWithMissing++;
+
+					assert(skipSNP==1);
+								
+					break;
+				}
+			}			
+		}
+		RSDPatternPool->incomingSite[sampleSize] = '\0';
+
+		if(RSDCommandLine->imputePerSNP==1 || RSDCommandLine->createPatternPoolMask==1)
+		{
+			skipSNP = strictPolymorphic_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, &RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed, 0)==1?0:1;
+
+			if(RSDCommandLine->imputePerSNP==1 && (!skipSNP))
+			{
+				RSDDataset->setSitesImputedTotal+=RSDPatternPool_imputeIncomingSite (RSDPatternPool, RSDDataset->setSamples);
+				assert(RSDPatternPool->incomingSiteTotalAlleleCount==RSDDataset->setSamples);
+				skipSNP=0; // assume snp after impute
+			}	
+		}
+	}
+	else
+	{
+		assert(skipSNP==0);
+		skipSNP=1; // no snp if header-check failed
+
+		successSum = 0;
+		RSDPatternPool->incomingSiteDerivedAlleleCount = 0;
+		RSDPatternPool->incomingSiteTotalAlleleCount = 0;
+		RSDPatternPool->incomingSite[0] = '\0';
+
+		//skipline
+		tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+		while(tstring[0]!='\n')
+			tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ); // get to the end of the line
+
+		RSDDataset->setSitesDiscardedHeaderCheckFailed++;		
+	}
+
+	// snp checks
+	skipSNP = monomorphic_check(RSDPatternPool->incomingSiteDerivedAlleleCount, (int)RSDDataset->setSamples, &RSDDataset->setSitesDiscardedMonomorphic, skipSNP)==1?0:1;
+	skipSNP = maf_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, maf, &RSDDataset->setSitesDiscardedMafCheckFailed, skipSNP)==1?0:1;
+	
+	if(skipSNP)
+	{
+		assert(skipSNP==1);
+
+		RSDDataset->setSitesDiscarded++;
+
+		RSDPatternPool->incomingSitePosition = -1.0; // This is only useful if the last site of the set is not a SNP
+
+		if(firstSNP)
+		{
+			RSDDataset->setSamples=-1;
+			free(RSDPatternPool->incomingSite);
+			RSDPatternPool->incomingSite =  NULL;
+			RSDPatternPool->incomingSite = (char*)malloc(sizeof(char)*((unsigned long)(RSDDataset->numberOfSamples+1)));
+			assert(RSDPatternPool->incomingSite!=NULL);
+		}
+	}
+	else
+	{
+		RSDDataset->setSNPs++;
+	}
+	
+	return setDone;
+}
+#endif
+
 /**************/
 /* vcf format */
 /**************/
@@ -728,7 +1324,7 @@ int RSDDataset_getValidSampleList_vcf (RSDDataset_t * RSDDataset)
 	return 0;
 }
 
-void RSDDataset_validateSample(RSDDataset_t * RSDDataset, char * sampleName, int sampleIndex)
+void RSDDataset_validateSample (RSDDataset_t * RSDDataset, char * sampleName, int sampleIndex)
 {
 	RSDDataset->sampleValid[sampleIndex] = SAMPLE_IS_NOT_VALID; // assume that is not valid
 
@@ -1185,6 +1781,19 @@ void RSDDataset_initParser (RSDDataset_t * RSDDataset, FILE * fpOut, RSDCommandL
 
 		return;
 	}
+
+#ifdef _ZLIB
+	if(!strcmp(RSDDataset->inputFileFormat, "vcf.gz"))
+	{
+		RSDDataset_goToNextSet = &RSDDataset_goToNextSet_vcf_gz;
+		RSDDataset_getValidSampleList = &RSDDataset_getValidSampleList_vcf_gz;
+		RSDDataset_getNumberOfSamples = &RSDDataset_getNumberOfSamples_vcf_gz;
+		RSDDataset_getFirstSNP = &RSDDataset_getFirstSNP_vcf_gz;
+		RSDDataset_getNextSNP = &RSDDataset_getNextSNP_vcf_gz;
+
+		return;
+	}
+#endif
 
 	assert(0);
 	return;	

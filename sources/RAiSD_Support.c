@@ -620,3 +620,34 @@ void RSD_printSiteReportLegend (FILE * fp, int64_t imputePerSNP, int64_t createP
 	fflush(fp);
 }
 
+#ifdef _ZLIB
+int gzscanf (gzFile fp, char * string)
+{
+	assert(string!=NULL);
+	char t = (char) gzgetc(fp);
+
+	while(t==' ' || t=='\n' || t==EOF || t==13 || t=='\t')
+	{
+		if(t==EOF)
+			return 0;
+
+		t = (char) gzgetc(fp);
+	}
+
+	int i=0;
+	string[0]='\0';
+	while(t!=' ' && t!='\n' && t!=EOF && t!=13 && t!='\t')
+	{
+		string[i++]=t;
+		//assert(t!=' ' && t!='\n' && t!=EOF && t!=13 && t!='\t');
+		t = (char) gzgetc(fp);
+	}
+	gzungetc(t,fp);
+	//assert(t==' ' || t=='\n' || t==EOF || t==13 || t=='\t');
+
+	string[i]='\0';
+
+	return 1;
+}
+#endif
+
