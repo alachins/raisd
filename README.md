@@ -1,5 +1,5 @@
 
-RAiSD: software for selective sweep detection
+[RAiSD: software for selective sweep detection](https://www.nature.com/articles/s42003-018-0085-8)
 ===============================================
 
 Authors: Nikolaos Alachiotis (n.alachiotis@gmail.com), Pavlos Pavlidis (pavlidisp@gmail.com)
@@ -17,7 +17,8 @@ RAiSD (Raised Accuracy in Sweep Detection) is a stand-alone software implementat
 
 An article describing RAiSD and the μ statistic is published in Communications Biology:
 
-RAiSD detects positive selection based on multiple signatures of a selective sweep and SNP vectors (https://www.nature.com/articles/s42003-018-0085-8) [BibTex](https://scholar.googleusercontent.com/scholar.bib?q=info:ebSsH9m3aQ4J:scholar.google.com/&output=citation&scisig=AAGBfm0AAAAAXCqE0PB044MQPVpziWnNiNWUMfjuX2xj&scisf=4&ct=citation&cd=-1&hl=en)
+RAiSD detects positive selection based on multiple signatures of a selective sweep and SNP vectors [BibTex](https://scholar.googleusercontent.com/scholar.bib?q=info:ebSsH9m3aQ4J:scholar.google.com/&output=citation&scisig=AAGBfm0AAAAAXCqE0PB044MQPVpziWnNiNWUMfjuX2xj&scisf=4&ct=citation&cd=-1&hl=en)
+https://www.nature.com/articles/s42003-018-0085-8
 
 
 
