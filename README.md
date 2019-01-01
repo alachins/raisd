@@ -329,7 +329,22 @@ The zlib library (https://zlib.net/) needs to be installed prior to compilation.
 Generating RAiSD_SiteReport
 ---------------------------
 
-The -D option can be used to generate the RAiSD_SiteReport, i.e., a single file that includes a line per set of SNPs (ms format) or per CHROM (VCF format), providing a breakdown of the dataset in terms of total number of sites, number of SNPs used in the analysis, and total number of discarded sites. The total number of discarded sites is further broken down into site groups based on the reason they were discarded (failed check). When the default missing-data strategy is used (-M 0), the total number of discarded sites includes a) sites dropped due to a failed "header" check (only for VCF), b) sites dropped because of the MAF check, c) sites with missing data, and d) monomorphic sites. When any other missing-data strategy is used (-M 1,2, or 3), the total number of discarded sites includes a) sites dropped due to a failed "header" check (only for VCF), b) sites dropped because of the MAF check, and c) potentially monomorphic sites with missing data, i.e., sites with missing data and no variation. When missing data are imputed per SNP (-M 1), the RAiSD_SiteReport includes additionally includes the total number of sites that have been imputed before applying the rest of the checks (maf, monomorphic etc).
+The -D option can be used to generate the RAiSD_SiteReport, i.e., a single file that includes a line per set of SNPs (ms format) or per CHROM (VCF format), providing a breakdown of the dataset in terms of total number of sites, number of SNPs used in the analysis, and total number of discarded sites. The total number of discarded sites is further broken down into site groups based on the reason they were discarded (failed check).  
+
+When the default missing-data strategy is used (-M 0), the total number of discarded sites includes:  
+
+    a) sites dropped due to a failed "header" check (only for VCF), 
+    b) sites dropped because of the MAF check, 
+    c) sites with missing data, and 
+    d) monomorphic sites. 
+    
+When any other missing-data strategy is used (-M 1,2, or 3), the total number of discarded sites includes:
+
+    a) sites dropped due to a failed "header" check (only for VCF), 
+    b) sites dropped because of the MAF check, and 
+    c) potentially monomorphic sites with missing data, i.e., sites with missing data and no variation. 
+    
+When missing data are imputed per SNP (-M 1), the RAiSD_SiteReport additionally includes the total number of sites that have been imputed before applying the rest of the checks (minor allele frequency, monomorphic sites, etc).
 
 
 Change log
