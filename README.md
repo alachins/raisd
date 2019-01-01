@@ -18,8 +18,8 @@ RAiSD (Raised Accuracy in Sweep Detection) is a stand-alone software implementat
 The main article describing RAiSD and the μ statistic is published in Communications Biology:
 
     1. RAiSD detects positive selection based on multiple signatures of a selective sweep and SNP vectors   
-    https://www.nature.com/articles/s42003-018-0085-8   
-    [PDF](https://www.nature.com/articles/s42003-018-0085-8.pdf)
+       https://www.nature.com/articles/s42003-018-0085-8   
+       [PDF](https://www.nature.com/articles/s42003-018-0085-8.pdf)
 
 Related publications:
 
