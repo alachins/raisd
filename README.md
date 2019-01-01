@@ -308,9 +308,9 @@ As of version 1.7, RAiSD can process ANGSD (http://www.popgen.dk/angsd/index.php
 
 Given a [GL:GP] entry [L1,L2,L3:P1,P2,P3], RAiSD constructs unphased genotype data on the fly as follows:   
 a) GT="./." for all-zero GL entries, and  
-b) GT="0/0" with probability P1, 
-   GT="0/1" with probability P2, 
-   GT="1/1" with probability P3.  
+b) GT="0/0" with probability P1,     
+   GT="0/1" with probability P2, and      
+   GT="1/1" with probability P3.     
 
 Processing VCF in GZ file format
 --------------------------------
