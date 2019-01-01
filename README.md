@@ -118,8 +118,8 @@ Input File Formats
 
 The current RAiSD release can process SNP data in Hudson's ms or VCF (Variant Call Format) file formats. The d1 test dataset, previously used for the test run, is in Hudson's ms format. For the VCF format, refer to the respective Wikipedia entry (https://en.wikipedia.org/wiki/Variant_Call_Format).
 
-    RAiSD version 1.7 (or later) can also parse and process [ANGSD](http://www.popgen.dk/angsd/index.php/ANGSD) VCF files.  
-    RAiSD version 1.8 (or later) can also parse compressed VCF files (including ANGSD-generated VCF files) in [GZ](https://www.gnu.org/software/gzip/) file format. 
+RAiSD version 1.7 (or later) can also parse and process [ANGSD](http://www.popgen.dk/angsd/index.php/ANGSD) VCF files.  
+RAiSD version 1.8 (or later) can also parse compressed VCF files (including ANGSD-generated VCF files) in [GZ](https://www.gnu.org/software/gzip/) file format. 
 
 Output Files
 ------------
