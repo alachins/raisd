@@ -126,12 +126,7 @@ Output Files
 
 RAiSD generates two output files, the RAiSD_Info and the RAiSD_Report, with the run name (provided via "-n") as file extension. 
 
-# RAiSD_Info.test_run
-## RAiSD_Info.test_run
-### RAiSD_Info.test_run
 #### RAiSD_Info.test_run
-##### RAiSD_Info.test_run
-###### RAiSD_Info.test_run
 
 The first 20 lines of the RAiSD_Info.test_run file are shown below.
 
@@ -167,7 +162,7 @@ The RAiSD_Info file additionally reports total execution time, memory footprint,
     Total execution time 32.03070 seconds
     Total memory footprint 1109 kbytes
     
-RAiSD_Report.test_run
+#### RAiSD_Report.test_run
 
 The first 20 lines of the RAiSD_Report.test_run file are shown below (using -R to include additional information in the report file).
 
