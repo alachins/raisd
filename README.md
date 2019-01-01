@@ -325,8 +325,8 @@ The zlib library (https://zlib.net/) needs to be installed prior to compilation.
     $ sudo apt-get install zlib1g-dev
 
 
-Generating RAiSD_SiteReport
----------------------------
+Generating the RAiSD_SiteReport file
+------------------------------------
 
 The -D option can be used to generate the RAiSD_SiteReport, i.e., a single file that includes a line per set of SNPs (ms format) or per CHROM (VCF format), providing a breakdown of the dataset in terms of total number of sites, number of SNPs used in the analysis, and total number of discarded sites. The total number of discarded sites is further broken down into site groups based on the reason they were discarded (failed check).  
 
