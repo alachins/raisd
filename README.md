@@ -2,7 +2,7 @@
 [RAiSD: software to detect positive selection based on multiple signatures of a selective sweep and SNP vectors](https://www.nature.com/articles/s42003-018-0085-8)
 ===============================================
 
-Authors: Nikolaos Alachiotis (n.alachiotis@gmail.com), Pavlos Pavlidis (pavlidisp@gmail.com)
+Authors: Nikolaos Alachiotis (n.alachiotis@gmail.com) and Pavlos Pavlidis (pavlidisp@gmail.com)
 
 First release: 9/6/2017 
 
