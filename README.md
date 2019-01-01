@@ -305,7 +305,9 @@ Processing VCF in GZ file format
 --------------------------------
 Since version 1.8, RAiSD can process compressed VCF files in GZ file format. To activate this feature, compile the source code using the dedicated makefile MakefileZLIB as follows:
 
-    $ make -f MakefileZLIB
+    $ make clean
+    $ make -f MakefileZLIB 
+
     
 The zlib library (https://zlib.net/) needs to be installed prior to compilation. In Ubuntu, the zlib library can be installed with the following command:
 
