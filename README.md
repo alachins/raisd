@@ -126,7 +126,7 @@ Output Files
 
 RAiSD generates two output files, the RAiSD_Info and the RAiSD_Report, with the run name (provided via "-n") as file extension. 
 
-RAiSD_Info.test_run
+###### RAiSD_Info.test_run
 
 The first 20 lines of the RAiSD_Info.test_run file are shown below.
 
