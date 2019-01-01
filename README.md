@@ -22,9 +22,9 @@ The main article ([PDF](https://www.nature.com/articles/s42003-018-0085-8.pdf)) 
 
 Related publications:
 
-2. Accelerated Inference of Positive Selection on Whole Genomes   
+2. Accelerated Inference of Positive Selection on Whole Genomes ([PDF](http://kalman.mee.tcd.ie/fpl2018/content/pdfs/FPL2018-43iDzVTplcpussvbfIaaHz/2IXjcULtzLwXxGVD0BRuki/4etDSBv306dBHUVjNtmSyT.pdf))  
 https://ieeexplore.ieee.org/abstract/document/8533493  
-[PDF](http://kalman.mee.tcd.ie/fpl2018/content/pdfs/FPL2018-43iDzVTplcpussvbfIaaHz/2IXjcULtzLwXxGVD0BRuki/4etDSBv306dBHUVjNtmSyT.pdf)
+
 
 
 
