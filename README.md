@@ -366,7 +366,7 @@ v1.6 (3/9/2018): -P to create plots per set of SNPs using Rscript
 
 v1.7 (2/10/2018): -y for ploidy, -D for site report, fixed a bug in the plotting routine
 
-v.18 (31/12/2018): MakefileZLIB to parse VCF files in gzip file format (requires the zlib library)
+v1.8 (31/12/2018): MakefileZLIB to parse VCF files in gzip file format (requires the zlib library)
 
 Support
 -------
