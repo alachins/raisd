@@ -21,6 +21,8 @@
 
 #include "RAiSD.h"
 
+void flagCheck (char ** argv, int i, int * flagVector, int flagIndex);
+
 void RSDHelp (FILE * fp)
 {
 	fprintf(fp, " This is RAiSD version 1.9, released in April 2019.\n\n");
@@ -127,7 +129,7 @@ void RSDVersions(FILE * fp)
 	fprintf(fp, " %d. RAiSD v%d.%d (Sep  3, 2018): -P to create plots per set of SNPs with Rscript\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Oct  2, 2018): -y for ploidy, -D for site report, fixed a bug in the plotting routine\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Dec 31, 2018): MakefileZLIB to parse VCF files in gzip file format (requires the zlib library)\n", releaseIndex++, majorIndex, minorIndex++);
-	fprintf(fp, " %d. RAiSD v%d.%d (Apr 27, 2019): -w to set the window size (default 50), -c to set the SFS slack for the mu_VAR\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Apr 27, 2019): -w to set the window size (default 50), -c to set the SFS slack for the mu_SFS\n", releaseIndex++, majorIndex, minorIndex++);
 
 	majorIndex++;
 }
@@ -472,9 +474,10 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 			if (i!=argc-1 && argv[i+1][0]!='-')
 			{
 				double windowSize = atof(argv[++i]);
-				if(windowSize<MIN_WINDOW_SIZE)
+				int64_t windowSizeInt = (int64_t)windowSize;
+				if((windowSize<MIN_WINDOW_SIZE) || ((windowSizeInt&1)==1))
 				{
-					fprintf(stderr, "\nERROR: Invalid window size (valid: >= %d)\n\n", MIN_WINDOW_SIZE);
+					fprintf(stderr, "\nERROR: Invalid window size (valid: even number >= %d)\n\n", MIN_WINDOW_SIZE);
 					exit(0);
 				}
 				RSDCommandLine->windowSize = (int64_t)windowSize;
