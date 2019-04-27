@@ -387,7 +387,15 @@ The window size for the sliding-window algorithm can be changed using the -w fla
 
     $ ./RAiSD -n test_run -I d1/msselection1.out -L 100000 -w 20
 
+Adapting the SFS edges for μ_SFS
+--------------------------------
 
+The SFS is expected to assume a U shape in the presence of a selective sweep, due to the fact that the number of singletons and SNPs with S-1 derived mutations (where S is the sample size) increases, whereas intermediate SNP classes shrink in size.
+By default, the μ_SFS increases with the number of singletons and SNPs with S-1 derived mutations in a window. The -c flag allows to include SNPs with a larger number of derived mutations, e.g., doubletons or tripletons, in the calculation of μ_SFS values. For example, RAiSD can additionally include doubletons with the following example command. 
+
+    $ ./RAiSD -n test_run -I d1/msselection1.out -L 100000 -c 2
+    
+When a number X that is larger than 1 is provided through -c for the SFS edges, all SNPs with a number of derived alleles less or equal than X and larger or equal than S-X are included in the calculation of μ_SFS values. 
 
 Change log
 ----------
@@ -409,6 +417,8 @@ v1.6 (3/9/2018): -P to create plots per set of SNPs using Rscript
 v1.7 (2/10/2018): -y for ploidy, -D for site report, fixed a bug in the plotting routine
 
 v1.8 (31/12/2018): MakefileZLIB to parse VCF files in gzip file format (requires the zlib library)
+
+v1.9 (27/4/2019): -w to set the window size (default 50), -c to set the SFS slack for the μ_SFS
 
 Support
 -------
