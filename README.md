@@ -255,7 +255,7 @@ Processing only a subset of the samples in a VCF file is possible with the use o
 
 The optional parameters -T, -d, -k, and -l are used for evaluation purposes and are discussed in detail below.
 
-Missing Data Strategies
+Missing-data Strategies
 -----------------------
 RAiSD provides four different strategies to handle missing data, using the -M parameter followed by the strategy number.
 
@@ -378,6 +378,15 @@ When any other missing-data strategy is used (-M 1,2, or 3), the total number of
     c) potentially monomorphic sites with missing data, i.e., sites with missing data and no variation. 
     
 When missing data are imputed per SNP (-M 1), the RAiSD_SiteReport additionally includes the total number of sites that have been imputed before applying the rest of the checks (minor allele frequency, monomorphic sites, etc).
+
+Changing the window size
+------------------------
+
+The window size for the sliding-window algorithm can be changed using the -w flag. The default value is set to 50 SNPs, which is empirically determined. Only even numbers can be used, due to a performance optimization employed in the computation of μ_LD. Using very large window sizes is expected to reduce the accuracy of the tool, and also leads to slower execution. Note that, RAiSD does not evaluate varying-size windows per genomic location. Therefore, μ statistic values obtained using different window sizes are not comparable. The following command shows the use of -w to set the window size to 20 SNPs. 
+
+
+    $ ./RAiSD -n test_run -I d1/msselection1.out -L 100000 -w 20
+
 
 
 Change log
