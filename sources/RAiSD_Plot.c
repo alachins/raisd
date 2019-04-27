@@ -63,7 +63,7 @@ int RSDPlot_checkRscript (void)
 
 void RSDPlot_printRscriptVersion (RSDCommandLine_t * RSDCommandLine, FILE * fpOut)
 {
-	if(RSDCommandLine->createPlot==0)
+	if(RSDCommandLine->createPlot==0 && RSDCommandLine->createMPlot==0)
 		return;
 
 	fprintf(fpOut, " Rscript: ");
@@ -113,9 +113,18 @@ void RSDPlot_createRscriptName (RSDCommandLine_t * RSDCommandLine, char * script
 	strcat(scriptName, ".R");
 }
 
-void RSDPlot_generateRscript (RSDCommandLine_t * RSDCommandLine)
+void RSDPlot_createReportListName (RSDCommandLine_t * RSDCommandLine, char * reportListName)
 {
-	if(RSDCommandLine->createPlot==0)
+	assert(reportListName!=NULL);
+
+	strcpy(reportListName, "RAiSD_ReportList.");
+	strcat(reportListName, RSDCommandLine->runName);
+	strcat(reportListName, ".txt");
+}
+
+void RSDPlot_generateRscript (RSDCommandLine_t * RSDCommandLine, int mode)
+{
+	if(RSDCommandLine->createPlot==0 && RSDCommandLine->createMPlot==0)
 		return;
 
 	char scriptName[STRING_SIZE]="RSDPlot.R";
@@ -140,7 +149,11 @@ void RSDPlot_generateRscript (RSDCommandLine_t * RSDCommandLine)
 	fp = fopen(scriptName, "w");
 	assert(fp!=NULL);
 
-	const char * tscript = " \n \
+
+	if(mode==RSDPLOT_BASIC_MU)
+	{
+
+		const char * tscript = " \n \
 args = commandArgs(trailingOnly=TRUE) \n \
 RUNNAME <- args[1] \n \
 ID <- args[2] \n \
@@ -160,14 +173,47 @@ plot(mup, mu3, col=\"darkgray\", pch=16, cex = .6, ylab=bquote(mu ~ \"_ld\"), xl
 plot(mup, mu, col=\"black\", pch=16, cex = .6, ylab=bquote(mu), xlab=\"Chromosome position (kb)\", main=bquote(mu ~ \"curve for\" ~ .(RUNNAME) ~ \".\" ~ .(ID))) \n \
 dev.off() \n";
 
-	fprintf(fp,"%s", tscript);
+		fprintf(fp,"%s", tscript);
+	}
+	else
+	{
+		assert(mode==RSDPLOT_MANHATTAN);
+		const char * tscript = " \n \
+args = commandArgs(trailingOnly=TRUE) \n \
+library(qqman) \n \
+RUNNAME <- args[1] \n \
+THRESHOLD <- args[2] \n \
+reportListN <- paste(\"RAiSD_ReportList.\", RUNNAME,\".txt\", sep=\"\") \n \
+reportList <- read.table(reportListN)[,1] \n \
+data <- data.frame(pos=c(), value=c(), chr=c()) \n \
+for (i in 1:length(reportList[])) { \n \
+d <- read.table(paste(reportList[i]), header=F, skip=0)[,1:7] \n \
+tmp.dat <- data.frame(pos=d[,1], value=d[,7]*1, chr=rep(i, length(d[,1]))) \n \
+data <- rbind(data, tmp.dat)} \n \
+output_file <- paste(\"RAiSD_ManhattanPlot.\", RUNNAME,\".pdf\", sep=\"\") \n \
+pdf(output_file) \n \
+snp <- 1:dim(data)[1] \n \
+mydf <- data.frame(snp, data) \n \
+thres<-as.numeric(THRESHOLD) \n \
+topQ<-thres*100 \n \
+threshold <- quantile(x=data$value, probs = thres) \n \
+title_msg <- paste(\"Manhattan plot for \", RUNNAME,\"\nthreshold=\",threshold,\" (\", topQ,\"%)\") \n \
+manhattan(mydf, chr=\"chr\", bp=\"pos\", cex = 0.5, p=\"value\", snp=\"snp\", logp=F,  ylab=bquote(mu ~ \"statistic\"), pos=0, col=c(\"blue2\", \"darkorange1\"), ylim=c(0.0, max(data$value, na.rm = TRUE)*1.4)) \n \
+title(title_msg) \n \
+abline(h=threshold, col=\"red\", lw=2) \n \
+dev.off() \n";
+
+		fprintf(fp,"%s", tscript);
+
+	}
 
 	fclose(fp);	
 }
 
-void RSDPlot_removeRscript (RSDCommandLine_t * RSDCommandLine)
+void RSDPlot_removeRscript (RSDCommandLine_t * RSDCommandLine, int mode)
 {
 	char scriptName[STRING_SIZE]="RSDPlot.R";
+	char reportListName[STRING_SIZE]="RAiSD_ReportList.txt";
 	RSDPlot_createRscriptName (RSDCommandLine, scriptName);
 
 	FILE * fp;
@@ -179,21 +225,49 @@ void RSDPlot_removeRscript (RSDCommandLine_t * RSDCommandLine)
 		assert(ret==0);	
 	}
 	fp=NULL;
+
+	if(mode==RSDPLOT_MANHATTAN)
+	{
+		if(RAiSD_ReportList_FP!=NULL)
+		{
+			fclose(RAiSD_ReportList_FP);
+			RSDPlot_createReportListName (RSDCommandLine, reportListName);
+			int ret = remove(reportListName);
+			assert(ret==0);	
+		}
+		RAiSD_ReportList_FP=NULL;
+	}
 }
 
-void RSDPlot_createPlot (RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDataset, RSDMuStat_t * RSDMuStat)
+void RSDPlot_createPlot (RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDataset, RSDMuStat_t * RSDMuStat, int mode)
 {
+	char tstring[STRING_SIZE];
+
 	char scriptName[STRING_SIZE]="RSDPlot.R";
 	RSDPlot_createRscriptName (RSDCommandLine, scriptName);
 
-	char tstring[STRING_SIZE];
-	strcpy(tstring, "Rscript ");
-	strcat(tstring, scriptName);
-	strcat(tstring, " ");	
-	strcat(tstring, RSDCommandLine->runName);
-	strcat(tstring, " ");
-	strcat(tstring, RSDDataset->setID);
-	strcat(tstring, " > /dev/null 2>&1");
+	if(mode==RSDPLOT_BASIC_MU)
+	{
+		strcpy(tstring, "Rscript ");
+		strcat(tstring, scriptName);
+		strcat(tstring, " ");	
+		strcat(tstring, RSDCommandLine->runName);
+		strcat(tstring, " ");
+		strcat(tstring, RSDDataset->setID);
+		strcat(tstring, " > /dev/null 2>&1");
+	}
+	else
+	{
+		assert(mode==RSDPLOT_MANHATTAN);
+
+		strcpy(tstring, "Rscript ");
+		strcat(tstring, scriptName);
+		strcat(tstring, " ");	
+		strcat(tstring, RSDCommandLine->runName);
+		strcat(tstring, " ");
+		strcat(tstring, RSDCommandLine->manhattanThreshold);
+		strcat(tstring, " > /dev/null 2>&1");
+	}
 
 	if(RSDMuStat->reportFP!=NULL)
 	{

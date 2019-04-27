@@ -38,7 +38,7 @@ RSDMuStat_t * RSDMuStat_new (void)
 
 	mu->reportFP = NULL;
 	
-	mu->windowSize = WINDOW_SIZE;
+	mu->windowSize = DEFAULT_WINDOW_SIZE;
 	
 	mu->pCntVec = NULL; 
 
@@ -105,6 +105,8 @@ void RSDMuStat_init (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine)
 	RSDMuStat->muMax = 0.0f; 
 	RSDMuStat->muMaxLoc = 0.0f;
 
+	RSDMuStat->windowSize = RSDCommandLine->windowSize;
+
 	if(RSDMuStat->pCntVec==NULL)
 	{
 		RSDMuStat->pCntVec = (int *)malloc(sizeof(int)*((unsigned long)(RSDMuStat->windowSize*4)));
@@ -159,7 +161,13 @@ void RSDMuStat_setReportNamePerSet (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * 
 	strcat(tstring, ".");
 	strcat(tstring, RSDDataset->setID);
 	
-	strcpy(RSDMuStat->reportFPFileName, tstring);	
+	strcpy(RSDMuStat->reportFPFileName, tstring);
+
+	if(RSDCommandLine->createMPlot==1)
+	{
+		fprintf(RAiSD_ReportList_FP, "%s\n", tstring);
+		fflush(RAiSD_ReportList_FP);
+	}	
 
 	RSDMuStat->reportFP = fopen(tstring, "r");
 	if(RSDMuStat->reportFP!=NULL && RSDCommandLine->overwriteOutput==0)
@@ -375,6 +383,7 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 }
 
 #ifdef _HW
+// FPL2018 MuStatistic implementation (DAER)
 void pru1_var_scan (float * vec_a_in, float * vec_a_tmp, float * window_loc, int iterations, int window_size, uint64_t region_length)
 {
 	int i;
@@ -789,10 +798,11 @@ void RSDMuStat_scanChunk (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPat
 	free(vec_a_tmp);
 	free(vec_b_tmp); 
 	free(vec_c_tmp);
-
 }
+// End of FPL2018 MuStatistic implementation (DAER)
 #else
 #ifdef _MLT
+// TRETS2019 MuStatistic implementation (DAER2+HAM+MLT)
 void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
 {
 	assert(RSDCommandLine!=NULL);
@@ -804,12 +814,12 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 	    dCntN = 0,
 	    prevDerivedAllele = -1,
             patternMemLeftSize = 0,
-	    patternMemLeft[WINDOW_SIZE],
+	    patternMemLeft[DEFAULT_WINDOW_SIZE],
 	    patternMemRightSize = 0,
-	    patternMemRight[WINDOW_SIZE],
+	    patternMemRight[DEFAULT_WINDOW_SIZE],
             patternMemExclusiveSize = 0,
-	    patternMemLeftExclusive[WINDOW_SIZE],
-	    patternMemRightExclusive[WINDOW_SIZE],
+	    patternMemLeftExclusive[DEFAULT_WINDOW_SIZE],
+	    patternMemRightExclusive[DEFAULT_WINDOW_SIZE],
 	    rotbufIndex = 0,
 	    firstLeftID_prev=-1, 
 	    firstRightID_prev=-1,
@@ -836,7 +846,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 	      muSfs = 0.0f,
 	      muLd = 0.0f,
 	      mu = 0.0f,
-	      rotbuf[WINDOW_SIZE*3]; // circular queue
+	      rotbuf[DEFAULT_WINDOW_SIZE*3]; // circular queue
 
 #ifdef _MUMEM
 	int muReportBufferIndex = -1;
@@ -850,7 +860,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 #endif
 
 	// Circular queue init
-	memcpy(rotbuf, RSDChunk->chunkData, WINDOW_SIZE*sizeof(float)*3);
+	memcpy(rotbuf, RSDChunk->chunkData, DEFAULT_WINDOW_SIZE*sizeof(float)*3);
 
 	// SFS preprocessing
 	for(i=0;i<RSDMuStat->windowSize;i++)
@@ -860,7 +870,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 	}
 		
 	// LD preprocessing: init
-	for(i=0;i<WINDOW_SIZE/2;i++)
+	for(i=0;i<DEFAULT_WINDOW_SIZE/2;i++)
 	{
 		patternMemLeft[i*2+0] = -1; // ID 
 		patternMemLeft[i*2+1] = 0; // count
@@ -962,7 +972,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 
 	
 	// Pattern count preprocessing
-	for(i=0;i<WINDOW_SIZE/2;i++)
+	for(i=0;i<DEFAULT_WINDOW_SIZE/2;i++)
 	{
 		pcntl += (patternMemLeft[i*2+1]!=0?1:0);
 		pcntr += (patternMemRight[i*2+1]!=0?1:0);
@@ -986,10 +996,10 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		firstLeftID = (int)rotbuf[rotbufIndex*3+2]; 
 		
 		// we need to load the previous sliding step's right window's first pattern ID
-		int rotbufIndex_temp = rotbufIndex + (WINDOW_SIZE/2);
+		int rotbufIndex_temp = rotbufIndex + (DEFAULT_WINDOW_SIZE/2);
 
-		if(rotbufIndex>=(WINDOW_SIZE/2)-1)
-			rotbufIndex_temp -= (WINDOW_SIZE-1);
+		if(rotbufIndex>=(DEFAULT_WINDOW_SIZE/2)-1)
+			rotbufIndex_temp -= (DEFAULT_WINDOW_SIZE-1);
 
 		firstRightID = (int)rotbuf[rotbufIndex_temp*3+2];
 
@@ -1077,10 +1087,10 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		firstLeftID = (int)rotbuf[rotbufIndex*3+2]; 
 		
 		// we need to load the previous sliding step's right window's first pattern ID
-		int rotbufIndex_temp = rotbufIndex + (WINDOW_SIZE/2);
+		int rotbufIndex_temp = rotbufIndex + (DEFAULT_WINDOW_SIZE/2);
 
-		if(rotbufIndex>=(WINDOW_SIZE/2)-1)
-			rotbufIndex_temp -= (WINDOW_SIZE-1);
+		if(rotbufIndex>=(DEFAULT_WINDOW_SIZE/2)-1)
+			rotbufIndex_temp -= (DEFAULT_WINDOW_SIZE-1);
 
 		firstRightID = (int)rotbuf[rotbufIndex_temp*3+2];
 
@@ -1136,12 +1146,12 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		int B_xRi_ind=-1, B_xRi_cnt=0;
 		int C_xRi_ind=-1, C_xRi_cnt=0;
 
-		int F_Le_vec[WINDOW_SIZE/2], F_Le_ind=-1; // stacks
-		int F_Ri_vec[WINDOW_SIZE/2], F_Ri_ind=-1;
-		int F_xLe_vec[WINDOW_SIZE/2], F_xLe_ind=-1;
-		int F_xRi_vec[WINDOW_SIZE/2], F_xRi_ind=-1;
+		int F_Le_vec[DEFAULT_WINDOW_SIZE/2], F_Le_ind=-1; // stacks
+		int F_Ri_vec[DEFAULT_WINDOW_SIZE/2], F_Ri_ind=-1;
+		int F_xLe_vec[DEFAULT_WINDOW_SIZE/2], F_xLe_ind=-1;
+		int F_xRi_vec[DEFAULT_WINDOW_SIZE/2], F_xRi_ind=-1;
 
-		for(j=0;j<WINDOW_SIZE/2;j++)
+		for(j=0;j<DEFAULT_WINDOW_SIZE/2;j++)
 		{
 			// Mem read
 			int curID_Le = LMem[j*2+0]; // ID
@@ -1637,7 +1647,9 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 	}
 #endif
 }
+// End of TRETS2019 MuStatistic implementation (DAER2+HAM+MLT)
 #else
+// Default SW implementation
 void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
 {
 	assert(RSDCommandLine!=NULL);
@@ -1652,12 +1664,14 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 	float muLd = 0.0f;
 	float mu = 0.0f;
 
+	int64_t sfsSlack = RSDCommandLine->sfsSlack;
+
 	// Mu_SFS initialization
 	int dCnt1 = 0, dCntN = 0;
 	for(i=0;i<RSDMuStat->windowSize - 0;i++)
 	{
-		dCnt1 += (RSDChunk->derivedAlleleCount[i]==1);
-		dCntN += (RSDChunk->derivedAlleleCount[i]==RSDDataset->setSamples-1);
+		dCnt1 += (RSDChunk->derivedAlleleCount[i]<=sfsSlack);
+		dCntN += (RSDChunk->derivedAlleleCount[i]>=RSDDataset->setSamples-sfsSlack);
 	}
 
 	for(i=0;i<size-RSDMuStat->windowSize+1;i++)
@@ -1681,16 +1695,17 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		// Mu_Var
 		muVar = RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf];
 		muVar /= RSDDataset->setRegionLength;
-		muVar /= RSDMuStat->windowSize; 
+		muVar /= RSDMuStat->windowSize;
+		//muVar *= RSDDataset->setSNPs;
 
 		// Mu_SFS
 		if(snpf>=1)
 		{
-			dCnt1 -= (RSDChunk->derivedAlleleCount[snpf-1]==1);
-			dCnt1 += (RSDChunk->derivedAlleleCount[snpl]==1);
+			dCnt1 -= (RSDChunk->derivedAlleleCount[snpf-1]<=sfsSlack);
+			dCnt1 += (RSDChunk->derivedAlleleCount[snpl]<=sfsSlack);
 
-			dCntN -= (RSDChunk->derivedAlleleCount[snpf-1]==RSDDataset->setSamples-1);
-			dCntN += (RSDChunk->derivedAlleleCount[snpl]==RSDDataset->setSamples-1);
+			dCntN -= (RSDChunk->derivedAlleleCount[snpf-1]>=RSDDataset->setSamples-sfsSlack);
+			dCntN += (RSDChunk->derivedAlleleCount[snpl]>=RSDDataset->setSamples-sfsSlack);
 		}
 		float facN = 1.0;//(float)RSDChunk->derAll1CntTotal/(float)RSDChunk->derAllNCntTotal;
 		muSfs = (float)dCnt1 + (float)dCntN*facN; 
@@ -1714,7 +1729,6 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		{
 			muLd = (((float)pcntexll)+((float)pcntexlr)) / ((float)(pcntl * pcntr));
 		}
-
 
 		// Mu
 		mu =  muVar * muSfs * muLd;
@@ -1752,6 +1766,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 			fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)windowCenter, (double)mu);	
 	}
 }
+// End of Default SW implementation
 #endif
 
 void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
@@ -1768,6 +1783,8 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 	float muLd = 0.0f;
 	float mu = 0.0f;
 
+	int64_t sfsSlack = RSDCommandLine->sfsSlack;
+
 	// Mu_SFS initialization
 	int dCnt1 = 0, dCntN = 0;
 	for(i=0;i<RSDMuStat->windowSize - 0;i++)
@@ -1776,14 +1793,13 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 		
 		if(RSDPatternPool->poolDataWithMissing[pID]==1)
 		{
-			
-			dCnt1 += (RSDPatternPool->poolDataAppliedMaskCount[pID]==1);
-			dCntN += (RSDPatternPool->poolDataAppliedMaskCount[pID]==RSDPatternPool->poolDataMaskCount[pID]-1);
+			dCnt1 += (RSDPatternPool->poolDataAppliedMaskCount[pID]<=sfsSlack);
+			dCntN += (RSDPatternPool->poolDataAppliedMaskCount[pID]>=RSDPatternPool->poolDataMaskCount[pID]-sfsSlack);
 		}
-		else // This can be ommitted - test more first
+		else // This can be omitted - test more first
 		{
-			dCnt1 += (RSDChunk->derivedAlleleCount[i]==1);
-			dCntN += (RSDChunk->derivedAlleleCount[i]==RSDDataset->setSamples-1);			
+			dCnt1 += (RSDChunk->derivedAlleleCount[i]<=sfsSlack);
+			dCntN += (RSDChunk->derivedAlleleCount[i]>=RSDDataset->setSamples-sfsSlack);			
 		}
 	}
 
@@ -1808,6 +1824,7 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 		muVar = RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf];
 		muVar /= RSDDataset->setRegionLength;
 		muVar /= RSDMuStat->windowSize; 
+		//muVar *= RSDDataset->setSNPs; 
 
 		// Mu_SFS
 		if(snpf>=1)
@@ -1816,26 +1833,26 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 			
 			if(RSDPatternPool->poolDataWithMissing[pID]==1)
 			{
-				dCnt1 -= (RSDPatternPool->poolDataAppliedMaskCount[pID]==1);
-				dCntN -= (RSDPatternPool->poolDataAppliedMaskCount[pID]==RSDPatternPool->poolDataMaskCount[pID]-1);
+				dCnt1 -= (RSDPatternPool->poolDataAppliedMaskCount[pID]<=sfsSlack);
+				dCntN -= (RSDPatternPool->poolDataAppliedMaskCount[pID]>=RSDPatternPool->poolDataMaskCount[pID]-sfsSlack);
 			}
-			else // This can be ommitted - test more first
+			else // This can be omitted - test more first
 			{
-				dCnt1 -= (RSDChunk->derivedAlleleCount[snpf-1]==1);
-				dCntN -= (RSDChunk->derivedAlleleCount[snpf-1]==RSDDataset->setSamples-1);
+				dCnt1 -= (RSDChunk->derivedAlleleCount[snpf-1]<=sfsSlack);
+				dCntN -= (RSDChunk->derivedAlleleCount[snpf-1]>=RSDDataset->setSamples-sfsSlack);
 			}
 
 			pID = RSDChunk->patternID[snpl];
 
 			if(RSDPatternPool->poolDataWithMissing[pID]==1)
 			{
-				dCnt1 += (RSDPatternPool->poolDataAppliedMaskCount[pID]==1);
-				dCntN += (RSDPatternPool->poolDataAppliedMaskCount[pID]==RSDPatternPool->poolDataMaskCount[pID]-1);
+				dCnt1 += (RSDPatternPool->poolDataAppliedMaskCount[pID]<=sfsSlack);
+				dCntN += (RSDPatternPool->poolDataAppliedMaskCount[pID]>=RSDPatternPool->poolDataMaskCount[pID]-sfsSlack);
 			}
-			else // This can be ommitted - test more first
+			else // This can be omitted - test more first
 			{
-				dCnt1 += (RSDChunk->derivedAlleleCount[snpl]==1);
-				dCntN += (RSDChunk->derivedAlleleCount[snpl]==RSDDataset->setSamples-1);
+				dCnt1 += (RSDChunk->derivedAlleleCount[snpl]<=sfsSlack);
+				dCntN += (RSDChunk->derivedAlleleCount[snpl]>=RSDDataset->setSamples-sfsSlack);
 			}
 		}
 		float facN = 1.0;//(float)RSDChunk->derAll1CntTotal/(float)RSDChunk->derAllNCntTotal;

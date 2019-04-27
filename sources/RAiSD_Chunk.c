@@ -149,13 +149,13 @@ void RSDChunk_reset(RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine)
 	{
 		assert(RSDChunk->chunkID>=0);
 
-		if(RSDChunk->chunkSize <= WINDOW_SIZE)
+		if(RSDChunk->chunkSize <= RSDCommandLine->windowSize)
 			return;
 
-		int64_t i_offset = RSDChunk->chunkSize - WINDOW_SIZE + 1;
+		int64_t i_offset = RSDChunk->chunkSize - RSDCommandLine->windowSize + 1;
 		assert(i_offset>=0);
 
-		RSDChunk->chunkSize = WINDOW_SIZE - 1;
+		RSDChunk->chunkSize = RSDCommandLine->windowSize - 1;
 
 #ifdef _MLT
 		if(RSDCommandLine->createPatternPoolMask==1)

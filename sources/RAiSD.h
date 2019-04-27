@@ -62,12 +62,13 @@ extern double TotalOoCTime;
 #define CHUNK_MEMSIZE_AND_INCREMENT 1024 // sites
 #define MULTI_STEP_PARSING 0
 #define SINGLE_STEP_PARSING 1 // set this to 0 to deactivate completely
-#define WINDOW_SIZE 50
-#define MIN_SET_SNPS 50
+#define DEFAULT_WINDOW_SIZE 50
+#define MIN_WINDOW_SIZE 10
 #define MIN_NUMBER_OF_SAMPLES 3
 #define ALL_SAMPLES_VALID -1 // when -1, all samples are assumed valid and will be processed
 #define SAMPLE_IS_VALID 1
 #define SAMPLE_IS_NOT_VALID 0
+#define MAX_COMMANDLINE_FLAGS 100
 
 #define OTHER_FORMAT -1
 #define MS_FORMAT 0
@@ -80,6 +81,9 @@ extern double TotalOoCTime;
 
 #define BILLION 1E9
 
+#define RSDPLOT_BASIC_MU 0
+#define	RSDPLOT_MANHATTAN 1
+
 // RAiSD.c
 extern struct timespec requestStart;
 extern struct timespec requestEnd;
@@ -89,6 +93,7 @@ extern double FinishTime;
 extern double MemoryFootprint;
 extern FILE * RAiSD_Info_FP;
 extern FILE * RAiSD_SiteReport_FP;
+extern FILE * RAiSD_ReportList_FP;
 
 
 void 			RSD_header 			(FILE * fpOut);
@@ -151,9 +156,13 @@ typedef struct
 	int64_t		displayProgress; // Flag: O
 	int64_t		fullReport; // Flag: R
 	int64_t		createPlot; // Flag: P
+	char 		manhattanThreshold[STRING_SIZE]; // Flag: P
+	int64_t		createMPlot; // Flag: A
 	double		muThreshold; // Flag: H
 	int64_t		ploidy; // Flag: y
 	int64_t		displayDiscardedReport; // Flag: D
+	int64_t		windowSize; // Flag: w
+	int64_t		sfsSlack; // Flag: c
 
 } RSDCommandLine_t;
 
@@ -374,10 +383,10 @@ extern float   	getPatternCount		(RSDPatternPool_t * RSDPatternPool, int * pCntV
 void 		RSDPlot_printRscriptVersion 	(RSDCommandLine_t * RSDCommandLine, FILE * fpOut);
 int 		RSDPlot_checkRscript 		(void);
 void 		RSDPlot_createRscriptName 	(RSDCommandLine_t * RSDCommandLine, char * scriptName);
-void 		RSDPlot_generateRscript 	(RSDCommandLine_t * RSDCommandLine);
-void 		RSDPlot_removeRscript 		(RSDCommandLine_t * RSDCommandLine);
-void 		RSDPlot_createPlot 		(RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDataset, RSDMuStat_t * RSDMuStat);
-
+void 		RSDPlot_generateRscript 	(RSDCommandLine_t * RSDCommandLine, int mode);
+void 		RSDPlot_removeRscript 		(RSDCommandLine_t * RSDCommandLine,int mode);
+void 		RSDPlot_createPlot 		(RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDataset, RSDMuStat_t * RSDMuStat, int mode);
+void 		RSDPlot_createReportListName 	(RSDCommandLine_t * RSDCommandLine, char * reportListName);
 
 
 

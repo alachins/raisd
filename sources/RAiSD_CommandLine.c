@@ -23,59 +23,91 @@
 
 void RSDHelp (FILE * fp)
 {
-	fprintf(fp, " This is RAiSD version 1.8, released in December 2018.\n\n");
+	fprintf(fp, " This is RAiSD version 1.9, released in April 2019.\n\n");
 
 	fprintf(fp, " RAiSD");
 
 	fprintf(fp, "\n");
 	fprintf(fp, "\t -n STRING\n");
 	fprintf(fp, "\t -I STRING\n");
-	fprintf(fp, "\t[-L INTEGER]\n");
-	fprintf(fp, "\t[-h]\n");
-	fprintf(fp, "\t[-v]\n");
+
+	fprintf(fp, "\n\t--- SNP and SAMPLE HANDLING\n");
+	fprintf(fp, "\t[-L INTEGER]\n"); 	
+	fprintf(fp, "\t[-S STRING]\n");
+	fprintf(fp, "\t[-m FLOAT]\n");
+	fprintf(fp, "\t[-M 0|1|2|3]\n");
+	fprintf(fp, "\t[-y INTEGER]\n");
+
+	fprintf(fp, "\n\t--- SLIDING WINDOW and MU STATISTIC\n");
+	fprintf(fp, "\t[-w INTEGER]\n");
+	fprintf(fp, "\t[-c INTEGER]\n");
+
+	fprintf(fp, "\n\t--- STANDARD OUTPUT and REPORTS\n");
 	fprintf(fp, "\t[-f]\n");
 	fprintf(fp, "\t[-s]\n");
 	fprintf(fp, "\t[-t]\n");
 	fprintf(fp, "\t[-p]\n");
-	fprintf(fp, "\t[-S STRING]\n");
-	fprintf(fp, "\t[-T INTEGER]\n");
-	fprintf(fp, "\t[-d INTEGER]\n");
-	fprintf(fp, "\t[-k FLOATING-POINT]\n");
-	fprintf(fp, "\t[-l FLOATING-POINT]\n");
-	fprintf(fp, "\t[-m FLOATING-POINT]\n");
-	fprintf(fp, "\t[-b]\n");
-	fprintf(fp, "\t[-a INTEGER]\n");
-	fprintf(fp, "\t[-M 0|1|2|3]\n");
 	fprintf(fp, "\t[-O]\n");
 	fprintf(fp, "\t[-R]\n");
 	fprintf(fp, "\t[-P]\n");
-	fprintf(fp, "\t[-y INTEGER]\n");
 	fprintf(fp, "\t[-D]\n");
+	//fprintf(fp, "\t[-A FLOAT]\n");
 
-	fprintf(fp, "\n");	
-	fprintf(fp, " -n\tProvides a unique run ID that is used to name the output files, i.e., the info file and the report(s).\n");
-	fprintf(fp, " -I\tProvides the path to the input file, which can be either in ms or in vcf format.\n");
-	fprintf(fp, " -L\tProvides the size of the region in basepairs for ms files. If known, it can be used for vcf as well, leading to faster processing.\n");
-	fprintf(fp, " -h\tPrints this help message.\n");
-	fprintf(fp, " -v\tPrints version information.\n");
-	fprintf(fp, " -f\tOverwrites existing run files under the same run ID.\n");
-	fprintf(fp, " -s\tGenerates a separate report file per set.\n");
-	fprintf(fp, " -t\tRemoves the set separator symbol from the report(s).\n");
-	fprintf(fp, " -p\tGenerates the output file RAiSD_Samples.STRING, where STRING is the run ID, comprising a list of samples in the input file (supported only with VCF).\n");
-	fprintf(fp, " -S\tProvides the path to the list of samples to be processed (supported only with VCF).\n");
-	fprintf(fp, " -T\tProvides the selection target (in basepairs) and calculates the average distance (over all datasets in the input file) between the selection target and the reported locations.\n");
-	fprintf(fp, " -d\tProvides a maximum distance (in base pairs, from the selection target) to calculate success rate in terms of reported locations in the proximity of the target of selection (provided via -T).\n");
-	fprintf(fp, " -k\tProvides the false positive rate (e.g., 0.05) to report the corresponding reported score after sorting the reported locations for all the datasets in the input file.\n");
-	fprintf(fp, " -l\tProvides the threshold score, reported by a previous run using a false positive rate (e.g., 0.05, via -k) to report the true positive rate.\n");
-	fprintf(fp, " -m\tProvides the threshold value for excluding SNPs with minor allele frequency < threshold (0.0-1.0).\n");
-	fprintf(fp, " -b\tIndicates that the input file is in mbs format.\n");
-	fprintf(fp, " -a\tProvides a seed for the random number generator.\n");	
-	fprintf(fp, " -M\tIndicates the missing-data handling strategy (0: discards SNP (default), 1: imputes N per SNP, 2: represents N through a mask, 3: ignores allele pairs with N).\n");
-	fprintf(fp, " -O\tShows progress on the display device (at snp set granularity).\n");
-	fprintf(fp, " -R\tIncludes additional information (window start and end, and the mu-statistic factors for variation, SFS, and LD) in the report file.\n");
-	fprintf(fp, " -P\tGenerates four plots (for the three mu-statistic factors and the final score) in one PDF file per set of SNPs in the input file using Rscript (activates -s, -t, and -R).\n");
-	fprintf(fp, " -y\tProvides the ploidy (integer value), use to correctly represent missing data.\n");
-	fprintf(fp, " -D\tGenerates a site report, e.g., total, discarded, imputed etc.\n");
+	fprintf(fp, "\n\t--- ACCURACY and SENSITIVITY EVALUATION\n");	
+	fprintf(fp, "\t[-T INTEGER]\n");
+	fprintf(fp, "\t[-d INTEGER]\n");
+	fprintf(fp, "\t[-k FLOAT]\n");
+	fprintf(fp, "\t[-l FLOAT]\n");
+
+	fprintf(fp, "\n\t--- ADDITIONAL EXECUTION PARAMETERS\n");	
+	fprintf(fp, "\t[-b]\n");
+	fprintf(fp, "\t[-a INTEGER]\n");
+	
+	fprintf(fp, "\n\t--- HELP and VERSION NOTES\n");
+	fprintf(fp, "\t[-h]\n");
+	fprintf(fp, "\t[-v]\n");
+
+	fprintf(fp, "\n\n");
+	fprintf(fp, " DETAILED DESCRIPTION\n\n");	
+	fprintf(fp, "\t-n\tProvides a unique run ID that is used to name the output files, i.e., the info file and the report(s).\n");
+	fprintf(fp, "\t-I\tProvides the path to the input file, which can be either in ms or in vcf format.\n");
+
+	fprintf(fp, "\n\t--- SNP and SAMPLE HANDLING\n");
+	fprintf(fp, "\t-L\tProvides the size of the region in basepairs for ms files. If known, it can be used for vcf as well, leading to faster processing.\n");
+	fprintf(fp, "\t-S\tProvides the path to the list of samples to be processed (supported only with VCF).\n");
+	fprintf(fp, "\t-m\tProvides the threshold value for excluding SNPs with minor allele frequency < threshold (0.0-1.0).\n");
+	fprintf(fp, "\t-M\tIndicates the missing-data handling strategy (0: discards SNP (default), 1: imputes N per SNP, 2: represents N through a mask, 3: ignores allele pairs with N).\n");
+	fprintf(fp, "\t-y\tProvides the ploidy (integer value), used to correctly represent missing data.\n");
+
+	fprintf(fp, "\n\t--- SLIDING WINDOW and MU STATISTIC\n");
+	fprintf(fp, "\t-w\tProvides the window size (integer value). The default value is 50 (empirically determined).\n");
+	fprintf(fp, "\t-c\tProvides the slack for the SFS edges to be used for the calculation of mu_SFS. The default value is 1 (singletons and S-1 snp class, where S is the sample size).\n");
+
+	fprintf(fp, "\n\t--- STANDARD OUTPUT and REPORTS\n");
+	fprintf(fp, "\t-f\tOverwrites existing run files under the same run ID.\n");
+	fprintf(fp, "\t-s\tGenerates a separate report file per set.\n");
+	fprintf(fp, "\t-t\tRemoves the set separator symbol from the report(s).\n");
+	fprintf(fp, "\t-p\tGenerates the output file RAiSD_Samples.STRING, where STRING is the run ID, comprising a list of samples in the input file (supported only with VCF).\n");
+	fprintf(fp, "\t-O\tShows progress on the display device (at snp set granularity).\n");
+	fprintf(fp, "\t-R\tIncludes additional information (window start and end, and the mu-statistic factors for variation, SFS, and LD) in the report file(s).\n");
+	fprintf(fp, "\t-P\tGenerates four plots (for the three mu-statistic factors and the final score) in one PDF file per set of SNPs in the input file using Rscript (activates -s, -t, and -R).\n");
+	fprintf(fp, "\t-D\tGenerates a site report, e.g., total, discarded, imputed etc.\n");
+	//fprintf(fp, "\t-A\tProvides a probability value to be used for the quantile function in R and generates a Manhattan plot for the final mu-statistic score using Rscript (activates -s, -t, and -R). It \n");
+
+	fprintf(fp, "\n\t--- ACCURACY and SENSITIVITY EVALUATION\n");
+	fprintf(fp, "\t-T\tProvides the selection target (in basepairs) and calculates the average distance (over all datasets in the input file) between the selection target and the reported locations.\n");
+	fprintf(fp, "\t-d\tProvides a maximum distance from the selection target (in base pairs) to calculate the success rate, i.e., reported locations in the proximity of the target of selection (provided via -T).\n");
+	fprintf(fp, "\t-k\tProvides the false positive rate (e.g., 0.05) to report the corresponding reported score after sorting the reported locations for all the datasets in the input file.\n");
+	fprintf(fp, "\t-l\tProvides the threshold score, reported by a previous run using a false positive rate (e.g., 0.05, via -k) to report the true positive rate.\n");
+	
+
+	fprintf(fp, "\n\t--- ADDITIONAL EXECUTION PARAMETERS\n");
+	fprintf(fp, "\t-b\tIndicates that the input file is in mbs format.\n");
+	fprintf(fp, "\t-a\tProvides a seed for the random number generator.\n");	
+
+	fprintf(fp, "\n\t--- HELP and VERSION NOTES\n");
+	fprintf(fp, "\t-h\tPrints this help message.\n");
+	fprintf(fp, "\t-v\tPrints version information.\n");
 
 	fprintf(fp, "\n");
 }
@@ -95,6 +127,7 @@ void RSDVersions(FILE * fp)
 	fprintf(fp, " %d. RAiSD v%d.%d (Sep  3, 2018): -P to create plots per set of SNPs with Rscript\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Oct  2, 2018): -y for ploidy, -D for site report, fixed a bug in the plotting routine\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Dec 31, 2018): MakefileZLIB to parse VCF files in gzip file format (requires the zlib library)\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Apr 27, 2019): -w to set the window size (default 50), -c to set the SFS slack for the mu_VAR\n", releaseIndex++, majorIndex, minorIndex++);
 
 	majorIndex++;
 }
@@ -131,9 +164,24 @@ void RSDCommandLine_init(RSDCommandLine_t * RSDCommandLine)
 	RSDCommandLine->displayProgress = 0;
 	RSDCommandLine->fullReport = 0;
 	RSDCommandLine->createPlot = 0;
+	RSDCommandLine->createMPlot = 0;
+	strncpy(RSDCommandLine->manhattanThreshold, "\0", STRING_SIZE);
 	RSDCommandLine->muThreshold = 0.0;
 	RSDCommandLine->ploidy = 2; // default
 	RSDCommandLine->displayDiscardedReport = 0;
+	RSDCommandLine->windowSize = DEFAULT_WINDOW_SIZE;
+	RSDCommandLine->sfsSlack = 1; // singletons, and S-1 snp class (S is the sample size)
+}
+
+void flagCheck (char ** argv, int i, int * flagVector, int flagIndex)
+{
+	if(flagVector[flagIndex]!=0)
+	{
+		fprintf(stderr, "\nERROR: Flag %s is given more than once!\n\n",argv[i]);
+		exit(0);
+	}
+
+	flagVector[flagIndex]=1;
 }
 
 void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** argv)
@@ -141,10 +189,15 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 	int i;
 	int info_exists = 0;
 	char tstring [STRING_SIZE], tstring2[STRING_SIZE];
+	int * flagVector = (int*)calloc(MAX_COMMANDLINE_FLAGS, sizeof(int));
+	assert(flagVector!=NULL);
+
 	for(i=1; i<argc; ++i)
 	{
 		if(!strcmp(argv[i], "-n")) 
 		{ 
+			flagCheck (argv, i, flagVector, 0);
+
 			if (i!=argc-1 && argv[i+1][0]!='-')
 				strcpy(RSDCommandLine->runName, argv[++i]);
 			else
@@ -171,6 +224,8 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 
 		if(!strcmp(argv[i], "-I")) 
 		{ 
+			flagCheck (argv, i, flagVector, 1);
+
 			if (i!=argc-1 && argv[i+1][0]!='-')
 				strcpy(RSDCommandLine->inputFileName, argv[++i]);
 			else
@@ -184,7 +239,9 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 
 		if(!strcmp(argv[i], "-L")) 
 		{ 
-			if (i!=argc-1)
+			flagCheck (argv, i, flagVector, 2);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
 			{
 				double len = atof(argv[++i]);
 				RSDCommandLine->regionLength = (uint64_t) len;
@@ -237,6 +294,8 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 
 		if(!strcmp(argv[i], "-S")) // Print sample list (currently only for VCF)
 		{ 
+			flagCheck (argv, i, flagVector, 3);
+
 			if (i!=argc-1 && argv[i+1][0]!='-')
 				strcpy(RSDCommandLine->sampleFileName, argv[++i]);
 			else
@@ -249,7 +308,9 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 
 		if(!strcmp(argv[i], "-m")) // To provide a threshold for MAF
 		{ 
-			if (i!=argc-1)
+			flagCheck (argv, i, flagVector, 4);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
 			{
 				RSDCommandLine->maf = (double)atof(argv[++i]);
 				if(RSDCommandLine->maf<0.0 || RSDCommandLine->maf>1.0)
@@ -275,7 +336,9 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 
 		if(!strcmp(argv[i], "-y")) 
 		{ 
-			if (i!=argc-1)
+			flagCheck (argv, i, flagVector, 5);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
 			{
 				int ploidy = atoi(argv[++i]);
 				if(ploidy<=0)
@@ -295,7 +358,9 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 
 		if(!strcmp(argv[i], "-M")) 
 		{ 
-			if (i!=argc-1)
+			flagCheck (argv, i, flagVector, 6);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
 			{	
 				if((strlen(argv[i+1])!=1) || ((strlen(argv[i+1])==1)&&(argv[i+1][0]!='0' && argv[i+1][0]!='1' && argv[i+1][0]!='2' && argv[i+1][0]!='3')))// && argv[i+1][0]!='3')
 				{
@@ -351,6 +416,8 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 
 		if(!strcmp(argv[i], "-D")) 
 		{ 
+			flagCheck (argv, i, flagVector, 7);
+
 			RSDCommandLine->displayDiscardedReport = 1;
 			
 			tstring2[0]='\0';
@@ -366,7 +433,9 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 
 		if(!strcmp(argv[i], "-a")) 
 		{ 
-			if (i!=argc-1)
+			flagCheck (argv, i, flagVector, 8);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
 			{
 				int seed = atoi(argv[++i]);
 				srand((unsigned int)seed);
@@ -396,6 +465,97 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 			continue;
 		}
 
+		if(!strcmp(argv[i], "-w")) 
+		{ 
+			flagCheck (argv, i, flagVector, 9);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
+			{
+				double windowSize = atof(argv[++i]);
+				if(windowSize<MIN_WINDOW_SIZE)
+				{
+					fprintf(stderr, "\nERROR: Invalid window size (valid: >= %d)\n\n", MIN_WINDOW_SIZE);
+					exit(0);
+				}
+				RSDCommandLine->windowSize = (int64_t)windowSize;
+			}
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
+
+			continue;
+		}
+
+
+		if(!strcmp(argv[i], "-c")) 
+		{ 
+			flagCheck (argv, i, flagVector, 10);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
+			{
+				double sfsSlack = atof(argv[++i]);
+				if(sfsSlack<1)
+				{
+					fprintf(stderr, "\nERROR: Invalid sfs slack value (valid: >= 1)\n\n");
+					exit(0);
+				}
+				RSDCommandLine->sfsSlack = (int64_t)sfsSlack;
+			}
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
+
+			continue;
+		}
+
+		if(!strcmp(argv[i], "-A")) 
+		{ 
+			flagCheck (argv, i, flagVector, 11);
+
+			double prob = 0.9999; // default
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
+			{
+				prob = (double)atof(argv[++i]);
+				if(prob<0.0 || prob>1.0)
+				{
+					fprintf(stderr, "\nERROR: Invalid probability value (valid: 0.0-1.0)\n\n");
+					exit(0);
+				}
+			}
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
+
+			strcpy(RSDCommandLine->manhattanThreshold, argv[i]);
+
+			RSDCommandLine->createMPlot = 1;
+			RSDCommandLine->splitOutput = 1; // activating output splitting
+			RSDCommandLine->fullReport = 1; // activating full report
+			RSDCommandLine->setSeparator = 0; // remove separator symbol
+
+			if(RSDPlot_checkRscript()!=0)
+			{
+				fprintf(stderr, "\nERROR: Rscript is not installed, required by %s for plotting with R\n\n",argv[i]);
+				exit(0);
+			}
+
+			tstring2[0]='\0';
+			strcpy(tstring2, "RAiSD_ReportList.txt"); 
+			RSDPlot_createReportListName (RSDCommandLine, tstring2);
+
+			RAiSD_ReportList_FP = fopen(tstring2, "w");
+			assert(RAiSD_ReportList_FP!=NULL);	
+			
+			continue;
+		}
+
 		/*if(!strcmp(argv[i], "-P")) // To provide a threshold for plotting/reporting
 		{ 
 			if (i!=argc-1)
@@ -419,7 +579,9 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 		/* Testing */
 		if(!strcmp(argv[i], "-T")) 
 		{ 
-			if (i!=argc-1)
+			flagCheck (argv, i, flagVector, 12);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
 			{
 				double tar = atof(argv[++i]);
 				selectionTarget = (uint64_t)tar;
@@ -435,7 +597,9 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 
 		if(!strcmp(argv[i], "-d")) 
 		{ 
-			if (i!=argc-1)
+			flagCheck (argv, i, flagVector, 13);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
 			{
 				double dist = atof(argv[++i]);
 				selectionTargetDThreshold = (uint64_t)dist;
@@ -451,7 +615,9 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 
 		if(!strcmp(argv[i], "-k")) 
 		{ 
-			if (i!=argc-1)
+			flagCheck (argv, i, flagVector, 14);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
 				fpr_loc = (double)atof(argv[++i]);
 			else
 			{
@@ -464,7 +630,9 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 
 		if(!strcmp(argv[i], "-l")) 
 		{ 
-			if (i!=argc-1)
+			flagCheck (argv, i, flagVector, 15);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
 				tpr_thres = (double)atof(argv[++i]);
 			else
 			{
@@ -530,6 +698,7 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 	if(RSDCommandLine->createPatternPoolMask==1)
 		RSDCommandLine->imputePerSNP = 0;
 
+	free(flagVector);
 }
 
 void RSDCommandLine_print(int argc, char ** argv, FILE * fpOut)

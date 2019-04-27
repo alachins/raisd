@@ -625,7 +625,7 @@ int RSDDataset_getFirstSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 	RSDDataset->setProgress = 1; // first site loaded
 	RSDDataset->setSNPs = 0; // Init to 0 since we dont know yet whether this is a polymorphic one or not
 
-	if(vali<MIN_SET_SNPS)
+	if(vali<RSDCommandLine->windowSize)
 	{	
 		fsetpos(RSDDataset->inputFilePtr, &(RSDDataset->setPosition));
 		//RSDDataset->setSize = 0;
@@ -633,6 +633,7 @@ int RSDDataset_getFirstSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 		RSDDataset->setProgress = 0;
 		RSDDataset->setSamples = 0;
 		setDone = 1;
+
 		return setDone;
 	}
 

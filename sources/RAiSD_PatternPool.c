@@ -208,16 +208,16 @@ void RSDPatternPool_resize (RSDPatternPool_t * RSDPatternPool, int64_t setSample
 	RSDPatternPool->exchangeBuffer = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
 	assert(RSDPatternPool->exchangeBuffer!=NULL);
 
-	fprintf(fpOut, " The pattern structure has been resized to %d patterns (max. capacity) and approx. %d MB memory footprint.\n", RSDPatternPool->maxSize, PATTERNPOOL_SIZE_MASK_FACTOR*RSDPatternPool->memorySize);	
+	fprintf(fpOut, " The pattern structure has been resized to %d patterns (max. capacity) and approx. %d MB memory footprint.\n\n", RSDPatternPool->maxSize, PATTERNPOOL_SIZE_MASK_FACTOR*RSDPatternPool->memorySize);	
 	fflush(fpOut);	
 
-	fprintf(stdout, " The pattern structure has been resized to %d patterns (max. capacity) and approx. %d MB memory footprint.\n", RSDPatternPool->maxSize, PATTERNPOOL_SIZE_MASK_FACTOR*RSDPatternPool->memorySize);	
+	fprintf(stdout, " The pattern structure has been resized to %d patterns (max. capacity) and approx. %d MB memory footprint.\n\n", RSDPatternPool->maxSize, PATTERNPOOL_SIZE_MASK_FACTOR*RSDPatternPool->memorySize);	
 	fflush(stdout);
 }
 
 void RSDPatternPool_print(RSDPatternPool_t * RSDPatternPool, FILE * fpOut)
 {
-	fprintf(fpOut, "\n A pattern structure of %d patterns (max. capacity) and approx. %d MB memory footprint has been created.\n", RSDPatternPool->maxSize, PATTERNPOOL_SIZE_MASK_FACTOR*RSDPatternPool->memorySize);	
+	fprintf(fpOut, "\n A pattern structure of %d patterns (max. capacity) and approx. %d MB memory footprint has been created.\n\n", RSDPatternPool->maxSize, PATTERNPOOL_SIZE_MASK_FACTOR*RSDPatternPool->memorySize);	
 	fflush(fpOut);
 }
 
@@ -634,7 +634,7 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSa
 			}
 		}
 
-		RSDPatternPool->dataSize = pLoc; // The new pattern pool corresponds to the number of patterns found in the WINDOW_SIZE snps of the chunk.
+		RSDPatternPool->dataSize = pLoc; // The new pattern pool corresponds to the number of patterns found in the window size snps of the chunk.
 	}
 }
 

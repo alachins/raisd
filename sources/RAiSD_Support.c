@@ -582,10 +582,10 @@ void RSD_printTime (FILE * fp1, FILE * fp2)
 	double TotalTime = (requestEnd.tv_sec-requestStart.tv_sec)+ (requestEnd.tv_nsec-requestStart.tv_nsec) / BILLION;
 
 
-	fprintf(fp1, "\n\n");
+	fprintf(fp1, "\n");
 	fprintf(fp1, " Total execution time %.5f seconds\n", TotalTime);
 
-	fprintf(fp2, "\n\n");
+	fprintf(fp2, "\n");
 	fprintf(fp2, " Total execution time %.5f seconds\n", TotalTime);
 
 #ifdef _PTIMES
