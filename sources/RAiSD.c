@@ -48,6 +48,12 @@ FILE * RAiSD_ReportList_FP;
 struct timespec requestStart;
 struct timespec requestEnd;
 
+#ifdef _PTIMES
+struct timespec requestStartMu;
+struct timespec requestEndMu;
+double TotalMuTime;
+#endif
+
 void RSD_header (FILE * fpOut)
 {
 	if(fpOut==NULL)
@@ -99,13 +105,10 @@ void RSD_init (void)
 
 #ifdef _PTIMES
 	TotalOoCTime = 0.0;
+	TotalMuTime = 0.0;
 #endif
 
 }
-	
-
-
-
 
 int main (int argc, char ** argv)
 {
@@ -216,9 +219,16 @@ int main (int argc, char ** argv)
 	
 				RSDPatternPool_assessMissing (RSDPatternPool, RSDDataset->setSamples);
 
+#ifdef _PTIMES
+				clock_gettime(CLOCK_REALTIME, &requestStartMu);
+#endif
 				// Compute Mu statistic
 				RSDMuStat_scanChunk (RSDMuStat, RSDChunk, RSDPatternPool, RSDDataset, RSDCommandLine);
-
+#ifdef _PTIMES
+				clock_gettime(CLOCK_REALTIME, &requestEndMu);
+				double MuTime = (requestEndMu.tv_sec-requestStartMu.tv_sec)+ (requestEndMu.tv_nsec-requestStartMu.tv_nsec) / BILLION;
+				TotalMuTime += MuTime;
+#endif
 				sitesloaded+=RSDChunk->chunkSize;
 				patternsloaded += RSDPatternPool->dataSize;
 

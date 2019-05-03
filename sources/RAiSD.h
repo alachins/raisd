@@ -53,6 +53,10 @@ extern int setIndexValid;
 extern struct timespec requestStartOoC;
 extern struct timespec requestEndOoC;
 extern double TotalOoCTime;
+
+extern struct timespec requestStartMu;
+extern struct timespec requestEndMu;
+extern double TotalMuTime;
 #endif
 
 
