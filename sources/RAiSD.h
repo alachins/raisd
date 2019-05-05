@@ -88,6 +88,10 @@ extern double TotalMuTime;
 #define RSDPLOT_BASIC_MU 0
 #define	RSDPLOT_MANHATTAN 1
 
+#define LUTMAP_WIDTH		256 // 65536
+#define	LUTMAP_GROUPSIZE	8 // 16
+#define LUTMAP_INTERVAL 	8 // 4
+
 // RAiSD.c
 extern struct timespec requestStart;
 extern struct timespec requestEnd;
@@ -232,6 +236,25 @@ void		RSDHashMap_setMainKey 			(RSDHashMap_t * RSDHashMap, int64_t mainKey);
 void		RSDHashMap_setSecondaryKey 		(RSDHashMap_t * RSDHashMap, int64_t secondaryKey);
 int 		RSDHashMap_scanPatternPoolFractions 	(RSDHashMap_t * RSDHashMap, uint64_t * incomingSiteCompact, int patternSize, int numberOfSamples, int * match);
 
+// RAiSD_LutMap.c
+typedef struct
+{
+	int64_t		lutMapSize;
+	uint8_t *	lutMapMem;
+	uint8_t ** 	lutMap;	
+	uint8_t *	lutMapMemC;
+	uint8_t **	lutMapC;
+
+} RSDLutMap_t;
+
+RSDLutMap_t *	RSDLutMap_new		(void);
+void		RSDLutMap_init		(RSDLutMap_t * lm, int64_t numberOfSamples);
+void 		RSDLutMap_free 		(RSDLutMap_t * lm);
+void 		RSDLutMap_reset		(RSDLutMap_t * lm);
+int		RSDLutMap_scan		(RSDLutMap_t * lm, uint64_t * query);
+int		RSDLutMap_scanC		(RSDLutMap_t * lm, uint64_t * query, int64_t patternSize, int64_t numberOfSamples);
+void 		RSDLutMap_update	(RSDLutMap_t * lm, uint64_t * query);
+
 // RAiSD_PatternPool.c
 typedef struct
 {
@@ -264,6 +287,7 @@ typedef struct
 	uint64_t * 	exchangeBuffer; // used to exchange patterns between location in the pool
 
 	RSDHashMap_t *	hashMap;
+	RSDLutMap_t * 	lutMap;
 
 } RSDPatternPool_t;
 

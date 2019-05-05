@@ -198,6 +198,11 @@ int main (int argc, char ** argv)
 			RSDPatternPool->hashMap = RSDHashMap_new();
 			RSDHashMap_init (RSDPatternPool->hashMap, RSDDataset->setSamples, RSDPatternPool->poolData, RSDPatternPool->maxSize, RSDPatternPool->patternSize);
 #endif
+#ifdef _LM
+			RSDLutMap_free(RSDPatternPool->lutMap);
+			RSDPatternPool->lutMap =  RSDLutMap_new();
+			RSDLutMap_init (RSDPatternPool->lutMap, RSDDataset->setSamples);
+#endif
 			RSDPatternPool_pushSNP (RSDPatternPool, RSDChunk, RSDDataset->setSamples, RSDCommandLine);
 
 			int sitesloaded = 0;
