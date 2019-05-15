@@ -92,6 +92,9 @@ extern double TotalMuTime;
 #define	LUTMAP_GROUPSIZE	8 // 16
 #define LUTMAP_INTERVAL 	8 // 4
 
+#define	TREEMAP_REALLOC_INCR	1000
+#define	TREEMAP_NODEPOOL_CHUNKSIZE 10000
+
 // RAiSD.c
 extern struct timespec requestStart;
 extern struct timespec requestEnd;
@@ -126,14 +129,17 @@ int 			monomorphic_check 		(int incomingSiteDerivedAlleleCount, int setSamples, 
 int 			maf_check 			(int ac, int at, double maf, int64_t * cnt, int skipSNP);
 int 			strictPolymorphic_check 	(int incomingSiteDerivedAlleleCount, int incomingSiteTotalAlleleCount, int64_t * cnt, int skipSNP);
 void 			dataShuffleKnuth		(char * data, int startIndex, int endIndex);
-extern void		ignoreLineSpaces		(FILE *fp, char *ent);
-extern int 		flagMatch			(FILE *fp, char flag[], int flaglength, char tmp);
+extern void		ignoreLineSpaces		(FILE * fp, char * ent);
+extern int 		flagMatch			(FILE * fp, char flag[], int flaglength, char tmp);
 extern void 		RSD_printTime 			(FILE * fp1, FILE * fp2);
 extern void 		RSD_printMemory 		(FILE * fp1, FILE * fp2);
+extern void 		RSD_countMemory 		(size_t newMemSz);
 int 			diploidyCheck			(char * data);
 void 			getGPProbs 			(char * data, double *p00, double *p01, double * p11, int isLik);
 void 			reconGT 			(char * data);
 void 			RSD_printSiteReportLegend 	(FILE * fp, int64_t imputePerSNP, int64_t createPatternPoolMask);
+extern void *		rsd_malloc			(size_t size);
+extern void *		rsd_realloc			(void * p, size_t size);
 
 #ifndef _INTRINSIC_POPCOUNT
 extern char	 	POPCNT_U16_LUT [0x1u << 16];
@@ -255,6 +261,52 @@ int		RSDLutMap_scan		(RSDLutMap_t * lm, uint64_t * query);
 int		RSDLutMap_scanC		(RSDLutMap_t * lm, uint64_t * query, int64_t patternSize, int64_t numberOfSamples);
 void 		RSDLutMap_update	(RSDLutMap_t * lm, uint64_t * query);
 
+// RAiSD_TreeMap.c
+typedef struct RSDTreeNode_t
+{
+	struct RSDTreeNode_t * 	childNode[2];
+#ifndef _TM_PATTERN_ARRAY
+	int64_t			patternID; 		
+#endif
+} RSDTreeNode_t;
+
+typedef struct 
+{
+	int64_t nodeMatrixSizeX;
+	int64_t nodeMatrixSizeY;
+
+	int64_t	nextNodeDimX;
+	int64_t	nextNodeDimY;
+	
+	RSDTreeNode_t ** nodeMatrix;
+
+} RSDTreeNodePool_t;
+
+typedef struct
+{
+	int64_t			totalPatterns;
+	int64_t			totalNodes;
+	size_t			totalMemory;
+
+	RSDTreeNode_t *		rootNode[2];
+
+	// _TM_NODE_POOL
+	RSDTreeNodePool_t *	nodePool[2];
+
+	// _TM_PATTERN_ARRAY
+	int64_t			maxPatterns; // Thats how many patterns the allocated mem can accommodate.
+	RSDTreeNode_t ** 	patternID; // This ptr index in this vec is the patternID.
+	
+
+} RSDTreeMap_t;
+
+RSDTreeMap_t * 	RSDTreeMap_new 			(void);
+void 		RSDTreeMap_free			(RSDTreeMap_t * RSDTreeMap);
+int64_t		RSDTreeMap_matchSNP 		(RSDTreeMap_t * RSDTreeMap, void * RSDPatternPool_g, int64_t numberOfSamples);
+int64_t		RSDTreeMap_matchSNPC 		(RSDTreeMap_t * RSDTreeMap, void * RSDPatternPool_g, int64_t numberOfSamples);
+int64_t		RSDTreeMap_updateTree 		(RSDTreeMap_t * RSDTreeMap, void * RSDPatternPool_g, int64_t numberOfSamples);
+int64_t		RSDTreeMap_updateTreeInit 	(RSDTreeMap_t * RSDTreeMap, void * RSDPatternPool_g, int64_t numberOfSamples, uint64_t * pattern);
+
 // RAiSD_PatternPool.c
 typedef struct
 {
@@ -288,6 +340,7 @@ typedef struct
 
 	RSDHashMap_t *	hashMap;
 	RSDLutMap_t * 	lutMap;
+	RSDTreeMap_t * 	treeMap;
 
 } RSDPatternPool_t;
 
@@ -341,6 +394,8 @@ typedef struct
 	int64_t		setSitesDiscardedStrictPolymorphicCheckFailed;
 	int64_t		setSitesDiscardedMonomorphic;
 	int64_t		setSitesImputedTotal;
+	
+	double		muVarDenom;
 
 } RSDDataset_t;
 
@@ -362,6 +417,7 @@ void		RSDDataset_getSetRegionLength_ms	(RSDDataset_t * RSDDataset, uint64_t leng
 void		RSDDataset_getSetRegionLength_vcf	(RSDDataset_t * RSDDataset);
 void 		RSDDataset_printSiteReport 		(RSDDataset_t * RSDDataset, FILE * fp, int setIndex, int64_t imputePerSNP, int64_t createPatternPoolMask);
 void 		RSDDataset_resetSiteCounters 		(RSDDataset_t * RSDDataset);
+void		RSDDataset_calcMuVarDenom		(RSDDataset_t * RSDDataset);
 #ifdef _ZLIB
 void		RSDDataset_getSetRegionLength_vcf_gz	(RSDDataset_t * RSDDataset);
 int 		RSDDataset_getNextSNP_vcf_gz 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut);
@@ -415,11 +471,4 @@ void 		RSDPlot_generateRscript 	(RSDCommandLine_t * RSDCommandLine, int mode);
 void 		RSDPlot_removeRscript 		(RSDCommandLine_t * RSDCommandLine,int mode);
 void 		RSDPlot_createPlot 		(RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDataset, RSDMuStat_t * RSDMuStat, int mode);
 void 		RSDPlot_createReportListName 	(RSDCommandLine_t * RSDCommandLine, char * reportListName);
-
-
-
-
-
-
-
 

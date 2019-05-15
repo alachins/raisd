@@ -24,7 +24,7 @@
 RSDChunk_t * RSDChunk_new(void)
 {
 	RSDChunk_t * ch = NULL;
-	ch = (RSDChunk_t *) malloc(sizeof(RSDChunk_t));
+	ch = (RSDChunk_t *) rsd_malloc(sizeof(RSDChunk_t));
 	assert(ch!=NULL);
 
 	ch->chunkID = -1;
@@ -47,14 +47,15 @@ RSDChunk_t * RSDChunk_new(void)
 void RSDChunk_free(RSDChunk_t * ch, int64_t numberOfSamples)
 {
 	assert(ch!=NULL);
+	assert(numberOfSamples!=0);
 
-	if(numberOfSamples!=-1)
-		MemoryFootprint += sizeof(fpos_t)*((unsigned long)numberOfSamples);
+	//if(numberOfSamples!=-1)
+	//	MemoryFootprint += sizeof(fpos_t)*((unsigned long)numberOfSamples);
 	
 	if(ch->seqPosition!=NULL)
 		free(ch->seqPosition);
 
-	MemoryFootprint += 3*sizeof(int)*((unsigned long)ch->chunkMemSize);
+	//MemoryFootprint += 3*sizeof(int)*((unsigned long)ch->chunkMemSize);
 
 	if(ch->sitePosition!=NULL)
 		free(ch->sitePosition);
@@ -73,36 +74,36 @@ void RSDChunk_free(RSDChunk_t * ch, int64_t numberOfSamples)
 
 void RSDChunk_init(RSDChunk_t * RSDChunk, int64_t numberOfSamples, int64_t createPatternPoolMask)
 {
-	RSDChunk->seqPosition = (fpos_t*)malloc(sizeof(fpos_t)*((unsigned long)numberOfSamples));
+	RSDChunk->seqPosition = (fpos_t*)rsd_malloc(sizeof(fpos_t)*((unsigned long)numberOfSamples));
 	assert(RSDChunk->seqPosition!=NULL);
 
 #ifdef _MLT
 	if(createPatternPoolMask==1)
 	{
-		RSDChunk->sitePosition = (float*)malloc(sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
+		RSDChunk->sitePosition = (float*)rsd_malloc(sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
 		assert(RSDChunk->sitePosition != NULL);
 
-		RSDChunk->derivedAlleleCount = (int*)malloc(sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
+		RSDChunk->derivedAlleleCount = (int*)rsd_malloc(sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
 		assert(RSDChunk->derivedAlleleCount != NULL);
 
-		RSDChunk->patternID = (int*)malloc(sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
+		RSDChunk->patternID = (int*)rsd_malloc(sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
 		assert(RSDChunk->patternID != NULL);
 	}
 	else
 	{
-		RSDChunk->chunkData = (float*)malloc(sizeof(float)*((unsigned long)RSDChunk->chunkMemSize*3));
+		RSDChunk->chunkData = (float*)rsd_malloc(sizeof(float)*((unsigned long)RSDChunk->chunkMemSize*3));
 		assert(RSDChunk->chunkData!=NULL);
 	}
 #else
 	assert(createPatternPoolMask==0 || createPatternPoolMask==1);
 
-	RSDChunk->sitePosition = (float*)malloc(sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
+	RSDChunk->sitePosition = (float*)rsd_malloc(sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
 	assert(RSDChunk->sitePosition != NULL);
 
-	RSDChunk->derivedAlleleCount = (int*)malloc(sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
+	RSDChunk->derivedAlleleCount = (int*)rsd_malloc(sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
 	assert(RSDChunk->derivedAlleleCount != NULL);
 
-	RSDChunk->patternID = (int*)malloc(sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
+	RSDChunk->patternID = (int*)rsd_malloc(sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
 	assert(RSDChunk->patternID != NULL);
 #endif
 

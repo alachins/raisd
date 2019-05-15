@@ -25,7 +25,7 @@ void flagCheck (char ** argv, int i, int * flagVector, int flagIndex);
 
 void RSDHelp (FILE * fp)
 {
-	fprintf(fp, " This is RAiSD version 1.9, released in April 2019.\n\n");
+	fprintf(fp, " This is RAiSD version 2.0, released in May 2019.\n\n");
 
 	fprintf(fp, " RAiSD");
 
@@ -53,7 +53,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t[-R]\n");
 	fprintf(fp, "\t[-P]\n");
 	fprintf(fp, "\t[-D]\n");
-	//fprintf(fp, "\t[-A FLOAT]\n");
+	fprintf(fp, "\t[-A FLOAT]\n");
 
 	fprintf(fp, "\n\t--- ACCURACY and SENSITIVITY EVALUATION\n");	
 	fprintf(fp, "\t[-T INTEGER]\n");
@@ -94,7 +94,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t-R\tIncludes additional information (window start and end, and the mu-statistic factors for variation, SFS, and LD) in the report file(s).\n");
 	fprintf(fp, "\t-P\tGenerates four plots (for the three mu-statistic factors and the final score) in one PDF file per set of SNPs in the input file using Rscript (activates -s, -t, and -R).\n");
 	fprintf(fp, "\t-D\tGenerates a site report, e.g., total, discarded, imputed etc.\n");
-	//fprintf(fp, "\t-A\tProvides a probability value to be used for the quantile function in R and generates a Manhattan plot for the final mu-statistic score using Rscript (activates -s, -t, and -R). It \n");
+	fprintf(fp, "\t-A\tProvides a probability value to be used for the quantile function in R and generates a Manhattan plot for the final mu-statistic score using Rscript (activates -s, -t, and -R).\n");
 
 	fprintf(fp, "\n\t--- ACCURACY and SENSITIVITY EVALUATION\n");
 	fprintf(fp, "\t-T\tProvides the selection target (in basepairs) and calculates the average distance (over all datasets in the input file) between the selection target and the reported locations.\n");
@@ -131,13 +131,15 @@ void RSDVersions(FILE * fp)
 	fprintf(fp, " %d. RAiSD v%d.%d (Dec 31, 2018): MakefileZLIB to parse VCF files in gzip file format (requires the zlib library)\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Apr 27, 2019): -w to set the window size (default 50), -c to set the SFS slack for the mu_SFS\n", releaseIndex++, majorIndex, minorIndex++);
 
-	majorIndex++;
+	majorIndex++; minorIndex=0;
+
+	fprintf(fp, " %d. RAiSD v%d.%d (May 15, 2019): -A to create Manhattan plots, scale factors for muVar and muSFS to yield comparable scores among different chromosomes\n", releaseIndex++, majorIndex, minorIndex++);
 }
 
 RSDCommandLine_t * RSDCommandLine_new(void)
 {
 	RSDCommandLine_t * cl = NULL;
-	cl = (RSDCommandLine_t *) malloc(sizeof(RSDCommandLine_t));
+	cl = (RSDCommandLine_t *) rsd_malloc(sizeof(RSDCommandLine_t));
 	assert(cl!=NULL);
 	return cl;
 }

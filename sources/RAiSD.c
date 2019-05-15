@@ -376,10 +376,7 @@ int main (int argc, char ** argv)
 	RSDMuStat_free(RSDMuStat);
 
 	if(scr_svec!=NULL)
-	{
-		MemoryFootprint += sizeof(float)*((unsigned long)scr_svec_sz);
 		free(scr_svec);	
-	}
 	
 	RSD_printTime(stdout, RAiSD_Info_FP);
 	RSD_printMemory(stdout, RAiSD_Info_FP);

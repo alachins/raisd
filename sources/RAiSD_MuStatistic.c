@@ -33,7 +33,7 @@ RSDMuStat_t * RSDMuStat_new (void)
 {
 	RSDMuStat_t * mu = NULL;
 
-	mu = (RSDMuStat_t *)malloc(sizeof(RSDMuStat_t));
+	mu = (RSDMuStat_t *)rsd_malloc(sizeof(RSDMuStat_t));
 	assert(mu!=NULL);
 
 	mu->reportFP = NULL;
@@ -56,7 +56,7 @@ RSDMuStat_t * RSDMuStat_new (void)
 
 #ifdef _MUMEM
 	mu->muReportBufferSize = 1;
-	mu->muReportBuffer = (float*)malloc(sizeof(float)*7);
+	mu->muReportBuffer = (float*)rsd_malloc(sizeof(float)*7);
 	assert(mu->muReportBuffer!=NULL);
 #endif
 	return mu;
@@ -72,14 +72,14 @@ void RSDMuStat_free (RSDMuStat_t * mu)
 		mu->reportFP = NULL;
 	}
 	
-	MemoryFootprint += sizeof(int)*((unsigned long)(mu->windowSize*4));
+	//MemoryFootprint += sizeof(int)*((unsigned long)(mu->windowSize*4));
 	if(mu->pCntVec!=NULL)
 		free(mu->pCntVec);
 
 #ifdef _MUMEM	
 	if(mu->muReportBuffer!=NULL)
 	{
-		MemoryFootprint += sizeof(float)*((unsigned long)(mu->muReportBufferSize*7));
+		//MemoryFootprint += sizeof(float)*((unsigned long)(mu->muReportBufferSize*7));
 
 		free(mu->muReportBuffer);
 		mu->muReportBuffer =  NULL;
@@ -109,7 +109,7 @@ void RSDMuStat_init (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine)
 
 	if(RSDMuStat->pCntVec==NULL)
 	{
-		RSDMuStat->pCntVec = (int *)malloc(sizeof(int)*((unsigned long)(RSDMuStat->windowSize*4)));
+		RSDMuStat->pCntVec = (int *)rsd_malloc(sizeof(int)*((unsigned long)(RSDMuStat->windowSize*4)));
 		assert(RSDMuStat->pCntVec!=NULL);
 	}
 
@@ -442,15 +442,15 @@ void pru3_ld_scan (int * vec_c_in, float * vec_c_tmp, int iterations, int window
 	float muLD = 0.0f;
 
 	// Preprocessing
-	int * tmp_vec_a = (int *)malloc(sizeof(int)*(window_size/2)); // patterns left
-	int * tmp_vec_b = (int *)malloc(sizeof(int)*(window_size/2));
-	int * tmp_vec_c = (int *)malloc(sizeof(int)*(window_size/2));
-	int * tmp_vec_d = (int *)malloc(sizeof(int)*(window_size/2));
+	int * tmp_vec_a = (int *)rsd_malloc(sizeof(int)*(window_size/2)); // patterns left
+	int * tmp_vec_b = (int *)rsd_malloc(sizeof(int)*(window_size/2));
+	int * tmp_vec_c = (int *)rsd_malloc(sizeof(int)*(window_size/2));
+	int * tmp_vec_d = (int *)rsd_malloc(sizeof(int)*(window_size/2));
 
-	int * tmp_vec_a_cnt = (int *)malloc(sizeof(int)*(window_size/2)); // patterns left
-	int * tmp_vec_b_cnt = (int *)malloc(sizeof(int)*(window_size/2));
-	int * tmp_vec_c_cnt = (int *)malloc(sizeof(int)*(window_size/2));
-	int * tmp_vec_d_cnt = (int *)malloc(sizeof(int)*(window_size/2));
+	int * tmp_vec_a_cnt = (int *)rsd_malloc(sizeof(int)*(window_size/2)); // patterns left
+	int * tmp_vec_b_cnt = (int *)rsd_malloc(sizeof(int)*(window_size/2));
+	int * tmp_vec_c_cnt = (int *)rsd_malloc(sizeof(int)*(window_size/2));
+	int * tmp_vec_d_cnt = (int *)rsd_malloc(sizeof(int)*(window_size/2));
 	
 	for(i=0;i<(window_size/2);i++)
 	{
@@ -722,22 +722,22 @@ void RSDMuStat_scanChunk (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPat
 	int sample_size = RSDDataset->setSamples;
 
 	// Input vectors
-	float * vec_a_in = (float *)malloc(sizeof(float)*vec_size);
-	int * vec_b_in = (int *)malloc(sizeof(int)*vec_size);
-	int * vec_c_in = (int *)malloc(sizeof(int)*vec_size);
+	float * vec_a_in = (float *)rsd_malloc(sizeof(float)*vec_size);
+	int * vec_b_in = (int *)rsd_malloc(sizeof(int)*vec_size);
+	int * vec_c_in = (int *)rsd_malloc(sizeof(int)*vec_size);
 
 	memcpy(vec_a_in, RSDChunk->sitePosition, sizeof(float)*vec_size);
 	memcpy(vec_b_in, RSDChunk->derivedAlleleCount, sizeof(int)*vec_size);
 	memcpy(vec_c_in, RSDChunk->patternID, sizeof(int)*vec_size);
 
 	// Intermediate vectors
-	float * vec_a_tmp = (float *)malloc(sizeof(float)*vec_size);
-	float * vec_b_tmp = (float *)malloc(sizeof(float)*vec_size);
-	float * vec_c_tmp = (float *)malloc(sizeof(float)*vec_size);
+	float * vec_a_tmp = (float *)rsd_malloc(sizeof(float)*vec_size);
+	float * vec_b_tmp = (float *)rsd_malloc(sizeof(float)*vec_size);
+	float * vec_c_tmp = (float *)rsd_malloc(sizeof(float)*vec_size);
 
 	// Output vectors
-	float * window_loc = (float*)malloc(sizeof(float)*vec_size);
-	float * vec_out = (float *)malloc(sizeof(float)*vec_size);
+	float * window_loc = (float*)rsd_malloc(sizeof(float)*vec_size);
+	float * vec_out = (float *)rsd_malloc(sizeof(float)*vec_size);
 
 	// Processing Units
 	pru1_var_scan (vec_a_in, vec_a_tmp, window_loc, iterations, window_size, region_length);
@@ -854,7 +854,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 	if(size>RSDMuStat->muReportBufferSize)
 	{
 		RSDMuStat->muReportBufferSize = size;
-		RSDMuStat->muReportBuffer = realloc(RSDMuStat->muReportBuffer, sizeof(float)*(unsigned long)RSDMuStat->muReportBufferSize*7);
+		RSDMuStat->muReportBuffer = rsd_realloc(RSDMuStat->muReportBuffer, sizeof(float)*(unsigned long)RSDMuStat->muReportBufferSize*7);
 		assert(RSDMuStat->muReportBuffer);	
 	}
 #endif
@@ -1696,7 +1696,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		muVar = RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf];
 		muVar /= RSDDataset->setRegionLength;
 		muVar /= RSDMuStat->windowSize;
-		//muVar *= RSDDataset->setSNPs;
+		muVar *= RSDDataset->setSNPs;
 
 		// Mu_SFS
 		if(snpf>=1)
@@ -1711,8 +1711,9 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		muSfs = (float)dCnt1 + (float)dCntN*facN; 
 
 		if(dCnt1+dCntN==0) 
-			muSfs = 0.000001f;
+			muSfs = 0.0000000001f;
 
+		muSfs *= RSDDataset->muVarDenom; 
 		muSfs /= (float)RSDMuStat->windowSize;
 
 		// Mu_Ld
@@ -1723,7 +1724,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 
 		if(pcntexll + pcntexlr==0) 
 		{
-			muLd = 0.000001f;
+			muLd = 0.0000000001f;
 		}
 		else
 		{
@@ -1824,7 +1825,7 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 		muVar = RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf];
 		muVar /= RSDDataset->setRegionLength;
 		muVar /= RSDMuStat->windowSize; 
-		//muVar *= RSDDataset->setSNPs; 
+		muVar *= RSDDataset->setSNPs;
 
 		// Mu_SFS
 		if(snpf>=1)
@@ -1858,9 +1859,10 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 		float facN = 1.0;//(float)RSDChunk->derAll1CntTotal/(float)RSDChunk->derAllNCntTotal;
 		muSfs = (float)dCnt1 + (float)dCntN*facN; 
 
-		if(dCnt1+dCntN==0) // Adapt this
-			muSfs = 0.000001f;
+		if(dCnt1+dCntN==0) 
+			muSfs = 0.0000000001f;
 
+		muSfs *= RSDDataset->muVarDenom; 
 		muSfs /= (float)RSDMuStat->windowSize;
 
 		// Mu_Ld
@@ -1869,9 +1871,9 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 		float tempTest = getPatternCounts (RSDMuStat->pCntVec, (int)RSDMuStat->windowSize, RSDChunk->patternID, winlsnpf, winlsnpl, winrsnpf, winrsnpl, &pcntl, &pcntr, &pcntexll, &pcntexlr);
 		muLd = tempTest;
 
-		if(pcntexll + pcntexlr==0) // Adapt this
+		if(pcntexll + pcntexlr==0) 
 		{
-			muLd = 0.000001f;
+			muLd = 0.0000000001f;
 		}
 		else
 		{

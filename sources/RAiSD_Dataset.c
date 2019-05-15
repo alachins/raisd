@@ -55,7 +55,7 @@ RSDDataset_t * RSDDataset_new(void)
 {
 	RSDDataset_t * d = NULL;
 
-	d = (RSDDataset_t *) malloc(sizeof(RSDDataset_t));
+	d = (RSDDataset_t *) rsd_malloc(sizeof(RSDDataset_t));
 	assert(d!=NULL);
 
 	d->inputFilePtr = NULL;
@@ -84,6 +84,7 @@ RSDDataset_t * RSDDataset_new(void)
 	d->setSitesDiscardedStrictPolymorphicCheckFailed = 0;
 	d->setSitesDiscardedMonomorphic = 0;
 	d->setSitesImputedTotal = 0;
+	d->muVarDenom = 1.0;
 
 	return d;
 }
@@ -498,6 +499,16 @@ void RSDDataset_setPosition (RSDDataset_t * RSDDataset, int * setIndex)
 	RSDDataset->setParsingMode = MULTI_STEP_PARSING;
 }
 
+void RSDDataset_calcMuVarDenom (RSDDataset_t * RSDDataset)
+{
+	int i=0;
+
+	RSDDataset->muVarDenom = 0.0; 
+
+	for(i=1;i<RSDDataset->setSamples;i++)
+		RSDDataset->muVarDenom += 1.0/(double)i;
+}
+
 
 /*************/
 /* ms format */
@@ -724,6 +735,8 @@ int RSDDataset_getFirstSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 	while((RSDPatternPool->incomingSiteDerivedAlleleCount==0||RSDPatternPool->incomingSiteDerivedAlleleCount==RSDDataset->numberOfSamples || maf_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, maf, &RSDDataset->setSitesDiscardedMafCheckFailed, 0)!=1) && setDone==0) // keep loading until first SNP is found
 		setDone = RSDDataset_getNextSNP_ms (RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine, length, maf, fpOut);
 
+	RSDDataset_calcMuVarDenom (RSDDataset);
+
 	return setDone;
 }
 
@@ -825,10 +838,6 @@ char RSDDataset_goToNextSet_vcf_gz (RSDDataset_t * RSDDataset)
 	//fgetpos(RSDDataset->inputFilePtr, &(RSDDataset->setPosition));
 	char tchar=(char)gzgetc(RSDDataset->inputFilePtrGZ);
 
-	//printf("tchar %c\n", tchar);
-	//fflush(stdout);
-	//assert(0);
-
 	char tstring[STRING_SIZE];
 	while(tchar!=EOF)
 	{
@@ -863,10 +872,10 @@ int RSDDataset_getValidSampleList_vcf_gz (RSDDataset_t * RSDDataset)
 	{
 		RSDDataset->sampleValidListSize++;
 
-		RSDDataset->sampleValidList = realloc(RSDDataset->sampleValidList, sizeof(char**)*((unsigned long)RSDDataset->sampleValidListSize));
+		RSDDataset->sampleValidList = rsd_realloc(RSDDataset->sampleValidList, sizeof(char**)*((unsigned long)RSDDataset->sampleValidListSize));
 		assert(RSDDataset->sampleValidList);
 
-		RSDDataset->sampleValidList[RSDDataset->sampleValidListSize-1] = (char*)malloc(sizeof(char)*STRING_SIZE);
+		RSDDataset->sampleValidList[RSDDataset->sampleValidListSize-1] = (char*)rsd_malloc(sizeof(char)*STRING_SIZE);
 		assert(RSDDataset->sampleValidList[RSDDataset->sampleValidListSize-1]!=NULL);
 
 		strcpy(RSDDataset->sampleValidList[RSDDataset->sampleValidListSize-1], tstring);		
@@ -931,7 +940,7 @@ int RSDDataset_getNumberOfSamples_vcf_gz (RSDDataset_t * RSDDataset)
 			sampleCntr++; // this counts the number of samples in the file, dont care about validity yet
 
 			sampleIndex = sampleCntr-1;
-			RSDDataset->sampleValid = realloc(RSDDataset->sampleValid, sizeof(int)*((unsigned long)sampleCntr));
+			RSDDataset->sampleValid = rsd_realloc(RSDDataset->sampleValid, sizeof(int)*((unsigned long)sampleCntr));
 			assert(RSDDataset->sampleValid!=NULL);
 			RSDDataset->sampleValid[sampleIndex]=SAMPLE_IS_VALID; // default operation: all samples are valid
 
@@ -1029,6 +1038,8 @@ int RSDDataset_getFirstSNP_vcf_gz (RSDDataset_t * RSDDataset, RSDPatternPool_t *
 	int setDone = 0;
 	while(!setDone && RSDPatternPool->incomingSitePosition<=-1.0) 
 		setDone = RSDDataset_getNextSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine, RSDDataset->setRegionLength, maf, fpOut);
+
+	RSDDataset_calcMuVarDenom (RSDDataset);
 
 	return setDone;
 }
@@ -1183,7 +1194,7 @@ int RSDDataset_getNextSNP_vcf_gz (RSDDataset_t * RSDDataset, RSDPatternPool_t * 
 						if(firstSNP)
 						{
 							RSDDataset->setSamples = sampleSize;
-							RSDPatternPool->incomingSite = realloc(RSDPatternPool->incomingSite, sizeof(char)*((unsigned long)(RSDDataset->setSamples+1)));
+							RSDPatternPool->incomingSite = rsd_realloc(RSDPatternPool->incomingSite, sizeof(char)*((unsigned long)(RSDDataset->setSamples+1)));
 							assert(RSDPatternPool->incomingSite!=NULL);
 						}
 						else
@@ -1261,7 +1272,7 @@ int RSDDataset_getNextSNP_vcf_gz (RSDDataset_t * RSDDataset, RSDPatternPool_t * 
 			RSDDataset->setSamples=-1;
 			free(RSDPatternPool->incomingSite);
 			RSDPatternPool->incomingSite =  NULL;
-			RSDPatternPool->incomingSite = (char*)malloc(sizeof(char)*((unsigned long)(RSDDataset->numberOfSamples+1)));
+			RSDPatternPool->incomingSite = (char*)rsd_malloc(sizeof(char)*((unsigned long)(RSDDataset->numberOfSamples+1)));
 			assert(RSDPatternPool->incomingSite!=NULL);
 		}
 	}
@@ -1318,10 +1329,10 @@ int RSDDataset_getValidSampleList_vcf (RSDDataset_t * RSDDataset)
 	{
 		RSDDataset->sampleValidListSize++;
 
-		RSDDataset->sampleValidList = realloc(RSDDataset->sampleValidList, sizeof(char**)*((unsigned long)RSDDataset->sampleValidListSize));
+		RSDDataset->sampleValidList = rsd_realloc(RSDDataset->sampleValidList, sizeof(char**)*((unsigned long)RSDDataset->sampleValidListSize));
 		assert(RSDDataset->sampleValidList);
 
-		RSDDataset->sampleValidList[RSDDataset->sampleValidListSize-1] = (char*)malloc(sizeof(char)*STRING_SIZE);
+		RSDDataset->sampleValidList[RSDDataset->sampleValidListSize-1] = (char*)rsd_malloc(sizeof(char)*STRING_SIZE);
 		assert(RSDDataset->sampleValidList[RSDDataset->sampleValidListSize-1]!=NULL);
 
 		strcpy(RSDDataset->sampleValidList[RSDDataset->sampleValidListSize-1], tstring);		
@@ -1414,7 +1425,7 @@ int RSDDataset_getNumberOfSamples_vcf (RSDDataset_t * RSDDataset)
 			sampleCntr++; // this counts the number of samples in the file, dont care about validity yet
 
 			sampleIndex = sampleCntr-1;
-			RSDDataset->sampleValid = realloc(RSDDataset->sampleValid, sizeof(int)*((unsigned long)sampleCntr));
+			RSDDataset->sampleValid = rsd_realloc(RSDDataset->sampleValid, sizeof(int)*((unsigned long)sampleCntr));
 			assert(RSDDataset->sampleValid!=NULL);
 			RSDDataset->sampleValid[sampleIndex]=SAMPLE_IS_VALID; // default operation: all samples are valid
 
@@ -1509,6 +1520,8 @@ int RSDDataset_getFirstSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RS
 	int setDone = 0;
 	while(!setDone && RSDPatternPool->incomingSitePosition<=-1.0) 
 		setDone = RSDDataset_getNextSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine, RSDDataset->setRegionLength, maf, fpOut);
+
+	RSDDataset_calcMuVarDenom (RSDDataset);
 
 	return setDone;
 }
@@ -1661,7 +1674,7 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 						if(firstSNP)
 						{
 							RSDDataset->setSamples = sampleSize;
-							RSDPatternPool->incomingSite = realloc(RSDPatternPool->incomingSite, sizeof(char)*((unsigned long)(RSDDataset->setSamples+1)));
+							RSDPatternPool->incomingSite = rsd_realloc(RSDPatternPool->incomingSite, sizeof(char)*((unsigned long)(RSDDataset->setSamples+1)));
 							assert(RSDPatternPool->incomingSite!=NULL);
 						}
 						else
@@ -1739,7 +1752,7 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 			RSDDataset->setSamples=-1;
 			free(RSDPatternPool->incomingSite);
 			RSDPatternPool->incomingSite =  NULL;
-			RSDPatternPool->incomingSite = (char*)malloc(sizeof(char)*((unsigned long)(RSDDataset->numberOfSamples+1)));
+			RSDPatternPool->incomingSite = (char*)rsd_malloc(sizeof(char)*((unsigned long)(RSDDataset->numberOfSamples+1)));
 			assert(RSDPatternPool->incomingSite!=NULL);
 		}
 	}

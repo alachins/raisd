@@ -204,7 +204,6 @@ abline(h=threshold, col=\"red\", lw=2) \n \
 dev.off() \n";
 
 		fprintf(fp,"%s", tscript);
-
 	}
 
 	fclose(fp);	

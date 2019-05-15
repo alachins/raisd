@@ -24,7 +24,7 @@
 RSDHashMap_t * 	RSDHashMap_new 	(void)
 {
 	RSDHashMap_t * hm = NULL;
-	hm = (RSDHashMap_t *)malloc(sizeof(RSDHashMap_t));
+	hm = (RSDHashMap_t *)rsd_malloc(sizeof(RSDHashMap_t));
 	assert(hm!=NULL);
 
 	hm->addressListSize = 0;
@@ -79,10 +79,10 @@ void RSDHashMap_init (RSDHashMap_t * RSDHashMap, int64_t setSamples, uint64_t * 
 	assert(poolData!=NULL);
 
 	RSDHashMap->addressListSize = setSamples;
-	RSDHashMap->addressList = (uint64_t**)malloc(sizeof(uint64_t*)*(unsigned long)RSDHashMap->addressListSize);
+	RSDHashMap->addressList = (uint64_t**)rsd_malloc(sizeof(uint64_t*)*(unsigned long)RSDHashMap->addressListSize);
 	assert(RSDHashMap->addressList!=NULL);
 
-	RSDHashMap->addressListEntrySize = (uint64_t*)malloc(sizeof(uint64_t)*(unsigned long)RSDHashMap->addressListSize);
+	RSDHashMap->addressListEntrySize = (uint64_t*)rsd_malloc(sizeof(uint64_t)*(unsigned long)RSDHashMap->addressListSize);
 	assert(RSDHashMap->addressListEntrySize!=NULL);
 
 	RSDHashMap->addressList[0]=NULL;
@@ -92,7 +92,7 @@ void RSDHashMap_init (RSDHashMap_t * RSDHashMap, int64_t setSamples, uint64_t * 
 	RSDHashMap->addressListEntryMaxSize = (unsigned long)curMaxSize / (unsigned long)(setSamples-1);
 	assert(RSDHashMap->addressListEntryMaxSize>=1);
 
-	RSDHashMap->poolDataFractions = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)(patternSize*maxSize)));
+	RSDHashMap->poolDataFractions = (uint64_t*) rsd_malloc(sizeof(uint64_t)*((unsigned long)(patternSize*maxSize)));
 	assert(RSDHashMap->poolDataFractions!=NULL);
 	
 	int i=0;

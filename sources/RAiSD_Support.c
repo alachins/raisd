@@ -24,10 +24,13 @@
 void	ignoreLineSpaces	(FILE *fp, char *ent);
 int 	flagMatch		(FILE *fp, char flag[], int flaglength, char tmp);
 void 	RSD_printTime 		(FILE * fp1, FILE * fp2);
+void 	RSD_countMemory 	(size_t newMemSz);
 void 	RSD_printMemory 	(FILE * fp1, FILE * fp2);
 int 	RSD_Rscript_check	(void);
 void 	RSD_Rscript_generate 	(void);
 void 	RSD_Rscript_remove 	(void);
+inline void *	rsd_malloc	(size_t size);
+inline void *	rsd_realloc	(void * p, size_t size);
 
 char POPCNT_U16_LUT [0x1u << 16];
 
@@ -430,7 +433,7 @@ int getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char *
 float * putInSortVector(int * size, float * vector, float value)
 {
 	(*size)++;
-	vector = realloc(vector, sizeof(float)*((size_t)(*size)));
+	vector = rsd_realloc(vector, sizeof(float)*((size_t)(*size)));
 	vector[(*size)-1] = 0.0f;
 
 	if(*size==1)
@@ -595,6 +598,23 @@ void RSD_printTime (FILE * fp1, FILE * fp2)
 	fprintf(fp1, " Total Mu time %.5f seconds\n", TotalMuTime);
 	fprintf(fp2, " Total Mu time %.5f seconds\n", TotalMuTime);
 #endif
+}
+
+void RSD_countMemory (size_t newMemSz)
+{
+	MemoryFootprint+=newMemSz;
+}
+
+inline void * rsd_malloc (size_t size)
+{
+	RSD_countMemory (size);
+	return malloc (size);
+}
+
+inline void * rsd_realloc (void * p, size_t size)
+{
+	RSD_countMemory (size);
+	return realloc (p, size);
 }
 
 void RSD_printMemory (FILE * fp1, FILE * fp2)

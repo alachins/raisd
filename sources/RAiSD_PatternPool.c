@@ -32,7 +32,7 @@ double TotalOoCTime;
 RSDPatternPool_t * RSDPatternPool_new(void)
 {
 	RSDPatternPool_t * pp = NULL;
-	pp = (RSDPatternPool_t *) malloc(sizeof(RSDPatternPool_t));
+	pp = (RSDPatternPool_t *) rsd_malloc(sizeof(RSDPatternPool_t));
 	assert(pp!=NULL);
 
 	pp->memorySize = PATTERNPOOL_SIZE;
@@ -56,6 +56,7 @@ RSDPatternPool_t * RSDPatternPool_new(void)
 	pp->exchangeBuffer = NULL;	
 	pp->hashMap=NULL;
 	pp->lutMap=NULL;
+	pp->treeMap=NULL;
 
 	return pp;
 }
@@ -63,41 +64,31 @@ RSDPatternPool_t * RSDPatternPool_new(void)
 void RSDPatternPool_free(RSDPatternPool_t * pp, int64_t numberOfSamples)
 {
 	assert(pp!=NULL);
+	assert(numberOfSamples!=0);
 
-	MemoryFootprint += (numberOfSamples+1);
 	free(pp->incomingSite);
 
-	MemoryFootprint += sizeof(uint64_t)*((unsigned long)pp->patternSize);
 	free(pp->incomingSiteCompact);
 
-	MemoryFootprint += sizeof(uint64_t)*((unsigned long)(pp->patternSize*pp->maxSize));
 	free(pp->poolData);
 
 	if(pp->createPatternPoolMask==1)
 	{
-		MemoryFootprint += sizeof(uint64_t)*((unsigned long)pp->patternSize);
 		free(pp->incomingSiteCompactMask);
 
-		MemoryFootprint += sizeof(uint64_t)*((unsigned long)(pp->patternSize*pp->maxSize));
 		free(pp->poolDataMask);
 
-		MemoryFootprint += sizeof(int)*((unsigned long)pp->maxSize);
 		free(pp->poolDataWithMissing);
 
-		MemoryFootprint += sizeof(int)*((unsigned long)pp->maxSize);
 		free(pp->poolDataMaskCount);
 
-		MemoryFootprint += sizeof(int)*((unsigned long)pp->maxSize);
 		free(pp->poolDataAppliedMaskCount);
 	}
 
-	MemoryFootprint += sizeof(int)*((unsigned long)pp->maxSize);
 	free(pp->poolDataAlleleCount);
 
-	MemoryFootprint += sizeof(int)*((unsigned long)pp->maxSize);
 	free(pp->poolDataPatternCount);
 
-	MemoryFootprint += sizeof(uint64_t)*((unsigned long)pp->patternSize);
 	free(pp->exchangeBuffer);
 
 	if(pp->hashMap!=NULL)
@@ -105,6 +96,9 @@ void RSDPatternPool_free(RSDPatternPool_t * pp, int64_t numberOfSamples)
 
 	if(pp->lutMap!=NULL)
 		RSDLutMap_free(pp->lutMap);
+
+	if(pp->treeMap!=NULL)
+		RSDTreeMap_free(pp->treeMap);
 
 	free(pp);	
 }
@@ -125,40 +119,40 @@ void RSDPatternPool_init (RSDPatternPool_t * RSDPatternPool, RSDCommandLine_t * 
 	float maxSNPsInPool = maxSNPsInPool_num/(wordsPerSNP*8.0f+8.0f); // +8 for the allelecount and the patterncount
 	RSDPatternPool->maxSize = (int) maxSNPsInPool;
 
-	RSDPatternPool->incomingSite = (char*) malloc(sizeof(char)*((unsigned long)(numberOfSamples+1)));
+	RSDPatternPool->incomingSite = (char*) rsd_malloc(sizeof(char)*((unsigned long)(numberOfSamples+1)));
 	assert(RSDPatternPool->incomingSite!=NULL);
 
-	RSDPatternPool->incomingSiteCompact = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
+	RSDPatternPool->incomingSiteCompact = (uint64_t*) rsd_malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
 	assert(RSDPatternPool->incomingSiteCompact!=NULL);
 
-	RSDPatternPool->poolData = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)(RSDPatternPool->patternSize*RSDPatternPool->maxSize)));
+	RSDPatternPool->poolData = (uint64_t*) rsd_malloc(sizeof(uint64_t)*((unsigned long)(RSDPatternPool->patternSize*RSDPatternPool->maxSize)));
 	assert(RSDPatternPool->poolData!=NULL);
 
 	if(RSDPatternPool->createPatternPoolMask==1)
 	{
-		RSDPatternPool->incomingSiteCompactMask = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
+		RSDPatternPool->incomingSiteCompactMask = (uint64_t*) rsd_malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
 		assert(RSDPatternPool->incomingSiteCompactMask!=NULL);
 
-		RSDPatternPool->poolDataMask = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)(RSDPatternPool->patternSize*RSDPatternPool->maxSize)));
+		RSDPatternPool->poolDataMask = (uint64_t*) rsd_malloc(sizeof(uint64_t)*((unsigned long)(RSDPatternPool->patternSize*RSDPatternPool->maxSize)));
 		assert(RSDPatternPool->poolDataMask!=NULL);
 
-		RSDPatternPool->poolDataWithMissing = (int*) malloc(sizeof(int)*((unsigned long)RSDPatternPool->maxSize));
+		RSDPatternPool->poolDataWithMissing = (int*) rsd_malloc(sizeof(int)*((unsigned long)RSDPatternPool->maxSize));
 		assert(RSDPatternPool->poolDataWithMissing!=NULL);
 
-		RSDPatternPool->poolDataMaskCount = (int*) malloc(sizeof(int)*((unsigned long)RSDPatternPool->maxSize));
+		RSDPatternPool->poolDataMaskCount = (int*) rsd_malloc(sizeof(int)*((unsigned long)RSDPatternPool->maxSize));
 		assert(RSDPatternPool->poolDataMaskCount!=NULL);
 
-		RSDPatternPool->poolDataAppliedMaskCount = (int*) malloc(sizeof(int)*((unsigned long)RSDPatternPool->maxSize));
+		RSDPatternPool->poolDataAppliedMaskCount = (int*) rsd_malloc(sizeof(int)*((unsigned long)RSDPatternPool->maxSize));
 		assert(RSDPatternPool->poolDataAppliedMaskCount!=NULL);
 	}
 
-	RSDPatternPool->poolDataAlleleCount = (int*) malloc(sizeof(int)*((unsigned long)RSDPatternPool->maxSize));
+	RSDPatternPool->poolDataAlleleCount = (int*) rsd_malloc(sizeof(int)*((unsigned long)RSDPatternPool->maxSize));
 	assert(RSDPatternPool->poolDataAlleleCount!=NULL);
 
-	RSDPatternPool->poolDataPatternCount = (int*) malloc(sizeof(int)*((unsigned long)RSDPatternPool->maxSize));
+	RSDPatternPool->poolDataPatternCount = (int*) rsd_malloc(sizeof(int)*((unsigned long)RSDPatternPool->maxSize));
 	assert(RSDPatternPool->poolDataPatternCount!=NULL);
 
-	RSDPatternPool->exchangeBuffer = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
+	RSDPatternPool->exchangeBuffer = (uint64_t*) rsd_malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
 	assert(RSDPatternPool->exchangeBuffer!=NULL);
 
 #ifdef _HM
@@ -171,6 +165,13 @@ void RSDPatternPool_init (RSDPatternPool_t * RSDPatternPool, RSDCommandLine_t * 
 #ifdef _LM
 	if(RSDPatternPool->createPatternPoolMask==0)
 		RSDPatternPool->lutMap = RSDLutMap_new();
+	else
+		assert(0);
+#endif
+
+#ifdef _TM
+	if(RSDPatternPool->createPatternPoolMask==0)
+		RSDPatternPool->treeMap = RSDTreeMap_new();
 	else
 		assert(0);
 #endif
@@ -194,29 +195,29 @@ void RSDPatternPool_resize (RSDPatternPool_t * RSDPatternPool, int64_t setSample
 	assert(RSDPatternPool->maxSize<=prevMaxSize);
 
 	free(RSDPatternPool->incomingSiteCompact);
-	RSDPatternPool->incomingSiteCompact = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
+	RSDPatternPool->incomingSiteCompact = (uint64_t*) rsd_malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
 	assert(RSDPatternPool->incomingSiteCompact!=NULL);
 
 	free(RSDPatternPool->poolData);
-	RSDPatternPool->poolData = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)(RSDPatternPool->patternSize*RSDPatternPool->maxSize)));
+	RSDPatternPool->poolData = (uint64_t*) rsd_malloc(sizeof(uint64_t)*((unsigned long)(RSDPatternPool->patternSize*RSDPatternPool->maxSize)));
 	assert(RSDPatternPool->poolData!=NULL);
 
 	if(RSDPatternPool->createPatternPoolMask==1)
 	{
 		free(RSDPatternPool->incomingSiteCompactMask);
-		RSDPatternPool->incomingSiteCompactMask = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
+		RSDPatternPool->incomingSiteCompactMask = (uint64_t*) rsd_malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
 		assert(RSDPatternPool->incomingSiteCompactMask!=NULL);
 
 		free(RSDPatternPool->poolDataMask);
 		RSDPatternPool->poolDataMask = NULL;
-		RSDPatternPool->poolDataMask = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)(RSDPatternPool->patternSize*RSDPatternPool->maxSize)));
+		RSDPatternPool->poolDataMask = (uint64_t*) rsd_malloc(sizeof(uint64_t)*((unsigned long)(RSDPatternPool->patternSize*RSDPatternPool->maxSize)));
 		assert(RSDPatternPool->poolDataMask!=NULL);
 	}
 
 	RSDPatternPool_partialReset (RSDPatternPool);
 
 	free(RSDPatternPool->exchangeBuffer);
-	RSDPatternPool->exchangeBuffer = (uint64_t*) malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
+	RSDPatternPool->exchangeBuffer = (uint64_t*) rsd_malloc(sizeof(uint64_t)*((unsigned long)RSDPatternPool->patternSize));
 	assert(RSDPatternPool->exchangeBuffer!=NULL);
 
 	fprintf(fpOut, " The pattern structure has been resized to %d patterns (max. capacity) and approx. %d MB memory footprint.\n\n", RSDPatternPool->maxSize, PATTERNPOOL_SIZE_MASK_FACTOR*RSDPatternPool->memorySize);	
@@ -385,6 +386,14 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSa
 
 		RSDPatternPool->hashMap->addressListEntryFull = 0;
 #else
+#ifdef _LM
+		assert(0);
+#else
+#ifdef _TM
+		RSDTreeMap_free (RSDPatternPool->treeMap);
+		RSDPatternPool->treeMap = NULL;
+		RSDPatternPool->treeMap = RSDTreeMap_new();
+#else
 
 		for(i=0;i<RSDPatternPool->patternSize*RSDPatternPool->dataSize;i++)
 		{
@@ -406,7 +415,8 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSa
 				RSDPatternPool->poolDataAppliedMaskCount[i] = 0;
 			}
 		}
-		
+#endif
+#endif		
 #endif
 		RSDPatternPool->dataSize = 0;
 	}
@@ -436,7 +446,7 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSa
 		RSDPatternPool->incomingSitePosition = -1.0;
 
 
-		// End part of chunk relocated to the beginning
+		// Last part of chunk relocated to the beginning
 		int j = 0;
 		int pLoc = 0;
 
@@ -595,7 +605,6 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSa
 		RSDPatternPool->hashMap->addressListEntryFull = 0;
 
 #else // Default: no HM, no MLT
-
 		for(i=0;i<RSDChunk->chunkSize;i++)
 		{
 			int pID_a = RSDChunk->patternID[i];
@@ -623,7 +632,6 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSa
 		}
 #endif
 #endif
-
 		for(i=pLoc*RSDPatternPool->patternSize;i<RSDPatternPool->patternSize*RSDPatternPool->dataSize;i++)
 		{
 			RSDPatternPool->poolData[i] = 0ull;
@@ -647,11 +655,39 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSa
 
 		RSDPatternPool->dataSize = pLoc; // The new pattern pool corresponds to the number of patterns found in the window size snps of the chunk.
 
+		/*
+		for(i=0;i<RSDPatternPool->dataSize;i++)
+		{
+			int pID_a = i;	
+
+			int lk;
+			for(lk=i+1;lk<RSDPatternPool->dataSize;lk++)
+			{
+				int p1 = pID_a;
+				int p2 = lk;
+
+				int difp1p2 = snpv_cmp (&(RSDPatternPool->poolData[p1*RSDPatternPool->patternSize]), &(RSDPatternPool->poolData[p2*RSDPatternPool->patternSize]), (int)RSDPatternPool->patternSize);
+				assert(difp1p2==1);
+			}
+		}		
+		*/
 #ifdef _LM
 		RSDLutMap_reset (RSDPatternPool->lutMap);
 
 		for(i=0;i<RSDPatternPool->dataSize;i++)
 			RSDLutMap_update (RSDPatternPool->lutMap, &(RSDPatternPool->poolData[i*RSDPatternPool->patternSize]));
+#endif
+
+
+#ifdef _TM
+		RSDTreeMap_free (RSDPatternPool->treeMap);
+		RSDPatternPool->treeMap = NULL;
+		RSDPatternPool->treeMap = RSDTreeMap_new();
+
+		for(i=0;i<RSDPatternPool->dataSize;i++)
+			RSDTreeMap_updateTreeInit (RSDPatternPool->treeMap, (void *)RSDPatternPool, setSamples, &(RSDPatternPool->poolData[i*RSDPatternPool->patternSize]));
+
+		assert(RSDPatternPool->dataSize==RSDPatternPool->treeMap->totalPatterns);
 #endif
 	}
 }
@@ -733,7 +769,8 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 		{
 			assert(RSDPatternPool->incomingSite[j]=='0' || RSDPatternPool->incomingSite[j]=='1');
 
-			uint8_t b = (uint8_t)(RSDPatternPool->incomingSite[j]-48);
+			uint8_t b = (uint8_t)(RSDPatternPool->incomingSite[j]-48);	
+
 			RSDPatternPool->incomingSiteCompact[i] = (RSDPatternPool->incomingSiteCompact[i]<<1) | b;
 	
 			lcnt++;
@@ -763,7 +800,7 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 		}
 	}
 
-	assert(i==RSDPatternPool->patternSize-1);
+	assert(((i==RSDPatternPool->patternSize-1)&&(lcnt!=0))||((i==RSDPatternPool->patternSize)&&(lcnt==0)));
 
 #ifdef _LM
 	int newPattern = RSDLutMap_scan (RSDPatternPool->lutMap, RSDPatternPool->incomingSiteCompact);
@@ -776,7 +813,6 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 			RSDLutMap_update (RSDPatternPool->lutMap, RSDPatternPool->incomingSiteCompact);
 	}
 #endif
-
 
 #ifdef _HM
 	RSDHashMap_t * RSDHashMap = RSDPatternPool->hashMap;
@@ -831,6 +867,11 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 		RSDPatternPool->poolDataAlleleCount[i] =  RSDPatternPool->incomingSiteDerivedAlleleCount;
 		RSDPatternPool->poolDataPatternCount[i] = 1;
 		RSDPatternPool->dataSize++;
+
+#ifdef _TM
+		i = (int)RSDTreeMap_updateTree (RSDPatternPool->treeMap, (void *)RSDPatternPool, numberOfSamples);
+		assert(i==0);
+#endif
 	}
 	else
 	{
@@ -927,6 +968,23 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 				}
 			}
 #else
+#ifdef _TM
+			i = (int)RSDTreeMap_matchSNP (RSDPatternPool->treeMap, (void *)RSDPatternPool, numberOfSamples);
+			match = 1;
+
+			if(i==-1)
+			{
+				i = (int)RSDTreeMap_matchSNPC (RSDPatternPool->treeMap, (void *)RSDPatternPool, numberOfSamples);
+				match = 1;
+
+				if(i==-1)
+				{
+					i = (int)RSDTreeMap_updateTree (RSDPatternPool->treeMap, (void *)RSDPatternPool, numberOfSamples);
+					match = 0;
+				}
+			}
+
+#else
 			for(i=0;i<RSDPatternPool->dataSize;i++) 
 			{
 				if(!snpv_cmp(&(RSDPatternPool->poolData[i*RSDPatternPool->patternSize]), RSDPatternPool->incomingSiteCompact, RSDPatternPool->patternSize))
@@ -946,8 +1004,7 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 				}	
 			}
 #endif
-	
-
+#endif
 		}
 
 		if(match)
@@ -994,19 +1051,19 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 #ifdef _MLT
 		if(RSDCommandLine->createPatternPoolMask==1)
 		{
-			RSDChunk->sitePosition = realloc(RSDChunk->sitePosition, sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
-			RSDChunk->derivedAlleleCount = realloc(RSDChunk->derivedAlleleCount, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
-			RSDChunk->patternID = realloc(RSDChunk->patternID, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
+			RSDChunk->sitePosition = rsd_realloc(RSDChunk->sitePosition, sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
+			RSDChunk->derivedAlleleCount = rsd_realloc(RSDChunk->derivedAlleleCount, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
+			RSDChunk->patternID = rsd_realloc(RSDChunk->patternID, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
 		}
 		else
 		{
-			RSDChunk->chunkData = realloc(RSDChunk->chunkData, sizeof(float)*((unsigned long)RSDChunk->chunkMemSize*3));
+			RSDChunk->chunkData = rsd_realloc(RSDChunk->chunkData, sizeof(float)*((unsigned long)RSDChunk->chunkMemSize*3));
 			assert(RSDChunk->chunkData!=NULL);
 		}
 #else
-		RSDChunk->sitePosition = realloc(RSDChunk->sitePosition, sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
-		RSDChunk->derivedAlleleCount = realloc(RSDChunk->derivedAlleleCount, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
-		RSDChunk->patternID = realloc(RSDChunk->patternID, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
+		RSDChunk->sitePosition = rsd_realloc(RSDChunk->sitePosition, sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
+		RSDChunk->derivedAlleleCount = rsd_realloc(RSDChunk->derivedAlleleCount, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
+		RSDChunk->patternID = rsd_realloc(RSDChunk->patternID, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
 #endif
 	}
 

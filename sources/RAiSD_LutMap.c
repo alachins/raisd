@@ -21,9 +21,9 @@
 
 #include "RAiSD.h"
 
-RSDLutMap_t *	RSDLutMap_new	(void)
+RSDLutMap_t * RSDLutMap_new (void)
 {
-	RSDLutMap_t * lm = (RSDLutMap_t *)malloc(sizeof(RSDLutMap_t));
+	RSDLutMap_t * lm = (RSDLutMap_t *)rsd_malloc(sizeof(RSDLutMap_t));
 	assert(lm!=NULL);
 	
 	lm->lutMapSize = 0;
@@ -86,7 +86,7 @@ void RSDLutMap_init (RSDLutMap_t * lm, int64_t numberOfSamples)
 	lm->lutMapMem = (uint8_t*)calloc((unsigned long)lm->lutMapSize*LUTMAP_WIDTH, sizeof(uint8_t));
 	assert(lm->lutMapMem!=NULL);
 
-	lm->lutMap = (uint8_t**)malloc(sizeof(uint8_t*)*(unsigned long)lm->lutMapSize);
+	lm->lutMap = (uint8_t**)rsd_malloc(sizeof(uint8_t*)*(unsigned long)lm->lutMapSize);
 	assert(lm->lutMap);
 
 	int i=0;
@@ -96,7 +96,7 @@ void RSDLutMap_init (RSDLutMap_t * lm, int64_t numberOfSamples)
 	lm->lutMapMemC = (uint8_t*)calloc((unsigned long)lm->lutMapSize*LUTMAP_WIDTH, sizeof(uint8_t));
 	assert(lm->lutMapMemC!=NULL);
 
-	lm->lutMapC = (uint8_t**)malloc(sizeof(uint8_t*)*(unsigned long)lm->lutMapSize);
+	lm->lutMapC = (uint8_t**)rsd_malloc(sizeof(uint8_t*)*(unsigned long)lm->lutMapSize);
 	assert(lm->lutMapC);
 
 	for(i=0;i<lm->lutMapSize;i++)
