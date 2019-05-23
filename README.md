@@ -415,7 +415,7 @@ Note that, depending on the number of chromosomes (SNP sets) and the total numbe
 An example of such a file, obtained by a different run, can be found here: http://139.91.162.50/raisd_plots/examples/RAiSD_ManhattanPlot.test_run_2.pdf
 
 
-Change log
+Changelog
 ----------
 
 v1.0 (9/6/2017): first release
