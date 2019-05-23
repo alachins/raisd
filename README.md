@@ -410,7 +410,7 @@ This command will generate a single RAiSD_ManhattanPlot PDF file with the run na
 
 RAiSD_ManhattanPlot.test_run.pdf
 
-Note that, depending on the number of chromosomes (SNP sets) and the total number of SNPs in the input file, such a RAiSD run might require several minutes only to generate the RAiSD_Manhattan PDF file. 
+Note that, depending on the number of chromosomes (SNP sets) and the total number of SNPs in the input file, such a RAiSD run might require several minutes only to generate the RAiSD_ManhattanPlot PDF file. 
 
 An example of such a file, obtained by a different run, can be found here: http://139.91.162.50/raisd_plots/examples/RAiSD_ManhattanPlot.test_run_2.pdf
 
