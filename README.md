@@ -406,11 +406,13 @@ The -A parameter followed by a probability value to be used for the quantile fun
 
     $ ./RAiSD -n test_run -I d1/msselection1.out -L 100000 -A 0.995
     
-This command will generate RAiSD_Plot PDF files with the run name (provided via "-n") followed by the SNP set index (or name in VCF format) preceding the file extension.
+This command will generate a single RAiSD_ManhattanPlot PDF file with the run name (provided via "-n") preceding the file extension.
 
-RAiSD_Plot.test_run.0.pdf
+RAiSD_ManhattanPlot.test_run.pdf
 
-An example of such file can be found here: http://139.91.162.50/raisd_plots/examples/RAiSD_Plot.test_run.1.pdf
+Note that, depending on the number of chromosomes (SNP sets) and the total number of SNPs in the input file, such a RAiSD run might require several minutes only to generate the RAiSD_Manhattan PDF file. 
+
+An example of such a file, obtained by a different run, can be found here: http://139.91.162.50/raisd_plots/examples/RAiSD_ManhattanPlot.test_run_2.pdf
 
 
 Change log
