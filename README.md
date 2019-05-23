@@ -422,6 +422,8 @@ v1.8 (31/12/2018): MakefileZLIB to parse VCF files in gzip file format (requires
 
 v1.9 (27/4/2019): -w to set the window size (default 50), -c to set the SFS slack for the μ_SFS
 
+v2.0 (15/5/2019): -A to create Manhattan plots, scale factors for muVar and muSFS to yield comparable scores among different chromosomes
+
 Support
 -------
 
