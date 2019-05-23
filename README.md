@@ -334,7 +334,7 @@ This command will generate RAiSD_Plot PDF files with the run name (provided via 
 
 RAiSD_Plot.test_run.0.pdf
 
-An example of such file can be found here: http://139.91.162.50/raisd_plots/examples/RAiSD_Plot.test_run.1.pdf
+An example of such a file can be found here: http://139.91.162.50/raisd_plots/examples/RAiSD_Plot.test_run.1.pdf
 
 Processing VCF (ANGSD version)
 ------------------------------
@@ -402,7 +402,7 @@ When a number X that is larger than 1 is provided through -c for the SFS edges, 
 Generating Manhattan plots
 ----------------------------
 
-As of version 2.0, the -A parameter followed by a probability value to be used for the quantile function in R can be used to generate a Manhattan plot in a single PDF file for all chromosomes (sets of SNPs) in the input dataset. This option requires R (https://www.r-project.org/) to be installed and Rscript to be in the default $PATH. By default, -A activates the generation of a separate report per set of SNPs (-s option), the removal of the set separator symbol from each report (-t option), and the inclusion of additional information in each report (-R option). The following command shows the use of -A for the test run.
+As of version 2.0, the -A parameter followed by a probability value (to be used for the quantile function in R) can be used to generate a Manhattan plot in a single PDF file for all chromosomes (sets of SNPs) in the input dataset. This option requires R (https://www.r-project.org/) to be installed and Rscript to be in the default $PATH. By default, -A activates the generation of a separate report per set of SNPs (-s option), the removal of the set separator symbol from each report (-t option), and the inclusion of additional information in each report (-R option). The following command shows the use of -A for the test run.
 
     $ ./RAiSD -n test_run -I d1/msselection1.out -L 100000 -A 0.995
     
