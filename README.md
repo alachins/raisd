@@ -399,6 +399,20 @@ By default, the μ_SFS increases with the number of singletons and SNPs with S-1
     
 When a number X that is larger than 1 is provided through -c for the SFS edges, all SNPs with a number of derived alleles less or equal than X and larger or equal than S-X are included in the calculation of μ_SFS values. 
 
+Generating Manhattan plots
+----------------------------
+
+The -A parameter followed by a probability value to be used for the quantile function in R can be used to generate a Manhattan plot in a single PDF file for all chromosomes (sets of SNPs) in the input dataset. This option requires R (https://www.r-project.org/) to be installed and Rscript to be in the default $PATH. By default, -A activates the generation of a separate report per set of SNPs (-s option), the removal of the set separator symbol from each report (-t option), and the inclusion of additional information in each report (-R option). The following command shows the use of -A for the test run.
+
+    $ ./RAiSD -n test_run -I d1/msselection1.out -L 100000 -A 0.995
+    
+This command will generate RAiSD_Plot PDF files with the run name (provided via "-n") followed by the SNP set index (or name in VCF format) preceding the file extension.
+
+RAiSD_Plot.test_run.0.pdf
+
+An example of such file can be found here: http://139.91.162.50/raisd_plots/examples/RAiSD_Plot.test_run.1.pdf
+
+
 Change log
 ----------
 
