@@ -26,6 +26,12 @@ Other related publications:
 URL: https://ieeexplore.ieee.org/abstract/document/8533493  
 
 
+**Update -- May 2019**
+We have modified the way to calculate the partial statistics `μ_VAR`, `μ_SFS`, as follows. 
+
+`μ_VAR`: we have multiplied the old version of `μ_VAR` with the total number of SNPs in the chromosome. Now, `μ_VAR` is independent of the chromosome length. Also, it is distributed around the value 1 under neutrality. 
+
+`μ_SFS`: We have multiplied the old version of `μ_SFS` with the Sum_i=1^(n-1) 1/i, i.e., with the (sample size) correcting factor of Watterson's θ. Now, the `μ_SFS` is distributed around 1 under neutrality. 
 
 
 Download and Compile
