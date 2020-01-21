@@ -25,7 +25,7 @@ Other related publications:
 2. Accelerated Inference of Positive Selection on Whole Genomes ([PDF](http://kalman.mee.tcd.ie/fpl2018/content/pdfs/FPL2018-43iDzVTplcpussvbfIaaHz/2IXjcULtzLwXxGVD0BRuki/4etDSBv306dBHUVjNtmSyT.pdf))  
 URL: https://ieeexplore.ieee.org/abstract/document/8533493  
 
-3. RAiSD-X: A Fast and Accurate FPGA System for the Detection of Positive Selection in Thousands of Genomes
+3. RAiSD-X: A Fast and Accurate FPGA System for the Detection of Positive Selection in Thousands of Genomes ([PDF](https://github.com/alachins/raisd/blob/master/publications/RAiSD-X_TRETS2019.pdf))
 URL: https://dl.acm.org/doi/10.1145/3364225
 
 
