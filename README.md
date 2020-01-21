@@ -166,6 +166,7 @@ The current RAiSD release can process SNP data in Hudson's ms or VCF (Variant Ca
 
 RAiSD version 1.7 (or later) can also parse and process [ANGSD](http://www.popgen.dk/angsd/index.php/ANGSD) VCF files.  
 RAiSD version 1.8 (or later) can also parse compressed VCF files (including ANGSD-generated VCF files) in [GZ](https://www.gnu.org/software/gzip/) file format. 
+RAiSD version 2.1 (or later) can also parse and process unordered VCF files, e.g., derived from [DArTseq](https://www.diversityarrays.com/) genotyping reports. Only unzipped unordered VCF files are currently supported. The ordered VCF file is also automatically generated.
 
 Output Files
 ------------
