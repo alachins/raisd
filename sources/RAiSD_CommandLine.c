@@ -25,7 +25,7 @@ void flagCheck (char ** argv, int i, int * flagVector, int flagIndex);
 
 void RSDHelp (FILE * fp)
 {
-	fprintf(fp, " This is RAiSD version 2.0, released in May 2019.\n\n");
+	fprintf(fp, " This is RAiSD version 2.2, released in January 2020.\n\n");
 
 	fprintf(fp, " RAiSD");
 
@@ -39,6 +39,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t[-m FLOAT]\n");
 	fprintf(fp, "\t[-M 0|1|2|3]\n");
 	fprintf(fp, "\t[-y INTEGER]\n");
+	fprintf(fp, "\t[-X STRING]\n");
 
 	fprintf(fp, "\n\t--- SLIDING WINDOW and MU STATISTIC\n");
 	fprintf(fp, "\t[-w INTEGER]\n");
@@ -80,6 +81,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t-m\tProvides the threshold value for excluding SNPs with minor allele frequency < threshold (0.0-1.0).\n");
 	fprintf(fp, "\t-M\tIndicates the missing-data handling strategy (0: discards SNP (default), 1: imputes N per SNP, 2: represents N through a mask, 3: ignores allele pairs with N).\n");
 	fprintf(fp, "\t-y\tProvides the ploidy (integer value), used to correctly represent missing data.\n");
+	fprintf(fp, "\t-X\tProvides the path to a tab-delimited file that contains a region per chromosome (per line) to be excluded from the analysis.\n");
 
 	fprintf(fp, "\n\t--- SLIDING WINDOW and MU STATISTIC\n");
 	fprintf(fp, "\t-w\tProvides the window size (integer value). The default value is 50 (empirically determined).\n");
@@ -134,6 +136,12 @@ void RSDVersions(FILE * fp)
 	majorIndex++; minorIndex=0;
 
 	fprintf(fp, " %d. RAiSD v%d.%d (May 15, 2019): -A to create Manhattan plots, scale factors for muVar and muSFS to yield comparable scores among different chromosomes\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Jan 21, 2020): Parser for unordered VCF files (e.g., extracted from DArTseq genotyping reports). The ordered VCF file is also created.\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Jan 22, 2020): Added missing field (discarded monomorphic sites) in the site report (Dataset.c file) for missing-data strategies M=1,2, or 3.\n", releaseIndex++, majorIndex, minorIndex++);
+
+	// TODO: add message here for outoforder vcf
+	// TODO: add message here for adding the monomorphic count in the site report
+	// TODO: need to fix the inflated values bug
 }
 
 RSDCommandLine_t * RSDCommandLine_new(void)
@@ -175,6 +183,7 @@ void RSDCommandLine_init(RSDCommandLine_t * RSDCommandLine)
 	RSDCommandLine->displayDiscardedReport = 0;
 	RSDCommandLine->windowSize = DEFAULT_WINDOW_SIZE;
 	RSDCommandLine->sfsSlack = 1; // singletons, and S-1 snp class (S is the sample size)
+	strncpy(RSDCommandLine->excludeRegionsFile, "\0", STRING_SIZE);
 }
 
 void flagCheck (char ** argv, int i, int * flagVector, int flagIndex)
@@ -648,6 +657,22 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 			continue;
 		}
 
+		if(!strcmp(argv[i], "-X")) 
+		{ 
+			flagCheck (argv, i, flagVector, 16);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
+				strcpy(RSDCommandLine->excludeRegionsFile, argv[++i]);
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
+
+			continue;
+		}
+
+
 		
 
 		/*if(!strcmp(argv[i], "-set")) 
@@ -696,8 +721,15 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 	else
 	{
 		FILE * inputFileExists = fopen(RSDCommandLine->inputFileName, "r");
-		assert(inputFileExists!=NULL);
+		assert(inputFileExists!=NULL); // file exists check
 		fclose(inputFileExists);
+	}
+
+	if(strcmp(RSDCommandLine->excludeRegionsFile, "\0"))
+	{
+		FILE * excludeRegionsFileExists = fopen(RSDCommandLine->excludeRegionsFile, "r");
+		assert(excludeRegionsFileExists!=NULL); // file exists check
+		fclose(excludeRegionsFileExists);
 	}
 
 	if(RSDCommandLine->createPatternPoolMask==1)

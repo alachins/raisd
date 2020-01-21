@@ -7,7 +7,7 @@
 # The name of the executable to be created
 BIN_NAME := RAiSD
 # Compiler used
-CC = gcc #clang
+CC = gcc #clang #gcc #clang
 # Extension of source files used in the project
 SRC_EXT = c
 # Path to the source directory, relative to the makefile
@@ -15,7 +15,7 @@ SRC_PATH = sources
 # Space-separated pkg-config libraries used by this project
 LIBS = 
 # General compiler flags
-COMPILE_FLAGS = -Wall -Wextra -g -O2 -D_C1 # -Weverything # -std=c99
+COMPILE_FLAGS = -Wall -Wextra -g -O2 -D_C1 #-Weverything # -std=c99
 # Experimental compiler flags 
 #-D_PTIMES 
 #-D_TM 

@@ -198,7 +198,7 @@ thres<-as.numeric(THRESHOLD) \n \
 topQ<-thres*100 \n \
 threshold <- quantile(x=data$value, probs = thres) \n \
 title_msg <- paste(\"Manhattan plot for \", RUNNAME,\"\nthreshold=\",threshold,\" (\", topQ,\"%)\") \n \
-manhattan(mydf, chr=\"chr\", bp=\"pos\", cex = 0.5, p=\"value\", snp=\"snp\", logp=F,  ylab=bquote(mu ~ \"statistic\"), pos=0, col=c(\"blue2\", \"darkorange1\"), ylim=c(0.0, max(data$value, na.rm = TRUE)*1.4)) \n \
+manhattan(mydf, chr=\"chr\", bp=\"pos\", cex = 0.5, p=\"value\", snp=\"snp\", logp=F,  ylab=bquote(mu ~ \"statistic\"), genomewideline = FALSE, suggestiveline = FALSE,pos=0, col=c(\"blue2\", \"darkorange1\"), ylim=c(0.0, max(data$value, na.rm = TRUE)*1.4)) \n \
 title(title_msg) \n \
 abline(h=threshold, col=\"red\", lw=2) \n \
 dev.off() \n";

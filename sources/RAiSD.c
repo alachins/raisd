@@ -147,7 +147,8 @@ int main (int argc, char ** argv)
 	RSDChunk_init(RSDChunk, RSDDataset->numberOfSamples, RSDCommandLine->createPatternPoolMask);
 
 	RSDMuStat_t * RSDMuStat = RSDMuStat_new();
-	RSDMuStat_setReportName (RSDMuStat, RSDCommandLine, RAiSD_Info_FP);		
+	RSDMuStat_setReportName (RSDMuStat, RSDCommandLine, RAiSD_Info_FP);
+	RSDMuStat_loadExcludeTable (RSDMuStat, RSDCommandLine);		
 
 	int setIndex = -1, setDone = 0, setsProcessedTotal=0;
 
@@ -170,6 +171,7 @@ int main (int argc, char ** argv)
 				fprintf(RSDMuStat->reportFP, "// %s\n", RSDDataset->setID);	
 	
 			RSDMuStat_init (RSDMuStat, RSDCommandLine);
+			RSDMuStat_excludeRegion (RSDMuStat, RSDDataset);
 
 			setDone = 0;
 
@@ -279,7 +281,7 @@ int main (int argc, char ** argv)
 			setsProcessedTotal++;
 
 			if(RSDCommandLine->displayProgress==1)
-			fprintf(stdout, " %d: Set %s | sites %d | snps %d | region %lu - Var %.0f %.3e | SFS %.0f %.3e | LD %.0f %.3e | MuStat %.0f %.3e\n", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength, (double)RSDMuStat->muVarMaxLoc, (double)RSDMuStat->muVarMax, (double)RSDMuStat->muSfsMaxLoc, (double)RSDMuStat->muSfsMax, (double)RSDMuStat->muLdMaxLoc, (double)RSDMuStat->muLdMax, (double)RSDMuStat->muMaxLoc, (double)RSDMuStat->muMax);
+				fprintf(stdout, "\n %d: Set %s | sites %d | snps %d | region %lu - Var %.0f %.3e | SFS %.0f %.3e | LD %.0f %.3e | MuStat %.0f %.3e", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, RSDDataset->setRegionLength, (double)RSDMuStat->muVarMaxLoc, (double)RSDMuStat->muVarMax, (double)RSDMuStat->muSfsMaxLoc, (double)RSDMuStat->muSfsMax, (double)RSDMuStat->muLdMaxLoc, (double)RSDMuStat->muLdMax, (double)RSDMuStat->muMaxLoc, (double)RSDMuStat->muMax);
 
 			fflush(stdout);
 
@@ -305,12 +307,12 @@ int main (int argc, char ** argv)
 		}			
 	}
 
-	fprintf(stdout, "\n");
+	fprintf(stdout, "\n\n");
 	fprintf(stdout, " Sets (total):     %d\n", setIndex+1);
 	fprintf(stdout, " Sets (processed): %d\n", setsProcessedTotal);
 	fprintf(stdout, " Sets (skipped):   %d\n", setIndex+1-setsProcessedTotal);
 
-	fprintf(RAiSD_Info_FP, "\n");
+	fprintf(RAiSD_Info_FP, "\n\n");
 	fprintf(RAiSD_Info_FP, " Sets (total):     %d\n", setIndex+1);
 	fprintf(RAiSD_Info_FP, " Sets (processed): %d\n", setsProcessedTotal);
 	fprintf(RAiSD_Info_FP, " Sets (skipped):   %d\n", setIndex+1-setsProcessedTotal);

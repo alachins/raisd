@@ -95,6 +95,9 @@ extern double TotalMuTime;
 #define	TREEMAP_REALLOC_INCR	1000
 #define	TREEMAP_NODEPOOL_CHUNKSIZE 10000
 
+#define VCF_FILE_CHECK_PASS 1
+#define VCF_FILE_CHECK_FAIL 0
+
 // RAiSD.c
 extern struct timespec requestStart;
 extern struct timespec requestEnd;
@@ -140,6 +143,7 @@ void 			reconGT 			(char * data);
 void 			RSD_printSiteReportLegend 	(FILE * fp, int64_t imputePerSNP, int64_t createPatternPoolMask);
 extern void *		rsd_malloc			(size_t size);
 extern void *		rsd_realloc			(void * p, size_t size);
+int 			VCFFileCheckAndReorder		(void * vRSDDataset, FILE * fp, char * fileName, int overwriteOutput);
 
 #ifndef _INTRINSIC_POPCOUNT
 extern char	 	POPCNT_U16_LUT [0x1u << 16];
@@ -150,6 +154,22 @@ void 			popcount_u64_init 	(void);
 #ifdef _ZLIB
 int 			gzscanf 		(gzFile fp, char * string);
 #endif
+
+// RAiSD_LinkedList.c
+typedef struct RSDLinkedListNode
+{
+	struct 	RSDLinkedListNode * prv;
+	struct 	RSDLinkedListNode * nxt;
+	double 	snpPosition;
+	char * 	snpData;
+} RSDLinkedListNode_t;
+
+RSDLinkedListNode_t * 	RSDLinkedList_new 		(double pos, char * snp);
+RSDLinkedListNode_t * 	RSDLinkedList_free		(RSDLinkedListNode_t * listHead);
+RSDLinkedListNode_t * 	RSDLinkedList_addNode 		(RSDLinkedListNode_t * listHead, double pos, char * snp);
+int 			RSDLinkedList_getSize 		(RSDLinkedListNode_t * listHead);
+void 			RSDLinkedList_appendToFile 	(RSDLinkedListNode_t * listHead, FILE * fp);
+
 
 // RAiSD_CommandLine.c
 typedef struct
@@ -177,6 +197,7 @@ typedef struct
 	int64_t		displayDiscardedReport; // Flag: D
 	int64_t		windowSize; // Flag: w
 	int64_t		sfsSlack; // Flag: c
+	char		excludeRegionsFile[STRING_SIZE]; // Flag: X
 
 } RSDCommandLine_t;
 
@@ -451,6 +472,14 @@ typedef struct
 	float * 	muReportBuffer;
 #endif
 
+	int64_t		exclTableSize;
+	char **		exclTableChromName;
+	int64_t *	exclTableRegionStart;
+	int64_t *	exclTableRegionStop;
+
+	int64_t		excludeRegionStart;
+	int64_t		excludeRegionStop;
+
 } RSDMuStat_t;
 
 RSDMuStat_t * 	RSDMuStat_new 			(void);
@@ -461,7 +490,9 @@ void 		RSDMuStat_setReportNamePerSet 	(RSDMuStat_t * RSDMuStat, RSDCommandLine_t
 extern void	(*RSDMuStat_scanChunk) 		(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
 void 		RSDMuStat_scanChunkBinary	(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
 void 		RSDMuStat_scanChunkWithMask	(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
-extern float   	getPatternCount		(RSDPatternPool_t * RSDPatternPool, int * pCntVec, int offset, int * patternID, int p0, int p1, int p2, int p3, int * pcntl, int * pcntr, int * pcntexll, int * pcntexlr);
+extern float   	getPatternCount			(RSDPatternPool_t * RSDPatternPool, int * pCntVec, int offset, int * patternID, int p0, int p1, int p2, int p3, int * pcntl, int * pcntr, int * pcntexll, int * pcntexlr);
+void		RSDMuStat_loadExcludeTable 	(RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine);
+void		RSDMuStat_excludeRegion 	(RSDMuStat_t * RSDMuStat, RSDDataset_t * RSDDataset);
 
 // RAiSD_Plot.c
 void 		RSDPlot_printRscriptVersion 	(RSDCommandLine_t * RSDCommandLine, FILE * fpOut);

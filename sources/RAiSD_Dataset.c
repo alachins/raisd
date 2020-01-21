@@ -104,7 +104,17 @@ void RSDDataset_free(RSDDataset_t * d)
 
 	if(d->sampleValidList!=NULL)
 	{
+		int i;
+		for(i=0;i<d->sampleValidListSize;i++)
+		{
+			if(d->sampleValidList[i]!=NULL)
+			{
+				free(d->sampleValidList[i]);
+				d->sampleValidList[i] = NULL;
+			}
+		}
 		free(d->sampleValidList);
+		d->sampleValidList = NULL;
 	}
 
 	if(d->sampleValid!=NULL)
@@ -354,6 +364,20 @@ void RSDDataset_init (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLi
 	assert(isGZ==0 || isGZ==1);
 
 	fclose(RSDDataset->inputFilePtr);
+
+	/**/
+	// check for incorrect order of data in VCF
+	if(!strcmp(RSDDataset->inputFileFormat, "vcf"))
+	{
+		RSDDataset->inputFilePtr = fopen(RSDCommandLine->inputFileName, "r");
+		assert(RSDDataset->inputFilePtr!=NULL);
+
+		int vcfCheckFlag = VCFFileCheckAndReorder ((void*)RSDDataset, RSDDataset->inputFilePtr, RSDCommandLine->inputFileName, RSDCommandLine->overwriteOutput);
+		assert(vcfCheckFlag==VCF_FILE_CHECK_PASS);
+
+		fclose(RSDDataset->inputFilePtr);
+	}
+	/**/
 
 	RSDDataset->inputFilePtr = fopen(RSDCommandLine->inputFileName, "r");
 	assert(RSDDataset->inputFilePtr!=NULL);
@@ -1400,11 +1424,40 @@ int RSDDataset_getNumberOfSamples_vcf (RSDDataset_t * RSDDataset)
 		tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
 		char tchar=tstring[0]; 
 		char sampleName [STRING_SIZE];
-	
+
+/******/		
+		int multiStringName = 0;
+
+		if(tstring[0]=='"')
+			multiStringName = 1;
+/******/
 		while(tstring[0]!='\n' && tstring[0]!=EOF && tstring[0]!='\r')
 		{
 			rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
 			assert(rcnt==1);
+/******/
+			if(multiStringName==1)
+			{
+				char tstring2[STRING_SIZE];
+
+				rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring2);
+				assert(rcnt==1);
+
+				while(tstring2[strlen(tstring2)-1]!='"')
+				{
+					strcat(tstring, "_");
+					strcat(tstring, tstring2);
+
+					rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring2);
+					assert(rcnt==1);
+				}
+
+				strcat(tstring, "_");
+				strcat(tstring, tstring2);
+
+				multiStringName = 0;
+			}
+/******/
 
 			if(RSDDataset->sampleFilePtr!=NULL)
 			{
@@ -1440,6 +1493,12 @@ int RSDDataset_getNumberOfSamples_vcf (RSDDataset_t * RSDDataset)
 				tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
 				tchar = tstring[0];
 			}
+
+/******/
+			if(tstring[0]=='"')
+				multiStringName = 1;
+/******/
+
 		}
 		assert(tstring[0]=='\n' || tstring[0]=='\r');
 		ungetc(tstring[0], RSDDataset->inputFilePtr);		
@@ -1851,12 +1910,22 @@ void RSDDataset_printSiteReport (RSDDataset_t * RSDDataset, FILE * fp, int setIn
 	}
 	else
 	{
-		assert(RSDDataset->setSitesDiscarded==RSDDataset->setSitesDiscardedHeaderCheckFailed+RSDDataset->setSitesDiscardedMafCheckFailed+RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed);
+
+		assert(RSDDataset->setSitesDiscarded==RSDDataset->setSitesDiscardedHeaderCheckFailed+RSDDataset->setSitesDiscardedMafCheckFailed+RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed+RSDDataset->setSitesDiscardedMonomorphic);
+
+		if(imputePerSNP==1)
+			fprintf(fp,"\n %d: %s | %d = %d + %d | %d = %d + %d + %d + %d | %d ", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscardedHeaderCheckFailed, (int)RSDDataset->setSitesDiscardedMafCheckFailed, (int)RSDDataset->setSitesDiscardedMonomorphic, (int)RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed,(int)RSDDataset->setSitesImputedTotal);
+		else
+			fprintf(fp,"\n %d: %s | %d = %d + %d | %d = %d + %d + %d + %d ", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscardedHeaderCheckFailed, (int)RSDDataset->setSitesDiscardedMafCheckFailed, (int)RSDDataset->setSitesDiscardedMonomorphic, (int)RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed);
+
+
+		// Previously
+		/*assert(RSDDataset->setSitesDiscarded==RSDDataset->setSitesDiscardedHeaderCheckFailed+RSDDataset->setSitesDiscardedMafCheckFailed+RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed);
 
 		if(imputePerSNP==1)
 			fprintf(fp,"\n %d: %s | %d = %d + %d | %d = %d + %d + %d | %d ", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscardedHeaderCheckFailed, (int)RSDDataset->setSitesDiscardedMafCheckFailed, (int)RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed, (int)RSDDataset->setSitesImputedTotal);
 		else
-			fprintf(fp,"\n %d: %s | %d = %d + %d | %d = %d + %d + %d ", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscardedHeaderCheckFailed, (int)RSDDataset->setSitesDiscardedMafCheckFailed, (int)RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed);
+			fprintf(fp,"\n %d: %s | %d = %d + %d | %d = %d + %d + %d ", setIndex, RSDDataset->setID, (int)RSDDataset->setSize, (int)RSDDataset->setSNPs, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscarded, (int)RSDDataset->setSitesDiscardedHeaderCheckFailed, (int)RSDDataset->setSitesDiscardedMafCheckFailed, (int)RSDDataset->setSitesDiscardedStrictPolymorphicCheckFailed);*/
 	}
 	fflush(fp);
 }

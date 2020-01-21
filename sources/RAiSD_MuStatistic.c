@@ -59,6 +59,15 @@ RSDMuStat_t * RSDMuStat_new (void)
 	mu->muReportBuffer = (float*)rsd_malloc(sizeof(float)*7);
 	assert(mu->muReportBuffer!=NULL);
 #endif
+
+	mu->exclTableSize = 0;
+	mu->exclTableChromName = NULL;
+	mu->exclTableRegionStart = NULL;
+	mu->exclTableRegionStop = NULL;
+
+	mu->excludeRegionStart = -1;
+	mu->excludeRegionStop = -1;
+
 	return mu;
 }
 
@@ -85,6 +94,37 @@ void RSDMuStat_free (RSDMuStat_t * mu)
 		mu->muReportBuffer =  NULL;
 	}
 #endif
+
+	if(mu->exclTableSize!=0)
+	{
+		if(mu->exclTableChromName!=NULL)
+		{
+			int i;
+			for(i=0;i<mu->exclTableSize;i++)
+			{
+				if(mu->exclTableChromName[i]!=NULL)
+				{
+					free(mu->exclTableChromName[i]);
+					mu->exclTableChromName[i] = NULL;
+				}
+			}
+		
+			free(mu->exclTableChromName);
+			mu->exclTableChromName = NULL;
+		}
+
+		if(mu->exclTableRegionStart!=NULL)
+		{
+			free(mu->exclTableRegionStart);
+			mu->exclTableRegionStart = NULL;
+		}
+
+		if(mu->exclTableRegionStop!=NULL)
+		{
+			free(mu->exclTableRegionStop);
+			mu->exclTableRegionStop = NULL;
+		}		
+	}
 
 	free(mu);
 }
@@ -141,6 +181,81 @@ void RSDMuStat_setReportName (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCom
 
 	RSDMuStat->reportFP = fopen(RSDMuStat->reportName, "w");
 	assert(RSDMuStat->reportFP!=NULL);
+}
+
+void RSDMuStat_loadExcludeTable (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine)
+{
+	assert(RSDMuStat!=NULL);
+	assert(RSDCommandLine!=NULL);
+
+	if(!strcmp(RSDCommandLine->excludeRegionsFile, "\0"))
+		return;
+
+	FILE * fp = fopen(RSDCommandLine->excludeRegionsFile, "r");
+	assert(fp!=NULL);
+
+	char tstring[STRING_SIZE];
+
+	int rcnt = fscanf(fp, "%s", tstring);
+	assert(rcnt==1);
+
+	while(rcnt==1)
+	{	
+		RSDMuStat->exclTableSize++;
+		
+		RSDMuStat->exclTableChromName = realloc(RSDMuStat->exclTableChromName, sizeof(char*)*RSDMuStat->exclTableSize);
+		assert(RSDMuStat->exclTableChromName!=NULL);
+		
+		RSDMuStat->exclTableChromName[RSDMuStat->exclTableSize-1] = (char*)malloc(sizeof(char)*STRING_SIZE);
+		assert(RSDMuStat->exclTableChromName[RSDMuStat->exclTableSize-1]!=NULL);
+
+		RSDMuStat->exclTableRegionStart = realloc(RSDMuStat->exclTableRegionStart, sizeof(int64_t)*RSDMuStat->exclTableSize);
+		assert(RSDMuStat->exclTableRegionStart!=NULL);
+
+		RSDMuStat->exclTableRegionStop = realloc(RSDMuStat->exclTableRegionStop, sizeof(int64_t)*RSDMuStat->exclTableSize);
+		assert(RSDMuStat->exclTableRegionStop!=NULL);
+
+		strncpy(RSDMuStat->exclTableChromName[RSDMuStat->exclTableSize-1], tstring, STRING_SIZE);
+
+		rcnt = fscanf(fp, "%s", tstring);
+		assert(rcnt==1);
+
+		RSDMuStat->exclTableRegionStart[RSDMuStat->exclTableSize-1] = (int64_t)strtoull(tstring, NULL, 0);
+
+		rcnt = fscanf(fp, "%s", tstring);
+		assert(rcnt==1);
+
+		RSDMuStat->exclTableRegionStop[RSDMuStat->exclTableSize-1] = (int64_t)strtoull(tstring, NULL, 0);
+
+		rcnt = fscanf(fp, "%s", tstring);
+	}
+
+	fclose(fp);
+	fp=NULL;
+}
+
+void RSDMuStat_excludeRegion (RSDMuStat_t * RSDMuStat, RSDDataset_t * RSDDataset)
+{
+	assert(RSDMuStat!=NULL);
+	assert(RSDDataset!=NULL);
+
+	RSDMuStat->excludeRegionStart = -1;
+	RSDMuStat->excludeRegionStop = -1;
+
+	if(RSDMuStat->exclTableSize==0)
+		return;
+
+	int i;
+
+	for(i=0;i<RSDMuStat->exclTableSize;i++)
+	{
+		if(!strcmp(RSDMuStat->exclTableChromName[i], RSDDataset->setID))
+		{
+			RSDMuStat->excludeRegionStart = RSDMuStat->exclTableRegionStart[i];
+			RSDMuStat->excludeRegionStop = RSDMuStat->exclTableRegionStop[i];
+		}
+	}
+	
 }
 
 void RSDMuStat_setReportNamePerSet (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine, FILE * fpOut, RSDDataset_t * RSDDataset)
@@ -1692,6 +1807,11 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		windowStart = RSDChunk->sitePosition[snpf];
 		windowEnd = RSDChunk->sitePosition[snpl];
 
+		float isValid = 1.0;
+
+		if((windowEnd>=RSDMuStat->excludeRegionStart) && (windowStart<=RSDMuStat->excludeRegionStop))
+			isValid = 0.0;
+
 		// Mu_Var
 		muVar = RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf];
 		muVar /= RSDDataset->setRegionLength;
@@ -1732,7 +1852,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		}
 
 		// Mu
-		mu =  muVar * muSfs * muLd;
+		mu =  muVar * muSfs * muLd * isValid;
 
 		// MuVar Max
 		if (muVar > RSDMuStat->muVarMax)
@@ -1804,6 +1924,12 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 		}
 	}
 
+	float slack = 0.25;
+	int64_t exclRegSize = RSDMuStat->excludeRegionStop - RSDMuStat->excludeRegionStart;
+	int64_t exclRegSlack = (int64_t) (slack * exclRegSize);
+	RSDMuStat->excludeRegionStart -= exclRegSlack;
+	RSDMuStat->excludeRegionStop += exclRegSlack;
+
 	for(i=0;i<size-RSDMuStat->windowSize+1;i++)
 	{
 		// SNP window range
@@ -1820,6 +1946,11 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 		windowCenter = (RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0f;
 		windowStart = RSDChunk->sitePosition[snpf];
 		windowEnd = RSDChunk->sitePosition[snpl];
+
+		float isValid = 1.0;
+
+		if((windowEnd>=RSDMuStat->excludeRegionStart) && (windowStart<=RSDMuStat->excludeRegionStop))
+			isValid = 0.0;
 
 		// Mu_Var
 		muVar = RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf];
@@ -1881,7 +2012,7 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 		}
 
 		// Mu
-		mu =  muVar * muSfs * muLd;
+		mu =  muVar * muSfs * muLd * isValid;
 
 		// MuVar Max
 		if (muVar > RSDMuStat->muVarMax)

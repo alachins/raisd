@@ -31,6 +31,10 @@ void 	RSD_Rscript_generate 	(void);
 void 	RSD_Rscript_remove 	(void);
 inline void *	rsd_malloc	(size_t size);
 inline void *	rsd_realloc	(void * p, size_t size);
+FILE * 	skipLine 		(FILE * fp);
+int	matchChromInList 	(char * newChromName, char ** chromList, int chromListSize);
+char ** addChromToList 		(char * newChromName, char ** chromList, int * chromListSize);
+
 
 char POPCNT_U16_LUT [0x1u << 16];
 
@@ -636,9 +640,9 @@ void RSD_printSiteReportLegend (FILE * fp, int64_t imputePerSNP, int64_t createP
 	else
 	{
 		if(imputePerSNP==1) // M=1
-			fprintf(fp, "\n Index: Name | Sites = SNPs + Discarded | Discarded = HeaderCheckFailed + MAFCheckFailed + PotentiallyMonomorphicSites | Imputed\n");
+			fprintf(fp, "\n Index: Name | Sites = SNPs + Discarded | Discarded = HeaderCheckFailed + MAFCheckFailed + Monomorphic + PotentiallyMonomorphicSites | Imputed\n");
 		else // M=2,3
-			fprintf(fp, "\n Index: Name | Sites = SNPs + Discarded | Discarded = HeaderCheckFailed + MAFCheckFailed + PotentiallyMonomorphicSites\n");
+			fprintf(fp, "\n Index: Name | Sites = SNPs + Discarded | Discarded = HeaderCheckFailed + MAFCheckFailed + Monomorphic + PotentiallyMonomorphicSites \n");
 	}
 	fflush(fp);
 }
@@ -673,4 +677,405 @@ int gzscanf (gzFile fp, char * string)
 	return 1;
 }
 #endif
+
+FILE * skipLine (FILE * fp)
+{
+	assert(fp!=NULL);
+	
+	char tchar;
+	tchar= (char)fgetc(fp);
+	while(tchar!='\n' && tchar!=EOF)
+		tchar = (char)fgetc(fp); // skip line
+
+	return fp;
+}
+
+int matchChromInList (char * newChromName, char ** chromList, int chromListSize)
+{
+	assert(newChromName!=NULL);
+	int i;
+	for(i=0;i<chromListSize;i++)
+	{
+		if(!strcmp(newChromName, chromList[i]))
+			return 1;
+	}
+
+	return 0;
+}
+
+char ** addChromToList (char * newChromName, char ** chromList, int * chromListSize)
+{
+	if(!strcmp(newChromName, "."))
+		return chromList;
+
+	(*chromListSize)++;
+
+	char ** chromListNew = realloc(chromList, sizeof(char*)*((unsigned long)(*chromListSize)));
+	assert(chromListNew!=NULL);
+
+	chromListNew[(*chromListSize)-1] = (char*)malloc(sizeof(char)*STRING_SIZE);
+	assert(chromListNew[(*chromListSize)-1]!=NULL);
+
+	strncpy(chromListNew[(*chromListSize)-1], newChromName, STRING_SIZE);
+
+	return chromListNew;
+}
+
+int VCFFileCheckAndReorder (void * vRSDDataset, FILE * fpX, char * fileName, int overwriteOutput)
+{
+	assert(vRSDDataset!=NULL);
+	RSDDataset_t * RSDDataset = (RSDDataset_t *)vRSDDataset;
+	assert(fpX!=NULL);
+	assert(fileName);
+
+	FILE * fp = RSDDataset->inputFilePtr;
+
+	FILE * fpOut = stdout;
+	FILE * fpNew = NULL;
+
+	char fileNameNew[STRING_SIZE];
+	strncpy(fileNameNew, fileName, STRING_SIZE);
+	strcat(fileNameNew, ".fxd");
+
+	char tstring[STRING_SIZE];
+
+	int snpDataBufSz = STRING_SIZE;
+	int snpDataBufInd = -1;
+	char * 	snpDataBuf = (char*)malloc(sizeof(char)*((unsigned long)snpDataBufSz));
+	assert(snpDataBuf!=NULL);
+
+	// Check reorder requirement based on CHROM
+
+	// Jump to header line
+	int rcnt = fscanf(fp, "%s", tstring);
+	while(rcnt==1 && strcmp(tstring, "#CHROM"))
+		rcnt = fscanf(fp, "%s", tstring);
+
+	// Skip header line
+	fp = skipLine(fp);
+
+	int i, chromListSize = 0;
+	char ** chromList = NULL;
+
+	int reorderReq = 0;
+	
+	int doneParsing = 0;
+	while(!doneParsing)
+	{
+		rcnt = fscanf(fp, "%s", tstring);
+
+		if(rcnt!=EOF)
+		{
+			int chromMatch = matchChromInList (tstring, chromList, chromListSize);
+			
+			if(chromMatch==0)
+				chromList = addChromToList (tstring, chromList, &chromListSize);
+			else
+			{
+				if(strcmp(tstring, chromList[chromListSize-1]))
+				{
+					if(reorderReq==0)
+					{
+						fprintf(fpOut, "\nWARNING: Wrong data order (CHROM) in file %s", fileName);
+						fflush(fpOut);
+
+						reorderReq = 1;
+					}						
+				}
+			}
+
+			fp = skipLine(fp);
+		}
+		else
+			doneParsing = 1;
+	}
+
+	// Check reorder requirement based on POS
+
+	int * chromSNPSize = (int*)malloc(sizeof(int)*((unsigned long)chromListSize));
+	assert(chromSNPSize!=NULL);
+	
+	for(i=0;i<chromListSize;i++)
+		chromSNPSize[i] = 0;
+	
+	double prevPOS = 0.0;
+	if(reorderReq==0 || reorderReq==1)
+	{
+		for(i=0;i<chromListSize;i++)
+		{
+			fclose(fp);	
+
+			fp = fopen(fileName, "r");
+			assert(fp!=NULL);
+	
+			// Jump to header line
+			rcnt = fscanf(fp, "%s", tstring);
+			while(rcnt==1 && strcmp(tstring, "#CHROM"))
+				rcnt = fscanf(fp, "%s", tstring);
+
+			// Skip header line
+			fp = skipLine(fp);
+
+			prevPOS = 0.0;
+
+			doneParsing = 0;
+			while(!doneParsing)
+			{
+				rcnt = fscanf(fp, "%s", tstring);
+
+				if(rcnt!=EOF)
+				{
+					if(!strcmp(chromList[i], tstring))
+					{
+						rcnt = fscanf(fp, "%s", tstring); // POS
+						assert(rcnt!=-1);
+
+						if(strcmp(tstring, "."))
+						{
+							chromSNPSize[i]++;
+
+							double curPOS = (double)atof(tstring);
+
+							if(curPOS<prevPOS)
+							{
+								if(reorderReq==0 || reorderReq==1)
+								{
+									fprintf(fpOut, "\nWARNING: Wrong data order (POS) in file %s", fileName);
+									fflush(fpOut);
+
+									reorderReq = 2;
+								}
+							}
+							prevPOS = curPOS;
+						}							
+
+						fp = skipLine(fp);
+					}
+				}
+				else
+					doneParsing = 1;
+			}
+		}
+	}
+
+
+	if(reorderReq!=0)
+	{
+		fprintf(fpOut, "\nMESSAGE: Creating reordered file %s", fileNameNew);
+		fflush(fpOut);
+
+		fpNew = fopen(fileNameNew, "r");
+
+		if(fpNew!=NULL) // fxd vcf file already exists
+		{
+			if(overwriteOutput==0)
+			{
+				fprintf(stderr, "\nERROR: Reordered file %s exists. Use -f to overwrite it.\n\n", fileNameNew);
+				exit(0);
+			}
+			else
+			{
+				fclose(fpNew);
+			}
+		}
+
+		fpNew = fopen(fileNameNew, "w");
+		assert(fpNew!=NULL);
+
+		fclose(fp);	
+		fp = fopen(fileName, "r");
+		assert(fp!=NULL);
+
+		// Copy all header lines
+		int headerDone = 0;
+
+		while(!headerDone)
+		{
+			rcnt = fscanf(fp, "%s", tstring); // first string in a line
+			assert(rcnt==1);
+
+			fprintf(fpNew, "%s", tstring); // copy string
+
+			if(!strcmp(tstring, "#CHROM"))
+				headerDone = 1;
+			
+			// and rest of line
+			tstring[0] = (char) fgetc(fp);
+			while(tstring[0]!='\n')
+			{
+				fprintf(fpNew, "%c", tstring[0]);
+				tstring[0] = (char) fgetc(fp);	
+			}
+			fprintf(fpNew, "\n");			
+		}
+
+		// Copy SNP data in right order
+		for(i=0;i<chromListSize;i++)
+		{
+			fprintf(fpOut, "\nMESSAGE: Appending %d SNPs ( %s )", chromSNPSize[i], chromList[i]);
+			fflush(fpOut);
+
+			// Reset source-file ptr
+			fclose(fp);	
+			fp = fopen(fileName, "r");
+			assert(fp!=NULL);
+
+			// Jump to header line
+			rcnt = fscanf(fp, "%s", tstring);
+			while(rcnt==1 && strcmp(tstring, "#CHROM"))
+				rcnt = fscanf(fp, "%s", tstring);
+
+			// Skip header line
+			fp = skipLine(fp);
+
+			RSDLinkedListNode_t * RSDLinkedList = NULL;
+
+			// Scan file for current chrom
+			doneParsing = 0;
+			while(!doneParsing)
+			{
+				rcnt = fscanf(fp, "%s", tstring);
+
+				if(rcnt!=EOF)
+				{
+					if(!strcmp(chromList[i], tstring))
+					{
+						snpDataBufInd = 0;
+						snpDataBuf[snpDataBufInd]='\0';
+				
+						strncpy(snpDataBuf, chromList[i], STRING_SIZE);
+						snpDataBufInd = (int)strlen(chromList[i]);
+
+						rcnt = fscanf(fp, "%s", tstring); // POS
+						assert(rcnt!=-1);
+			
+						if(strcmp(tstring, "."))
+						{
+							snpDataBuf[snpDataBufInd++] = '\t';
+							snpDataBuf[snpDataBufInd] = '\0'; 
+
+							strcat(snpDataBuf, tstring);
+							snpDataBufInd += strlen(tstring); 
+							snpDataBuf[snpDataBufInd] = '\0';
+
+							double curPos = (double)atof(tstring); 
+
+							tstring[0] = (char) fgetc(fp);	
+							while(tstring[0]!='\n')
+							{
+								if(snpDataBufInd+1>=snpDataBufSz)
+								{
+									snpDataBufSz+=STRING_SIZE;
+									snpDataBuf = realloc(snpDataBuf, sizeof(char)*((unsigned long)snpDataBufSz));
+									assert(snpDataBuf!=NULL);
+								}
+								snpDataBuf[snpDataBufInd++] = tstring[0]; 
+								tstring[0] = (char) fgetc(fp);	
+							}
+							snpDataBuf[snpDataBufInd] = '\0'; 
+
+							RSDLinkedListNode_t * RSDLinkedList_tmp = RSDLinkedList_addNode (RSDLinkedList, curPos, snpDataBuf);
+							assert(RSDLinkedList_tmp!=NULL);
+							RSDLinkedList = NULL;
+							RSDLinkedList = RSDLinkedList_tmp;							
+						}
+						else
+							fp = skipLine(fp);
+
+					}
+					else
+						fp = skipLine(fp);
+				}
+				else
+					doneParsing = 1;
+			}
+
+			int listSize = RSDLinkedList_getSize (RSDLinkedList);
+			assert(listSize==chromSNPSize[i]);
+
+			RSDLinkedList_appendToFile (RSDLinkedList, fpNew);
+
+			RSDLinkedList = RSDLinkedList_free(RSDLinkedList);
+			assert(RSDLinkedList==NULL);
+		}
+
+		fclose(fpNew);
+			
+		/*fpNew = fopen(fileNameNew, "r");
+		assert(fpNew!=NULL);
+
+		int check = VCFFileCheckAndReorder (fpNew, fileNameNew, overwriteOutput);
+		assert(check == VCF_FILE_CHECK_PASS);
+		
+		if(fpNew!=NULL)
+		{
+			fclose(fpNew);
+			fpNew=NULL;
+		}*/
+
+
+		fprintf(fpOut, "\nMESSAGE: Processing continues using file %s", fileNameNew);
+		fflush(fpOut);
+
+		strncpy(fileName, fileNameNew, STRING_SIZE);
+
+		fprintf(fpOut, "\n\n");
+	}
+
+	if(snpDataBuf!=NULL)
+	{
+		free(snpDataBuf);
+		snpDataBuf = NULL;
+	}
+
+	if(chromSNPSize!=NULL)
+	{
+		free(chromSNPSize);
+		chromSNPSize=NULL;
+	}
+
+	if(chromList!=NULL)
+	{
+		for(i=0;i<chromListSize;i++)
+		{
+			if(chromList[i]!=NULL)
+			{	
+				free(chromList[i]);
+				chromList[i] = NULL;
+			}
+		}	
+		free(chromList);
+	}
+
+	assert(fp!=NULL);
+	RSDDataset->inputFilePtr = fp;
+		
+	return VCF_FILE_CHECK_PASS;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
