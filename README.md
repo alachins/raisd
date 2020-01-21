@@ -35,7 +35,7 @@ As of RAiSD version 2.0, the μ-statistic factors `μ_VAR` and `μ_SFS` are modi
 
 `μ_VAR`: The previous version of `μ_VAR` is multiplied by the total number of SNPs in the chromosome. This makes `μ_VAR` independent of the chromosome length, while its values are now distributed around 1.0 under neutrality. 
 
-`μ_SFS`: The previous version of `μ_SFS` is multiplied by the (sample size) correcting factor of Watterson's θ: `Sum_i=1^(n-1) 1/i`, and its values are now distributed around 1.0 under neutrality. 
+`μ_SFS`: The previous version of `μ_SFS` is multiplied by the (sample size) correcting factor of Watterson's θ: `Sum_i=1^(n-1) 1/i`, where `n` is the sample size. The values of `μ_SFS` are now distributed around 1.0 under neutrality. 
 
 
 Download and Compile
