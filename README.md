@@ -6,9 +6,9 @@ Authors: Nikolaos Alachiotis (n.alachiotis@gmail.com) and Pavlos Pavlidis (pavli
 
 First release: 9/6/2017 
 
-Last update: 15/5/2019       
+Last update: 22/1/2020       
 
-Version: 2.0
+Version: 2.2
 
 About
 -----
@@ -24,6 +24,9 @@ Other related publications:
 
 2. Accelerated Inference of Positive Selection on Whole Genomes ([PDF](http://kalman.mee.tcd.ie/fpl2018/content/pdfs/FPL2018-43iDzVTplcpussvbfIaaHz/2IXjcULtzLwXxGVD0BRuki/4etDSBv306dBHUVjNtmSyT.pdf))  
 URL: https://ieeexplore.ieee.org/abstract/document/8533493  
+
+3. RAiSD-X: A Fast and Accurate FPGA System for the Detection of Positive Selection in Thousands of Genomes
+URL: https://dl.acm.org/doi/10.1145/3364225
 
 
 **Update -- May 2019**
