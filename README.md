@@ -455,6 +455,10 @@ v1.9 (27/4/2019): -w to set the window size (default 50), -c to set the SFS slac
 
 v2.0 (15/5/2019): -A to create Manhattan plots, scale factors for muVar and muSFS to yield comparable scores among different chromosomes
 
+v2.1 (21/1/2020): Parser for unordered VCF files (e.g., derived from DArTseq genotyping reports). Creates the ordered VCF file as well.
+
+v2.2 (22/1/2020): Added missing field (discarded monomorphic sites) in the site report for missing-data strategies M={1,2,3}.
+
 Support
 -------
 
