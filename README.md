@@ -433,7 +433,12 @@ An example of such a file, obtained by a different run, can be found here: http:
 
 Excluding regions from the analysis
 -----------------------------------
-As of version 2.3, the -X parameter can be used to provide a path to a file that contains regions to be excluded from the analysis.  
+As of version 2.3, the -X parameter can be used to provide a path to a tab-delimited text file that contains regions to be excluded from the analysis. The provided file can contain any number of lines, one per region per chromosome to be excluded.
+An example is provided below.
+	
+	chr1	0	10
+	chr1	20	30
+	chr2	50	100
 
 Changelog
 ----------
