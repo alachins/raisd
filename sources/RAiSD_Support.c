@@ -710,10 +710,10 @@ char ** addChromToList (char * newChromName, char ** chromList, int * chromListS
 
 	(*chromListSize)++;
 
-	char ** chromListNew = realloc(chromList, sizeof(char*)*((unsigned long)(*chromListSize)));
+	char ** chromListNew = rsd_realloc(chromList, sizeof(char*)*((unsigned long)(*chromListSize)));
 	assert(chromListNew!=NULL);
 
-	chromListNew[(*chromListSize)-1] = (char*)malloc(sizeof(char)*STRING_SIZE);
+	chromListNew[(*chromListSize)-1] = (char*)rsd_malloc(sizeof(char)*STRING_SIZE);
 	assert(chromListNew[(*chromListSize)-1]!=NULL);
 
 	strncpy(chromListNew[(*chromListSize)-1], newChromName, STRING_SIZE);
@@ -741,7 +741,7 @@ int VCFFileCheckAndReorder (void * vRSDDataset, FILE * fpX, char * fileName, int
 
 	int snpDataBufSz = STRING_SIZE;
 	int snpDataBufInd = -1;
-	char * 	snpDataBuf = (char*)malloc(sizeof(char)*((unsigned long)snpDataBufSz));
+	char * 	snpDataBuf = (char*)rsd_malloc(sizeof(char)*((unsigned long)snpDataBufSz));
 	assert(snpDataBuf!=NULL);
 
 	// Check reorder requirement based on CHROM
@@ -792,7 +792,7 @@ int VCFFileCheckAndReorder (void * vRSDDataset, FILE * fpX, char * fileName, int
 
 	// Check reorder requirement based on POS
 
-	int * chromSNPSize = (int*)malloc(sizeof(int)*((unsigned long)chromListSize));
+	int * chromSNPSize = (int*)rsd_malloc(sizeof(int)*((unsigned long)chromListSize));
 	assert(chromSNPSize!=NULL);
 	
 	for(i=0;i<chromListSize;i++)
@@ -966,7 +966,7 @@ int VCFFileCheckAndReorder (void * vRSDDataset, FILE * fpX, char * fileName, int
 								if(snpDataBufInd+1>=snpDataBufSz)
 								{
 									snpDataBufSz+=STRING_SIZE;
-									snpDataBuf = realloc(snpDataBuf, sizeof(char)*((unsigned long)snpDataBufSz));
+									snpDataBuf = rsd_realloc(snpDataBuf, sizeof(char)*((unsigned long)snpDataBufSz));
 									assert(snpDataBuf!=NULL);
 								}
 								snpDataBuf[snpDataBufInd++] = tstring[0]; 

@@ -25,7 +25,7 @@ void flagCheck (char ** argv, int i, int * flagVector, int flagIndex);
 
 void RSDHelp (FILE * fp)
 {
-	fprintf(fp, " This is RAiSD version 2.2, released in January 2020.\n\n");
+	fprintf(fp, " This is RAiSD version 2.3, released in January 2020.\n\n");
 
 	fprintf(fp, " RAiSD");
 
@@ -81,7 +81,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t-m\tProvides the threshold value for excluding SNPs with minor allele frequency < threshold (0.0-1.0).\n");
 	fprintf(fp, "\t-M\tIndicates the missing-data handling strategy (0: discards SNP (default), 1: imputes N per SNP, 2: represents N through a mask, 3: ignores allele pairs with N).\n");
 	fprintf(fp, "\t-y\tProvides the ploidy (integer value), used to correctly represent missing data.\n");
-	fprintf(fp, "\t-X\tProvides the path to a tab-delimited file that contains a region per chromosome (per line) to be excluded from the analysis.\n");
+	fprintf(fp, "\t-X\tProvides the path to a tab-delimited file that contains regions per chromosome (one per line) to be excluded from the analysis (Format: chromosome [tab] regionStart [tab] regionStop).\n");
 
 	fprintf(fp, "\n\t--- SLIDING WINDOW and MU STATISTIC\n");
 	fprintf(fp, "\t-w\tProvides the window size (integer value). The default value is 50 (empirically determined).\n");
@@ -138,6 +138,7 @@ void RSDVersions(FILE * fp)
 	fprintf(fp, " %d. RAiSD v%d.%d (May 15, 2019): -A to create Manhattan plots, scale factors for muVar and muSFS to yield comparable scores among different chromosomes\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Jan 21, 2020): Parser for unordered VCF files (e.g., extracted from DArTseq genotyping reports). The ordered VCF file is also created.\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Jan 22, 2020): Added missing field (discarded monomorphic sites) in the site report (Dataset.c file) for missing-data strategies M=1,2, or 3.\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Jan 23, 2020): -X to exclude regions per chromosome from the analysis.\n", releaseIndex++, majorIndex, minorIndex++);
 
 	// TODO: add message here for outoforder vcf
 	// TODO: add message here for adding the monomorphic count in the site report

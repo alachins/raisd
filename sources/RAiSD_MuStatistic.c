@@ -65,8 +65,9 @@ RSDMuStat_t * RSDMuStat_new (void)
 	mu->exclTableRegionStart = NULL;
 	mu->exclTableRegionStop = NULL;
 
-	mu->excludeRegionStart = -1;
-	mu->excludeRegionStop = -1;
+	mu->excludeRegionsTotal = 0;
+	mu->excludeRegionStart = NULL;
+	mu->excludeRegionStop = NULL;
 
 	return mu;
 }
@@ -124,6 +125,18 @@ void RSDMuStat_free (RSDMuStat_t * mu)
 			free(mu->exclTableRegionStop);
 			mu->exclTableRegionStop = NULL;
 		}		
+	}
+
+	if(mu->excludeRegionStart!=NULL)
+	{
+		free(mu->excludeRegionStart);
+		mu->excludeRegionStart = NULL;
+	}
+
+	if(mu->excludeRegionStop!=NULL)
+	{
+		free(mu->excludeRegionStop);
+		mu->excludeRegionStop = NULL;
 	}
 
 	free(mu);
@@ -203,16 +216,16 @@ void RSDMuStat_loadExcludeTable (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSD
 	{	
 		RSDMuStat->exclTableSize++;
 		
-		RSDMuStat->exclTableChromName = realloc(RSDMuStat->exclTableChromName, sizeof(char*)*RSDMuStat->exclTableSize);
+		RSDMuStat->exclTableChromName = rsd_realloc(RSDMuStat->exclTableChromName, sizeof(char*)*((unsigned long)RSDMuStat->exclTableSize));
 		assert(RSDMuStat->exclTableChromName!=NULL);
 		
-		RSDMuStat->exclTableChromName[RSDMuStat->exclTableSize-1] = (char*)malloc(sizeof(char)*STRING_SIZE);
+		RSDMuStat->exclTableChromName[RSDMuStat->exclTableSize-1] = (char*)rsd_malloc(sizeof(char)*STRING_SIZE);
 		assert(RSDMuStat->exclTableChromName[RSDMuStat->exclTableSize-1]!=NULL);
 
-		RSDMuStat->exclTableRegionStart = realloc(RSDMuStat->exclTableRegionStart, sizeof(int64_t)*RSDMuStat->exclTableSize);
+		RSDMuStat->exclTableRegionStart = rsd_realloc(RSDMuStat->exclTableRegionStart, sizeof(int64_t)*((unsigned long)RSDMuStat->exclTableSize));
 		assert(RSDMuStat->exclTableRegionStart!=NULL);
 
-		RSDMuStat->exclTableRegionStop = realloc(RSDMuStat->exclTableRegionStop, sizeof(int64_t)*RSDMuStat->exclTableSize);
+		RSDMuStat->exclTableRegionStop = rsd_realloc(RSDMuStat->exclTableRegionStop, sizeof(int64_t)*((unsigned long)RSDMuStat->exclTableSize));
 		assert(RSDMuStat->exclTableRegionStop!=NULL);
 
 		strncpy(RSDMuStat->exclTableChromName[RSDMuStat->exclTableSize-1], tstring, STRING_SIZE);
@@ -239,8 +252,18 @@ void RSDMuStat_excludeRegion (RSDMuStat_t * RSDMuStat, RSDDataset_t * RSDDataset
 	assert(RSDMuStat!=NULL);
 	assert(RSDDataset!=NULL);
 
-	RSDMuStat->excludeRegionStart = -1;
-	RSDMuStat->excludeRegionStop = -1;
+	if(RSDMuStat->excludeRegionsTotal!=0 || RSDMuStat->excludeRegionStart!=NULL || RSDMuStat->excludeRegionStop!=NULL)
+	{
+		if(RSDMuStat->excludeRegionStart!=NULL)
+			free(RSDMuStat->excludeRegionStart);
+
+		if(RSDMuStat->excludeRegionStop!=NULL)
+			free(RSDMuStat->excludeRegionStop);
+	}
+
+	RSDMuStat->excludeRegionsTotal = 0;
+	RSDMuStat->excludeRegionStart = NULL;
+	RSDMuStat->excludeRegionStop = NULL;
 
 	if(RSDMuStat->exclTableSize==0)
 		return;
@@ -251,8 +274,13 @@ void RSDMuStat_excludeRegion (RSDMuStat_t * RSDMuStat, RSDDataset_t * RSDDataset
 	{
 		if(!strcmp(RSDMuStat->exclTableChromName[i], RSDDataset->setID))
 		{
-			RSDMuStat->excludeRegionStart = RSDMuStat->exclTableRegionStart[i];
-			RSDMuStat->excludeRegionStop = RSDMuStat->exclTableRegionStop[i];
+			RSDMuStat->excludeRegionsTotal++;
+			RSDMuStat->excludeRegionStart = rsd_realloc(RSDMuStat->excludeRegionStart, sizeof(int64_t)*((unsigned long)RSDMuStat->excludeRegionsTotal));
+			assert(RSDMuStat->excludeRegionStart!=NULL);
+			RSDMuStat->excludeRegionStart[RSDMuStat->excludeRegionsTotal-1] = RSDMuStat->exclTableRegionStart[i];
+			RSDMuStat->excludeRegionStop = rsd_realloc(RSDMuStat->excludeRegionStop, sizeof(int64_t)*((unsigned long)RSDMuStat->excludeRegionsTotal));
+			assert(RSDMuStat->excludeRegionStop!=NULL);
+			RSDMuStat->excludeRegionStop[RSDMuStat->excludeRegionsTotal-1] = RSDMuStat->exclTableRegionStop[i];
 		}
 	}
 	
@@ -1770,7 +1798,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 	assert(RSDCommandLine!=NULL);
 	assert(RSDPatternPool!=NULL);
 
-	int i, size = (int)RSDChunk->chunkSize;
+	int i, j, size = (int)RSDChunk->chunkSize;
 
 	float windowCenter = 0.0f, windowStart = 0.0f, windowEnd = 0.0f;
 
@@ -1809,8 +1837,9 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 
 		float isValid = 1.0;
 
-		if((windowEnd>=RSDMuStat->excludeRegionStart) && (windowStart<=RSDMuStat->excludeRegionStop))
-			isValid = 0.0;
+		for(j=0;j<RSDMuStat->excludeRegionsTotal;j++)
+			if((windowEnd>=RSDMuStat->excludeRegionStart[j]) && (windowStart<=RSDMuStat->excludeRegionStop[j]))
+				isValid = 0.0;
 
 		// Mu_Var
 		muVar = RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf];
@@ -1895,7 +1924,7 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 	assert(RSDCommandLine!=NULL);
 	assert(RSDPatternPool!=NULL);
 
-	int i, size = (int)RSDChunk->chunkSize;
+	int i, j, size = (int)RSDChunk->chunkSize;
 
 	float windowCenter = 0.0f, windowStart = 0.0f, windowEnd = 0.0f;
 
@@ -1924,11 +1953,12 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 		}
 	}
 
-	float slack = 0.25;
-	int64_t exclRegSize = RSDMuStat->excludeRegionStop - RSDMuStat->excludeRegionStart;
-	int64_t exclRegSlack = (int64_t) (slack * exclRegSize);
-	RSDMuStat->excludeRegionStart -= exclRegSlack;
-	RSDMuStat->excludeRegionStop += exclRegSlack;
+	// TODO if needed 
+	//float slack = 0.25;
+	//int64_t exclRegSize = RSDMuStat->excludeRegionStop - RSDMuStat->excludeRegionStart;
+	//int64_t exclRegSlack = (int64_t) (slack * exclRegSize);
+	//RSDMuStat->excludeRegionStart -= exclRegSlack;
+	//RSDMuStat->excludeRegionStop += exclRegSlack;
 
 	for(i=0;i<size-RSDMuStat->windowSize+1;i++)
 	{
@@ -1949,8 +1979,9 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 
 		float isValid = 1.0;
 
-		if((windowEnd>=RSDMuStat->excludeRegionStart) && (windowStart<=RSDMuStat->excludeRegionStop))
-			isValid = 0.0;
+		for(j=0;j<RSDMuStat->excludeRegionsTotal;j++)
+			if((windowEnd>=RSDMuStat->excludeRegionStart[j]) && (windowStart<=RSDMuStat->excludeRegionStop[j]))
+				isValid = 0.0;
 
 		// Mu_Var
 		muVar = RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf];

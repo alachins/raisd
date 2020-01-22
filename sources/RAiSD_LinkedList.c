@@ -25,15 +25,15 @@ RSDLinkedListNode_t * RSDLinkedList_new (double pos, char * snp)
 {
 	RSDLinkedListNode_t * newNode = NULL;
 
-	newNode = (RSDLinkedListNode_t *)malloc(sizeof(RSDLinkedListNode_t));
+	newNode = (RSDLinkedListNode_t *)rsd_malloc(sizeof(RSDLinkedListNode_t));
 	assert(newNode!=NULL);
 
 	newNode->prv = NULL;
 	newNode->nxt = NULL;
 	newNode->snpPosition = pos;
 	
-	int snpSize = strlen(snp)+1;
-	newNode->snpData = (char *)malloc(sizeof(char)*snpSize);
+	int snpSize = (int)(strlen(snp)+1);
+	newNode->snpData = (char *)rsd_malloc(sizeof(char)*((unsigned long)snpSize));
 	assert(newNode->snpData!=NULL);
 
 	strncpy(newNode->snpData, snp, strlen(snp));
@@ -111,8 +111,6 @@ RSDLinkedListNode_t * RSDLinkedList_addNode (RSDLinkedListNode_t * listHead, dou
 			return listHead;
 		}		
 	}
-	
-	return listHead;
 }
 
 int RSDLinkedList_getSize (RSDLinkedListNode_t * listHead)

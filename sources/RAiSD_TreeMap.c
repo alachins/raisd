@@ -21,9 +21,13 @@
 
 #include "RAiSD.h"
 
-RSDTreeNode_t * (*RSDTreeNode_new) (RSDTreeMap_t * RSDTreeMap);
-
+static RSDTreeNode_t * (*RSDTreeNode_new) (RSDTreeMap_t * RSDTreeMap);
 void RSDTreeNode_free (RSDTreeNode_t * RSDTreeNode);
+RSDTreeNode_t * RSDTreeNodePool_getNode (RSDTreeNodePool_t * RSDTreeNodePool);
+RSDTreeNode_t * RSDTreeNode_new_0 (RSDTreeMap_t * RSDTreeMap);
+RSDTreeNode_t * RSDTreeNode_new_1 (RSDTreeMap_t * RSDTreeMap);
+RSDTreeNodePool_t * RSDTreeNodePool_new (void);
+void RSDTreeNodePool_free (RSDTreeNodePool_t * np);
 
 RSDTreeNode_t * RSDTreeNodePool_getNode (RSDTreeNodePool_t * RSDTreeNodePool)
 {
@@ -37,10 +41,10 @@ RSDTreeNode_t * RSDTreeNodePool_getNode (RSDTreeNodePool_t * RSDTreeNodePool)
 	{
 		RSDTreeNodePool->nodeMatrixSizeX++;
 
-		RSDTreeNodePool->nodeMatrix = (RSDTreeNode_t **)rsd_realloc(RSDTreeNodePool->nodeMatrix, sizeof(RSDTreeNode_t *)*RSDTreeNodePool->nodeMatrixSizeX);
+		RSDTreeNodePool->nodeMatrix = (RSDTreeNode_t **)rsd_realloc(RSDTreeNodePool->nodeMatrix, sizeof(RSDTreeNode_t *)*((unsigned long)RSDTreeNodePool->nodeMatrixSizeX));
 		assert(RSDTreeNodePool->nodeMatrix!=NULL);
 	
-		RSDTreeNodePool->nodeMatrix[RSDTreeNodePool->nodeMatrixSizeX-1] = (RSDTreeNode_t *)rsd_malloc(sizeof(RSDTreeNode_t)*RSDTreeNodePool->nodeMatrixSizeY);
+		RSDTreeNodePool->nodeMatrix[RSDTreeNodePool->nodeMatrixSizeX-1] = (RSDTreeNode_t *)rsd_malloc(sizeof(RSDTreeNode_t)*((unsigned long)RSDTreeNodePool->nodeMatrixSizeY));
 		assert(RSDTreeNodePool->nodeMatrix[RSDTreeNodePool->nodeMatrixSizeX-1]!=NULL);
 
 		RSDTreeNodePool->nextNodeDimY = 0;	
@@ -116,7 +120,7 @@ void RSDTreeNode_free (RSDTreeNode_t * RSDTreeNode)
 	RSDTreeNode = NULL;
 }
 
-RSDTreeNodePool_t * RSDTreeNodePool_new ()
+RSDTreeNodePool_t * RSDTreeNodePool_new (void)
 {
 	RSDTreeNodePool_t * np = NULL;
 
@@ -129,10 +133,10 @@ RSDTreeNodePool_t * RSDTreeNodePool_new ()
 	np->nextNodeDimX = -1;
 	np->nextNodeDimY = -1;
 
-	np->nodeMatrix = (RSDTreeNode_t **)rsd_malloc(sizeof(RSDTreeNode_t *)*np->nodeMatrixSizeX);
+	np->nodeMatrix = (RSDTreeNode_t **)rsd_malloc(sizeof(RSDTreeNode_t *)*((unsigned long)np->nodeMatrixSizeX));
 	assert(np->nodeMatrix!=NULL);
 
-	np->nodeMatrix[0] = (RSDTreeNode_t *)rsd_malloc(sizeof(RSDTreeNode_t)*np->nodeMatrixSizeY);
+	np->nodeMatrix[0] = (RSDTreeNode_t *)rsd_malloc(sizeof(RSDTreeNode_t)*((unsigned long)np->nodeMatrixSizeY));
 	assert(np->nodeMatrix[0]!=NULL);
 	
 	return np;	
@@ -223,6 +227,7 @@ void RSDTreeMap_free (RSDTreeMap_t * RSDTreeMap)
 	RSDTreeMap = NULL;
 }
 
+#ifdef _TM_PATTERN_ARRAY
 static inline int64_t RSDTreeMap_setPatternID (RSDTreeMap_t * RSDTreeMap, RSDTreeNode_t * RSDTreeNode)
 {
 	assert(RSDTreeNode!=NULL);
@@ -250,6 +255,7 @@ static inline int64_t RSDTreeMap_getPatternID (RSDTreeMap_t * RSDTreeMap, RSDTre
 
 	return -1;
 }
+#endif
 
 int64_t RSDTreeMap_matchSNP (RSDTreeMap_t * RSDTreeMap, void * RSDPatternPool_g, int64_t numberOfSamples)
 {

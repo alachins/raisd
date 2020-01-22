@@ -477,8 +477,9 @@ typedef struct
 	int64_t *	exclTableRegionStart;
 	int64_t *	exclTableRegionStop;
 
-	int64_t		excludeRegionStart;
-	int64_t		excludeRegionStop;
+	int64_t		excludeRegionsTotal;
+	int64_t	*	excludeRegionStart;
+	int64_t	*	excludeRegionStop;
 
 } RSDMuStat_t;
 
