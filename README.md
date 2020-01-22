@@ -431,6 +431,9 @@ Note that, depending on the number of chromosomes (SNP sets) and the total numbe
 
 An example of such a file, obtained by a different run, can be found here: http://139.91.162.50/raisd_plots/examples/RAiSD_ManhattanPlot.test_run_2.pdf
 
+Excluding regions from the analysis
+-----------------------------------
+As of version 2.3, the -X parameter can be used to provide a path to a file that contains regions to be excluded from the analysis.  
 
 Changelog
 ----------
@@ -460,6 +463,8 @@ v2.0 (15/5/2019): -A to create Manhattan plots, scale factors for muVar and muSF
 v2.1 (21/1/2020): Parser for unordered VCF files (e.g., DArTseq genotyping reports). Creates the ordered VCF file as well.
 
 v2.2 (22/1/2020): Added missing field (discarded monomorphic sites) in the site report for M={1,2,3}.
+
+v2.3 (23/1/2020): -X to exclude regions per chromosome from the analysis.
 
 Support
 -------
