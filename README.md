@@ -373,7 +373,7 @@ The zlib library (https://zlib.net/) needs to be installed prior to compilation.
 
 Processing unordered VCF
 ------------------------
-As of version 2.1, RAiSD can parse and process unordered VCF files (unordered files in GZ file format are ***NOT*** yet supported). Unordered VCF files are derived from [DArTseq](https://www.diversityarrays.com/) genotyping reports. An ordered VCF file to be used in subsequent runs with RAiSD and/or other tools is automatically generated (extension .vcf.fxd). Same-chromosome SNPs are sorted according to their position (POS field in VCF format), and placed in the new VCF file chromosome by chromosome. The chromosome order is shown in the RAiSD_Info file, and can be used to match plots with chromosomes when RAiSD is used to generate plots based on unordered VCF files. 
+As of version 2.1, RAiSD can parse and process unordered VCF files (unordered files in GZ file format are ***NOT*** yet supported). Unordered VCF files are derived from [DArTseq](https://www.diversityarrays.com/) genotyping reports. An ordered VCF file to be used in subsequent runs with RAiSD and/or other tools is automatically generated (extension .vcf.fxd). Same-chromosome SNPs are sorted according to their position (POS field in VCF format), and placed in the new VCF file chromosome by chromosome. The chromosome order can be retrieved from the RAiSD_Info file, and should be used to match plots with chromosomes when RAiSD is used to generate plots based on unordered VCF files. 
 
 Generating the RAiSD_SiteReport file
 ------------------------------------
