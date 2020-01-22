@@ -390,8 +390,9 @@ When the default missing-data strategy is used (-M 0), the total number of disca
 When any other missing-data strategy is used (-M 1,2, or 3), the total number of discarded sites includes:
 
     a) sites dropped due to a failed "header" check (only for VCF), 
-    b) sites dropped because of the MAF check, and 
-    c) potentially monomorphic sites with missing data, i.e., sites with missing data and no variation. 
+    b) sites dropped because of the MAF check, 
+    c) monomorphic sites, and
+    d) potentially monomorphic sites with missing data, i.e., sites with missing data and no variation. 
     
 When missing data are imputed per SNP (-M 1), the RAiSD_SiteReport additionally includes the total number of sites that have been imputed before applying the rest of the checks (minor allele frequency, monomorphic sites, etc).
 
