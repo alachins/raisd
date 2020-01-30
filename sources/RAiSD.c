@@ -59,8 +59,11 @@ void RSD_header (FILE * fpOut)
 	if(fpOut==NULL)
 		return;
 
+	printRAiSD (fpOut);
+
 	fprintf(fpOut, "\n");
 	fprintf(fpOut, " RAiSD, Raised Accuracy in Sweep Detection\n");
+	fprintf(fpOut, " This is version %d.%d (released in %s %d)\n", MAJOR_VERSION, MINOR_VERSION, RELEASE_MONTH, RELEASE_YEAR);
 	fprintf(fpOut, " Copyright (C) 2017, and GNU GPL'd, by Nikolaos Alachiotis and Pavlos Pavlidis\n");
 	fprintf(fpOut, " Contact n.alachiotis/pavlidisp at gmail.com\n");
 	fprintf(fpOut, "\n");
@@ -137,6 +140,9 @@ int main (int argc, char ** argv)
 
 	RSDPlot_printRscriptVersion (RSDCommandLine, stdout);
 	RSDPlot_printRscriptVersion (RSDCommandLine, RAiSD_Info_FP);
+
+	RSDCommandLine_printWarnings (RSDCommandLine, argc, argv, (void*)RSDDataset, stdout);
+	RSDCommandLine_printWarnings (RSDCommandLine, argc, argv, (void*)RSDDataset, RAiSD_Info_FP);
 
 	RSDPatternPool_t * RSDPatternPool = RSDPatternPool_new();
 	RSDPatternPool_init(RSDPatternPool, RSDCommandLine, RSDDataset->numberOfSamples);
@@ -225,6 +231,10 @@ int main (int argc, char ** argv)
 				}
 	
 				RSDPatternPool_assessMissing (RSDPatternPool, RSDDataset->setSamples);
+
+				// version 2.4, for ms
+				if(!strcmp(RSDDataset->inputFileFormat, "ms"))
+					assert((uint64_t)RSDDataset->setSNPs==RSDDataset->preLoadedsetSNPs);
 
 #ifdef _PTIMES
 				clock_gettime(CLOCK_REALTIME, &requestStartMu);

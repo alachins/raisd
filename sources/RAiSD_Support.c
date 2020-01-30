@@ -721,7 +721,7 @@ char ** addChromToList (char * newChromName, char ** chromList, int * chromListS
 	return chromListNew;
 }
 
-int VCFFileCheckAndReorder (void * vRSDDataset, FILE * fpX, char * fileName, int overwriteOutput)
+void VCFFileCheck (void * vRSDDataset, FILE * fpX, char * fileName, FILE * fpOut) // TODO: Implement this for vcf.gz
 {
 	assert(vRSDDataset!=NULL);
 	RSDDataset_t * RSDDataset = (RSDDataset_t *)vRSDDataset;
@@ -730,7 +730,145 @@ int VCFFileCheckAndReorder (void * vRSDDataset, FILE * fpX, char * fileName, int
 
 	FILE * fp = RSDDataset->inputFilePtr;
 
-	FILE * fpOut = stdout;
+	char fileNameNew[STRING_SIZE];
+	strncpy(fileNameNew, fileName, STRING_SIZE);
+	strcat(fileNameNew, ".fxd");
+
+	char tstring[STRING_SIZE];
+
+	// Check reorder requirement based on CHROM
+
+	// Jump to header line
+	int rcnt = fscanf(fp, "%s", tstring);
+	while(rcnt==1 && strcmp(tstring, "#CHROM"))
+		rcnt = fscanf(fp, "%s", tstring);
+
+	// Skip header line
+	fp = skipLine(fp);
+
+	int i, chromListSize = 0;
+	char ** chromList = NULL;
+
+	int reorderReq = 0;
+	
+	int doneParsing = 0;
+	while(!doneParsing)
+	{
+		rcnt = fscanf(fp, "%s", tstring);
+
+		if(rcnt!=EOF)
+		{
+			int chromMatch = matchChromInList (tstring, chromList, chromListSize);
+			
+			if(chromMatch==0)
+				chromList = addChromToList (tstring, chromList, &chromListSize);
+			else
+			{
+				if(strcmp(tstring, chromList[chromListSize-1]))
+				{
+					if(reorderReq==0)
+					{
+						fprintf(fpOut, "\nWARNING: Wrong data order (CHROM) in file %s", fileName);
+						fflush(fpOut);
+
+						fprintf(stdout, "\nWARNING: Wrong data order (CHROM) in file %s", fileName);
+						fflush(stdout);
+
+						reorderReq = 1;
+					}						
+				}
+			}
+
+			fp = skipLine(fp);
+		}
+		else
+			doneParsing = 1;
+	}
+
+	// Check reorder requirement based on POS
+
+	double prevPOS = 0.0;
+	if(reorderReq==0 || reorderReq==1)
+	{
+		for(i=0;i<chromListSize;i++)
+		{
+			fclose(fp);	
+
+			fp = fopen(fileName, "r");
+			assert(fp!=NULL);
+	
+			// Jump to header line
+			rcnt = fscanf(fp, "%s", tstring);
+			while(rcnt==1 && strcmp(tstring, "#CHROM"))
+				rcnt = fscanf(fp, "%s", tstring);
+
+			// Skip header line
+			fp = skipLine(fp);
+
+			prevPOS = 0.0;
+
+			doneParsing = 0;
+			while(!doneParsing)
+			{
+				rcnt = fscanf(fp, "%s", tstring);
+
+				if(rcnt!=EOF)
+				{
+					if(!strcmp(chromList[i], tstring))
+					{
+						rcnt = fscanf(fp, "%s", tstring); // POS
+						assert(rcnt!=-1);
+
+						if(strcmp(tstring, "."))
+						{
+							double curPOS = (double)atof(tstring);
+
+							if(curPOS<prevPOS)
+							{
+								if(reorderReq==0 || reorderReq==1)
+								{
+									fprintf(fpOut, "\nWARNING: Wrong data order (POS) in file %s", fileName);
+									fflush(fpOut);
+
+									fprintf(stdout, "\nWARNING: Wrong data order (POS) in file %s", fileName);
+									fflush(stdout);
+
+									reorderReq = 2;
+								}
+							}
+							prevPOS = curPOS;
+						}							
+
+						fp = skipLine(fp);
+					}
+				}
+				else
+					doneParsing = 1;
+			}
+		}
+	}
+
+	if(reorderReq!=0)
+	{
+		fprintf(fpOut, "\n\n");
+		fflush(fpOut);	
+
+		fprintf(stdout, "\n\n");
+		fflush(stdout);	
+	}
+
+	assert(fp!=NULL);
+	RSDDataset->inputFilePtr = fp;
+}
+
+int VCFFileCheckAndReorder (void * vRSDDataset, FILE * fpX, char * fileName, int overwriteOutput, FILE * fpOut)
+{
+	assert(vRSDDataset!=NULL);
+	RSDDataset_t * RSDDataset = (RSDDataset_t *)vRSDDataset;
+	assert(fpX!=NULL);
+	assert(fileName);
+
+	FILE * fp = RSDDataset->inputFilePtr;
 	FILE * fpNew = NULL;
 
 	char fileNameNew[STRING_SIZE];
@@ -778,6 +916,9 @@ int VCFFileCheckAndReorder (void * vRSDDataset, FILE * fpX, char * fileName, int
 					{
 						fprintf(fpOut, "\nWARNING: Wrong data order (CHROM) in file %s", fileName);
 						fflush(fpOut);
+
+						fprintf(stdout, "\nWARNING: Wrong data order (CHROM) in file %s", fileName);
+						fflush(stdout);
 
 						reorderReq = 1;
 					}						
@@ -843,6 +984,9 @@ int VCFFileCheckAndReorder (void * vRSDDataset, FILE * fpX, char * fileName, int
 									fprintf(fpOut, "\nWARNING: Wrong data order (POS) in file %s", fileName);
 									fflush(fpOut);
 
+									fprintf(stdout, "\nWARNING: Wrong data order (POS) in file %s", fileName);
+									fflush(stdout);
+
 									reorderReq = 2;
 								}
 							}
@@ -864,12 +1008,18 @@ int VCFFileCheckAndReorder (void * vRSDDataset, FILE * fpX, char * fileName, int
 		fprintf(fpOut, "\nMESSAGE: Creating reordered file %s", fileNameNew);
 		fflush(fpOut);
 
+		fprintf(stdout, "\nMESSAGE: Creating reordered file %s", fileNameNew);
+		fflush(stdout);
+
 		fpNew = fopen(fileNameNew, "r");
 
 		if(fpNew!=NULL) // fxd vcf file already exists
 		{
 			if(overwriteOutput==0)
 			{
+				fprintf(fpOut, "\nERROR: Reordered file %s exists. Use -f to overwrite it.\n\n", fileNameNew);
+				fflush(fpOut);
+
 				fprintf(stderr, "\nERROR: Reordered file %s exists. Use -f to overwrite it.\n\n", fileNameNew);
 				exit(0);
 			}
@@ -914,6 +1064,9 @@ int VCFFileCheckAndReorder (void * vRSDDataset, FILE * fpX, char * fileName, int
 		{
 			fprintf(fpOut, "\nMESSAGE: Appending %d SNPs ( %s )", chromSNPSize[i], chromList[i]);
 			fflush(fpOut);
+
+			fprintf(stdout, "\nMESSAGE: Appending %d SNPs ( %s )", chromSNPSize[i], chromList[i]);
+			fflush(stdout);
 
 			// Reset source-file ptr
 			fclose(fp);	
@@ -1017,9 +1170,13 @@ int VCFFileCheckAndReorder (void * vRSDDataset, FILE * fpX, char * fileName, int
 		fprintf(fpOut, "\nMESSAGE: Processing continues using file %s", fileNameNew);
 		fflush(fpOut);
 
+		fprintf(stdout, "\nMESSAGE: Processing continues using file %s", fileNameNew);
+		fflush(stdout);
+
 		strncpy(fileName, fileNameNew, STRING_SIZE);
 
 		fprintf(fpOut, "\n\n");
+		fprintf(stdout, "\n\n");
 	}
 
 	if(snpDataBuf!=NULL)
@@ -1053,29 +1210,21 @@ int VCFFileCheckAndReorder (void * vRSDDataset, FILE * fpX, char * fileName, int
 	return VCF_FILE_CHECK_PASS;
 }
 
+void printRAiSD (FILE * fpOut)
+{
 
+const char * raisd = "\n\
+ ooooooooo.         .o.        o8o   .oooooo..o oooooooooo.\n\
+ `888   `Y88.      .888.       `\"'  d8P'    `Y8 `888'   `Y8b\n\
+  888   .d88'     .8\"888.     oooo  Y88bo.       888      888\n\
+  888ooo88P'     .8' `888.    `888   `\"Y8888o.   888      888\n\
+  888`88b.      .88ooo8888.    888       `\"Y88b  888      888\n\
+  888  `88b.   .8'     `888.   888  oo     .d8P  888     d88'\n\
+ o888o  o888o o88o     o8888o o888o 8\"\"88888P'  o888bood8P'\n\
+";
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+fprintf(fpOut, "%s", raisd);
+fflush(fpOut);
+}
 
 

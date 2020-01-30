@@ -25,7 +25,7 @@ void flagCheck (char ** argv, int i, int * flagVector, int flagIndex);
 
 void RSDHelp (FILE * fp)
 {
-	fprintf(fp, " This is RAiSD version 2.3, released in January 2020.\n\n");
+	fprintf(fp, " This is RAiSD version %d.%d, released in %s %d.\n\n", MAJOR_VERSION, MINOR_VERSION, RELEASE_MONTH, RELEASE_YEAR);
 
 	fprintf(fp, " RAiSD");
 
@@ -33,19 +33,21 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t -n STRING\n");
 	fprintf(fp, "\t -I STRING\n");
 
-	fprintf(fp, "\n\t--- SNP and SAMPLE HANDLING\n");
+	fprintf(fp, "\n\t--- SNP and SAMPLE HANDLING\n\n");
 	fprintf(fp, "\t[-L INTEGER]\n"); 	
 	fprintf(fp, "\t[-S STRING]\n");
 	fprintf(fp, "\t[-m FLOAT]\n");
 	fprintf(fp, "\t[-M 0|1|2|3]\n");
 	fprintf(fp, "\t[-y INTEGER]\n");
 	fprintf(fp, "\t[-X STRING]\n");
+	fprintf(fp, "\t[-B INTEGER INTEGER]\n");
+	fprintf(fp, "\t[-o]\n");
 
-	fprintf(fp, "\n\t--- SLIDING WINDOW and MU STATISTIC\n");
+	fprintf(fp, "\n\t--- SLIDING WINDOW and MU STATISTIC\n\n");
 	fprintf(fp, "\t[-w INTEGER]\n");
 	fprintf(fp, "\t[-c INTEGER]\n");
 
-	fprintf(fp, "\n\t--- STANDARD OUTPUT and REPORTS\n");
+	fprintf(fp, "\n\t--- STANDARD OUTPUT and REPORTS\n\n");
 	fprintf(fp, "\t[-f]\n");
 	fprintf(fp, "\t[-s]\n");
 	fprintf(fp, "\t[-t]\n");
@@ -56,17 +58,17 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t[-D]\n");
 	fprintf(fp, "\t[-A FLOAT]\n");
 
-	fprintf(fp, "\n\t--- ACCURACY and SENSITIVITY EVALUATION\n");	
+	fprintf(fp, "\n\t--- ACCURACY and SENSITIVITY EVALUATION\n\n");	
 	fprintf(fp, "\t[-T INTEGER]\n");
 	fprintf(fp, "\t[-d INTEGER]\n");
 	fprintf(fp, "\t[-k FLOAT]\n");
 	fprintf(fp, "\t[-l FLOAT]\n");
 
-	fprintf(fp, "\n\t--- ADDITIONAL EXECUTION PARAMETERS\n");	
+	fprintf(fp, "\n\t--- ADDITIONAL EXECUTION PARAMETERS\n\n");	
 	fprintf(fp, "\t[-b]\n");
 	fprintf(fp, "\t[-a INTEGER]\n");
 	
-	fprintf(fp, "\n\t--- HELP and VERSION NOTES\n");
+	fprintf(fp, "\n\t--- HELP and VERSION NOTES\n\n");
 	fprintf(fp, "\t[-h]\n");
 	fprintf(fp, "\t[-v]\n");
 
@@ -75,41 +77,43 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t-n\tProvides a unique run ID that is used to name the output files, i.e., the info file and the report(s).\n");
 	fprintf(fp, "\t-I\tProvides the path to the input file, which can be either in ms or in vcf format.\n");
 
-	fprintf(fp, "\n\t--- SNP and SAMPLE HANDLING\n");
-	fprintf(fp, "\t-L\tProvides the size of the region in basepairs for ms files. If known, it can be used for vcf as well, leading to faster processing.\n");
+	fprintf(fp, "\n\t--- SNP and SAMPLE HANDLING\n\n");
+	fprintf(fp, "\t-L\tProvides the size of the region in basepairs for ms files. See -B option for vcf files.\n");
 	fprintf(fp, "\t-S\tProvides the path to the list of samples to be processed (supported only with VCF).\n");
 	fprintf(fp, "\t-m\tProvides the threshold value for excluding SNPs with minor allele frequency < threshold (0.0-1.0).\n");
-	fprintf(fp, "\t-M\tIndicates the missing-data handling strategy (0: discards SNP (default), 1: imputes N per SNP, 2: represents N through a mask, 3: ignores allele pairs with N).\n");
+	fprintf(fp, "\t-M\tIndicates the missing-data handling strategy (0: discards SNP (default), 1: imputes N per SNP,\n\t\t2: represents N through a mask, 3: ignores allele pairs with N).\n");
 	fprintf(fp, "\t-y\tProvides the ploidy (integer value), used to correctly represent missing data.\n");
-	fprintf(fp, "\t-X\tProvides the path to a tab-delimited file that contains regions per chromosome (one per line) to be excluded from the analysis (Format: chromosome [tab] regionStart [tab] regionStop).\n");
+	fprintf(fp, "\t-X\tProvides the path to a tab-delimited file that contains regions per chromosome (one per line) to be\n\t\texcluded from the analysis (Format: chromosome [tab] regionStart [tab] regionStop).\n");
+	fprintf(fp, "\t-B\tProvides the chromosome size in basepairs (first INTEGER) and SNPs (second INTEGER) for vcf files that\n\t\tcontain a single chromosome. If -B is not provided, or the input vcf file contains multiple chromosomes,\n\t\tRAiSD will determine the respective values by parsing each chromosome in its entirety before processing,\n\t\twhich will lead to slightly longer overall execution time.\n");
+	fprintf(fp, "\t-o\tEnables dataset check and ordering of the input vcf file (only unzipped vcf files are supported).\n");
 
-	fprintf(fp, "\n\t--- SLIDING WINDOW and MU STATISTIC\n");
+	fprintf(fp, "\n\t--- SLIDING WINDOW and MU STATISTIC\n\n");
 	fprintf(fp, "\t-w\tProvides the window size (integer value). The default value is 50 (empirically determined).\n");
-	fprintf(fp, "\t-c\tProvides the slack for the SFS edges to be used for the calculation of mu_SFS. The default value is 1 (singletons and S-1 snp class, where S is the sample size).\n");
+	fprintf(fp, "\t-c\tProvides the slack for the SFS edges to be used for the calculation of mu_SFS. The default value is 1\n\t\t(singletons and S-1 snp class, where S is the sample size).\n");
 
-	fprintf(fp, "\n\t--- STANDARD OUTPUT and REPORTS\n");
+	fprintf(fp, "\n\t--- STANDARD OUTPUT and REPORTS\n\n");
 	fprintf(fp, "\t-f\tOverwrites existing run files under the same run ID.\n");
 	fprintf(fp, "\t-s\tGenerates a separate report file per set.\n");
 	fprintf(fp, "\t-t\tRemoves the set separator symbol from the report(s).\n");
-	fprintf(fp, "\t-p\tGenerates the output file RAiSD_Samples.STRING, where STRING is the run ID, comprising a list of samples in the input file (supported only with VCF).\n");
+	fprintf(fp, "\t-p\tGenerates the output file RAiSD_Samples.STRING, where STRING is the run ID, comprising a list of samples\n\t\tin the input file (supported only with VCF).\n");
 	fprintf(fp, "\t-O\tShows progress on the display device (at snp set granularity).\n");
-	fprintf(fp, "\t-R\tIncludes additional information (window start and end, and the mu-statistic factors for variation, SFS, and LD) in the report file(s).\n");
-	fprintf(fp, "\t-P\tGenerates four plots (for the three mu-statistic factors and the final score) in one PDF file per set of SNPs in the input file using Rscript (activates -s, -t, and -R).\n");
+	fprintf(fp, "\t-R\tIncludes additional information in the report file(s), i.e., window start and end, and the mu-statistic\n\t\tfactors for variation, SFS, and LD.\n");
+	fprintf(fp, "\t-P\tGenerates four plots (for the three mu-statistic factors and the final score) in one PDF file per set of\n\t\tSNPs in the input file using Rscript (activates -s, -t, and -R).\n");
 	fprintf(fp, "\t-D\tGenerates a site report, e.g., total, discarded, imputed etc.\n");
-	fprintf(fp, "\t-A\tProvides a probability value to be used for the quantile function in R and generates a Manhattan plot for the final mu-statistic score using Rscript (activates -s, -t, and -R).\n");
+	fprintf(fp, "\t-A\tProvides a probability value to be used for the quantile function in R and generates a Manhattan plot for\n\t\tthe final mu-statistic score using Rscript (activates -s, -t, and -R).\n");
 
-	fprintf(fp, "\n\t--- ACCURACY and SENSITIVITY EVALUATION\n");
-	fprintf(fp, "\t-T\tProvides the selection target (in basepairs) and calculates the average distance (over all datasets in the input file) between the selection target and the reported locations.\n");
-	fprintf(fp, "\t-d\tProvides a maximum distance from the selection target (in base pairs) to calculate the success rate, i.e., reported locations in the proximity of the target of selection (provided via -T).\n");
-	fprintf(fp, "\t-k\tProvides the false positive rate (e.g., 0.05) to report the corresponding reported score after sorting the reported locations for all the datasets in the input file.\n");
-	fprintf(fp, "\t-l\tProvides the threshold score, reported by a previous run using a false positive rate (e.g., 0.05, via -k) to report the true positive rate.\n");
+	fprintf(fp, "\n\t--- ACCURACY and SENSITIVITY EVALUATION\n\n");
+	fprintf(fp, "\t-T\tProvides the selection target (in basepairs) and calculates the average distance (over all datasets in the\n\t\tinput file) between the selection target and the reported locations.\n");
+	fprintf(fp, "\t-d\tProvides a maximum distance from the selection target (in base pairs) to calculate success rates,\n\t\ti.e., reported locations in the proximity of the target of selection (provided via -T).\n");
+	fprintf(fp, "\t-k\tProvides the false positive rate (e.g., 0.05) to report the corresponding reported score after sorting\n\t\tthe reported locations for all the datasets in the input file.\n");
+	fprintf(fp, "\t-l\tProvides the threshold score, reported by a previous run using a false positive rate (e.g., 0.05, via -k)\n\t\tto report the true positive rate.\n");
 	
 
-	fprintf(fp, "\n\t--- ADDITIONAL EXECUTION PARAMETERS\n");
+	fprintf(fp, "\n\t--- ADDITIONAL EXECUTION PARAMETERS\n\n");
 	fprintf(fp, "\t-b\tIndicates that the input file is in mbs format.\n");
 	fprintf(fp, "\t-a\tProvides a seed for the random number generator.\n");	
 
-	fprintf(fp, "\n\t--- HELP and VERSION NOTES\n");
+	fprintf(fp, "\n\t--- HELP and VERSION NOTES\n\n");
 	fprintf(fp, "\t-h\tPrints this help message.\n");
 	fprintf(fp, "\t-v\tPrints version information.\n");
 
@@ -139,6 +143,7 @@ void RSDVersions(FILE * fp)
 	fprintf(fp, " %d. RAiSD v%d.%d (Jan 21, 2020): Parser for unordered VCF files (e.g., extracted from DArTseq genotyping reports). The ordered VCF file is also created.\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Jan 22, 2020): Added missing field (discarded monomorphic sites) in the site report (Dataset.c file) for missing-data strategies M=1,2, or 3.\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Jan 23, 2020): -X to exclude regions per chromosome from the analysis.\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Jan 30, 2020): -B for chromosome length and SNP size. Fixed bug with the memory-reduction optimization for large chromosomes. -o to request vcf ordering and generation.\n", releaseIndex++, majorIndex, minorIndex++);
 
 	// TODO: add message here for outoforder vcf
 	// TODO: add message here for adding the monomorphic count in the site report
@@ -164,6 +169,7 @@ void RSDCommandLine_init(RSDCommandLine_t * RSDCommandLine)
 	strncpy(RSDCommandLine->runName, "\0", STRING_SIZE);
 	strncpy(RSDCommandLine->inputFileName, "\0", STRING_SIZE);
 	RSDCommandLine->regionLength = 0ull;
+	RSDCommandLine->regionSNPs = 0ull;
 	RSDCommandLine->overwriteOutput = 0;
 	RSDCommandLine->splitOutput = 0;
 	RSDCommandLine->setSeparator = 1;
@@ -185,6 +191,7 @@ void RSDCommandLine_init(RSDCommandLine_t * RSDCommandLine)
 	RSDCommandLine->windowSize = DEFAULT_WINDOW_SIZE;
 	RSDCommandLine->sfsSlack = 1; // singletons, and S-1 snp class (S is the sample size)
 	strncpy(RSDCommandLine->excludeRegionsFile, "\0", STRING_SIZE);
+	RSDCommandLine->orderVCF = 0; 
 }
 
 void flagCheck (char ** argv, int i, int * flagVector, int flagIndex)
@@ -254,6 +261,12 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 		if(!strcmp(argv[i], "-L")) 
 		{ 
 			flagCheck (argv, i, flagVector, 2);
+
+			if(flagVector[B_FLAG_INDEX])
+			{
+				fprintf(stderr, "\nERROR: Argument %s cannot be used if -B is already provided!\n\n",argv[i]);
+				exit(0);
+			}
 
 			if (i!=argc-1 && argv[i+1][0]!='-')
 			{
@@ -673,8 +686,39 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 			continue;
 		}
 
+		if(!strcmp(argv[i], "-B")) 
+		{ 
 
-		
+			if(flagVector[L_FLAG_INDEX])
+			{
+				fprintf(stderr, "\nERROR: Argument %s cannot be used if -L is already provided!\n\n",argv[i]);
+				exit(0);
+			}
+			
+			flagCheck (argv, i, flagVector, 17);
+
+			if ((i!=argc-1 && argv[i+1][0]!='-')&&(i!=argc-2 && argv[i+2][0]!='-'))
+			{
+				double len = atof(argv[++i]);
+				RSDCommandLine->regionLength = (uint64_t) len;
+
+				double snps = atof(argv[++i]);
+				RSDCommandLine->regionSNPs = (uint64_t) snps;
+			}
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
+
+			continue;
+		}
+
+		if(!strcmp(argv[i], "-o")) 
+		{ 
+			RSDCommandLine->orderVCF = 1;
+			continue;
+		}
 
 		/*if(!strcmp(argv[i], "-set")) 
 		{ 
@@ -753,5 +797,39 @@ void RSDCommandLine_print(int argc, char ** argv, FILE * fpOut)
 	fprintf(fpOut, "\n");
 
 	fflush(fpOut);
+}
+
+void RSDCommandLine_printWarnings (RSDCommandLine_t * RSDCommandLine, int argc, char ** argv, void * RSDDataset, FILE * fpOut)
+{
+	if(fpOut==NULL)
+		return;
+
+	assert(RSDCommandLine!=NULL);
+	assert(RSDDataset!=NULL);
+
+	RSDDataset_t * myRSDDataset = (RSDDataset_t *)RSDDataset;
+	
+	int i=0;
+
+	for(i=1; i<argc; ++i)
+	{
+		if(!strcmp(argv[i], "-L") && !strcmp(myRSDDataset->inputFileFormat, "vcf.gz")) 
+		{ 
+			fprintf(fpOut, "\n WARNING: Argument -L is not to be used with vcf.gz files and will be ignored!\n");
+			fflush(fpOut);
+		}
+
+		if(!strcmp(argv[i], "-L") && !strcmp(myRSDDataset->inputFileFormat, "vcf")) 
+		{ 
+			fprintf(fpOut, "\n WARNING: Argument -L is not to be used with vcf files and will be ignored!\n");
+			fflush(fpOut);
+		}
+
+		if(!strcmp(argv[i], "-B") && !strcmp(myRSDDataset->inputFileFormat, "ms")) 
+		{ 
+			fprintf(fpOut, "\n WARNING: Argument -B is not to be used with ms files and will be ignored!\n");
+			fflush(fpOut);
+		}
+	}
 }
 

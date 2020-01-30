@@ -30,6 +30,11 @@
 #include "zlib.h"
 #endif
 
+#define MAJOR_VERSION 2
+#define MINOR_VERSION 4
+#define RELEASE_MONTH "January"
+#define RELEASE_YEAR 2020
+
 /*Testing*/
 extern uint64_t selectionTarget;
 extern double MuVar_Accum;
@@ -98,6 +103,9 @@ extern double TotalMuTime;
 #define VCF_FILE_CHECK_PASS 1
 #define VCF_FILE_CHECK_FAIL 0
 
+#define	L_FLAG_INDEX 2
+#define B_FLAG_INDEX 17
+
 // RAiSD.c
 extern struct timespec requestStart;
 extern struct timespec requestEnd;
@@ -143,7 +151,9 @@ void 			reconGT 			(char * data);
 void 			RSD_printSiteReportLegend 	(FILE * fp, int64_t imputePerSNP, int64_t createPatternPoolMask);
 extern void *		rsd_malloc			(size_t size);
 extern void *		rsd_realloc			(void * p, size_t size);
-int 			VCFFileCheckAndReorder		(void * vRSDDataset, FILE * fp, char * fileName, int overwriteOutput);
+void 			VCFFileCheck 			(void * vRSDDataset, FILE * fpX, char * fileName, FILE * fpOut);
+int 			VCFFileCheckAndReorder		(void * vRSDDataset, FILE * fp, char * fileName, int overwriteOutput, FILE * fpOut);
+void 			printRAiSD 			(FILE * fpOut);
 
 #ifndef _INTRINSIC_POPCOUNT
 extern char	 	POPCNT_U16_LUT [0x1u << 16];
@@ -176,7 +186,8 @@ typedef struct
 {
 	char 		runName[STRING_SIZE]; // Flag: N
 	char 		inputFileName[STRING_SIZE]; // Flag: I
-	uint64_t	regionLength; // Flag: L
+	uint64_t	regionLength; // Flag: L for ms, Flag: B for vcf
+	uint64_t	regionSNPs; // Flag: B
 	int		overwriteOutput; // Flag: f
 	int		splitOutput; // Flag: s 
 	int		setSeparator; // Flag: t
@@ -198,6 +209,7 @@ typedef struct
 	int64_t		windowSize; // Flag: w
 	int64_t		sfsSlack; // Flag: c
 	char		excludeRegionsFile[STRING_SIZE]; // Flag: X
+	int64_t		orderVCF; // Flag: o
 
 } RSDCommandLine_t;
 
@@ -208,6 +220,7 @@ void 			RSDCommandLine_free			(RSDCommandLine_t * RSDCommandLine);
 void 			RSDCommandLine_init			(RSDCommandLine_t * RSDCommandLine);
 void 			RSDCommandLine_load			(RSDCommandLine_t * RSDCommandLine, int argc, char ** argv);
 void 			RSDCommandLine_print			(int argc, char ** argv, FILE * fpOut);
+void 			RSDCommandLine_printWarnings 		(RSDCommandLine_t * RSDCommandLine, int argc, char ** argv, void * RSDDataset, FILE * fpOut);
 
 // RAiSD_Chunk.c
 typedef struct
@@ -399,6 +412,7 @@ typedef struct
 	int64_t 	setSize; // number of segsites, provided by the set header in ms, -1 for vcf - this can also include non-polymorphic sites
 	int64_t		setSNPs; // number of non-discarded sites
 	int64_t		setProgress; // number of loaded segsites
+	uint64_t	preLoadedsetSNPs;
 
 	uint64_t 	setRegionLength;
 
@@ -435,12 +449,12 @@ extern int	(*RSDDataset_getNextSNP) 		(RSDDataset_t * RSDDataset, RSDPatternPool
 int 		RSDDataset_getNextSNP_ms 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut);
 int 		RSDDataset_getNextSNP_vcf 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut);
 void		RSDDataset_getSetRegionLength_ms	(RSDDataset_t * RSDDataset, uint64_t length);
-void		RSDDataset_getSetRegionLength_vcf	(RSDDataset_t * RSDDataset);
+void		RSDDataset_getSetRegionLength_vcf	(RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine, FILE * fpOut);
 void 		RSDDataset_printSiteReport 		(RSDDataset_t * RSDDataset, FILE * fp, int setIndex, int64_t imputePerSNP, int64_t createPatternPoolMask);
 void 		RSDDataset_resetSiteCounters 		(RSDDataset_t * RSDDataset);
 void		RSDDataset_calcMuVarDenom		(RSDDataset_t * RSDDataset);
 #ifdef _ZLIB
-void		RSDDataset_getSetRegionLength_vcf_gz	(RSDDataset_t * RSDDataset);
+void		RSDDataset_getSetRegionLength_vcf_gz	(RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine, FILE * fpOut);
 int 		RSDDataset_getNextSNP_vcf_gz 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut);
 #endif
 

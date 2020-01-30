@@ -69,6 +69,7 @@ RSDDataset_t * RSDDataset_new(void)
 	d->setSamples = 0;
 	d->setSize = 0;
 	d->setSNPs = 0;
+	d->preLoadedsetSNPs = 0ull;
 	d->setProgress = -1;
 	d->setParsingMode = MULTI_STEP_PARSING;
 	d->setRegionLength = 0ull;
@@ -365,14 +366,21 @@ void RSDDataset_init (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLi
 
 	fclose(RSDDataset->inputFilePtr);
 
+	RSDDataset->inputFilePtr = fopen(RSDCommandLine->inputFileName, "r");
+	assert(RSDDataset->inputFilePtr!=NULL);
+	
+	VCFFileCheck ((void*)RSDDataset, RSDDataset->inputFilePtr, RSDCommandLine->inputFileName, fpOut);
+
+	fclose(RSDDataset->inputFilePtr);
+
 	/**/
-	// check for incorrect order of data in VCF
-	if(!strcmp(RSDDataset->inputFileFormat, "vcf"))
+	// check for incorrect order of data in VCF (vcf.gz is not supported)
+	if(!strcmp(RSDDataset->inputFileFormat, "vcf") && (RSDCommandLine->orderVCF==1))
 	{
 		RSDDataset->inputFilePtr = fopen(RSDCommandLine->inputFileName, "r");
 		assert(RSDDataset->inputFilePtr!=NULL);
 
-		int vcfCheckFlag = VCFFileCheckAndReorder ((void*)RSDDataset, RSDDataset->inputFilePtr, RSDCommandLine->inputFileName, RSDCommandLine->overwriteOutput);
+		int vcfCheckFlag = VCFFileCheckAndReorder ((void*)RSDDataset, RSDDataset->inputFilePtr, RSDCommandLine->inputFileName, RSDCommandLine->overwriteOutput, fpOut);
 		assert(vcfCheckFlag==VCF_FILE_CHECK_PASS);
 
 		fclose(RSDDataset->inputFilePtr);
@@ -412,8 +420,6 @@ void RSDDataset_init (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLi
 		fprintf(stderr, "\nERROR: Missing required input parameter -L\n\n");
 		exit(0);
 	}
-
-
 
 	if(RSDCommandLine->printSampleList==1)
 	{
@@ -660,6 +666,8 @@ int RSDDataset_getFirstSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 	RSDDataset->setProgress = 1; // first site loaded
 	RSDDataset->setSNPs = 0; // Init to 0 since we dont know yet whether this is a polymorphic one or not
 
+	RSDDataset->preLoadedsetSNPs = (uint64_t)RSDDataset->setSize;
+
 	if(vali<RSDCommandLine->windowSize)
 	{	
 		fsetpos(RSDDataset->inputFilePtr, &(RSDDataset->setPosition));
@@ -761,6 +769,8 @@ int RSDDataset_getFirstSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 
 	RSDDataset_calcMuVarDenom (RSDDataset);
 
+	assert((uint64_t)RSDDataset->setSNPs<=RSDDataset->preLoadedsetSNPs); // if this fails, the bug fixed in version 2.4 might be triggered for ms files.
+
 	return setDone;
 }
 
@@ -846,6 +856,8 @@ int RSDDataset_getNextSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDP
 
 	while((RSDPatternPool->incomingSiteDerivedAlleleCount==0||RSDPatternPool->incomingSiteDerivedAlleleCount==RSDDataset->numberOfSamples || maf_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, maf, &RSDDataset->setSitesDiscardedMafCheckFailed, 0)!=1) && setDone==0) // keep loading until first SNP is found
 		setDone = RSDDataset_getNextSNP_ms (RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine, length, maf, fpOut);
+
+	assert((uint64_t)RSDDataset->setSNPs<=RSDDataset->preLoadedsetSNPs); // if this fails, the bug fixed in version 2.4 might be triggered for ms files.
 
 	return setDone;
 }
@@ -939,11 +951,42 @@ int RSDDataset_getNumberOfSamples_vcf_gz (RSDDataset_t * RSDDataset)
 		tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
 		char tchar=tstring[0]; 
 		char sampleName [STRING_SIZE];
+
+/******/		
+		int multiStringName = 0;
+
+		if(tstring[0]=='"')
+			multiStringName = 1;
+/******/
 	
 		while(tstring[0]!='\n' && tstring[0]!=EOF && tstring[0]!='\r')
 		{
 			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
 			assert(rcnt==1);
+
+/******/
+			if(multiStringName==1)
+			{
+				char tstring2[STRING_SIZE];
+
+				rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring2);
+				assert(rcnt==1);
+
+				while(tstring2[strlen(tstring2)-1]!='"')
+				{
+					strcat(tstring, "_");
+					strcat(tstring, tstring2);
+
+					rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring2);
+					assert(rcnt==1);
+				}
+
+				strcat(tstring, "_");
+				strcat(tstring, tstring2);
+
+				multiStringName = 0;
+			}
+/******/
 
 			if(RSDDataset->sampleFilePtr!=NULL)
 			{
@@ -979,6 +1022,12 @@ int RSDDataset_getNumberOfSamples_vcf_gz (RSDDataset_t * RSDDataset)
 				tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
 				tchar = tstring[0];
 			}
+
+/******/
+			if(tstring[0]=='"')
+				multiStringName = 1;
+/******/
+
 		}
 		assert(tstring[0]=='\n' || tstring[0]=='\r');
 		gzungetc(tstring[0], RSDDataset->inputFilePtrGZ);		
@@ -993,28 +1042,177 @@ int RSDDataset_getNumberOfSamples_vcf_gz (RSDDataset_t * RSDDataset)
 	return -1;	
 }
 
-void RSDDataset_getSetRegionLength_vcf_gz (RSDDataset_t * RSDDataset)
+void RSDDataset_getSetRegionLength_vcf_gz (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine, FILE * fpOut)
 {
 	double setRegionSize=0.0, setSizeTmp=0.0;
 	int rcnt=0, setDone = 0;
 	char tstring[STRING_SIZE], chromosome[STRING_SIZE];
+
+	int64_t setSNPs=0;
+	int64_t setVCFEntries=0;
+
+	int64_t setSitesDiscardedMonomorphic=0;
+	int64_t setSitesDiscardedMafCheckFailed=0;
+	int64_t setSitesDiscardedStrictPolymorphicCheckFailed=0;
+	int64_t setSitesDiscardedHeaderCheckFailed = 0;
+	int64_t setSitesDiscardedWithMissing = 0;
 
 	z_off_t setPositionGZ = gztell(RSDDataset->inputFilePtrGZ); 
 	//fpos_t 	setPosition;
 	//fgetpos(RSDDataset->inputFilePtr, &setPosition); // start position
 	//RSDDataset->setPositionGZ = gztell(RSDDataset->inputFilePtrGZ);
 
-	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, chromosome);
+	// First VCF entry
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, chromosome); // chromosome
 	assert(rcnt==1);
 
-	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // position
 	assert(rcnt==1);
 
 	setRegionSize = (double)atof(tstring);
 
-	tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
-	while(tstring[0]!='\n' && tstring[0]!=EOF)
-		tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ); // get to the end of the line
+/****v2.4*****/
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // id
+	assert(rcnt==1);
+
+	int successSum = 0;
+	int alleleMapSize = 0;
+	char alleleMap[STRING_SIZE];
+
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // ref
+	assert(rcnt==1);
+
+	if(strlen(tstring)==1)
+	{
+		successSum++;
+		alleleMap[alleleMapSize++] = tstring[0];
+		alleleMap[alleleMapSize] = '\0';		
+	}
+
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // alt
+	assert(rcnt==1);
+
+	if(strlen(tstring)==1)
+	{
+		successSum++;
+		alleleMap[alleleMapSize++] = tstring[0];
+		alleleMap[alleleMapSize] = '\0';
+	}
+
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // qual
+	assert(rcnt==1);
+	
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // filter
+	assert(rcnt==1);
+
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // info
+	assert(rcnt==1);
+
+	rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // format
+	assert(rcnt==1);
+
+	int gtLoc = getGXLocation_vcf (tstring, "GT");
+	
+	if(gtLoc!=-1)
+		successSum++;
+
+	int gpLoc = -1, glLoc = -1;
+
+	if(gtLoc==-1)
+	{
+		gpLoc = getGXLocation_vcf (tstring, "GP");
+		glLoc = getGXLocation_vcf (tstring, "GL");
+
+		if(gpLoc!=-1 && glLoc!=-1)
+			successSum++;
+	}
+	
+	int skipSNP = 0;
+
+	int incomingSiteDerivedAlleleCount = 0;
+	int incomingSiteTotalAlleleCount = 0;
+
+	int sampleSize = 0;
+
+	if(successSum>=3)
+	{
+		successSum = 1;
+		sampleSize = 0;
+
+		int i;
+		char data[STRING_SIZE], data2[STRING_SIZE];
+		
+		for(i=0;i<RSDDataset->numberOfSamplesVCF;i++) 
+		{
+			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // sample
+			assert(rcnt==1);
+
+			if(RSDDataset->sampleValid[i]==SAMPLE_IS_VALID)
+			{
+				getGTData_vcf(tstring, gtLoc, gpLoc, glLoc, data);
+				skipSNP = getGTAlleles_vcf (data, alleleMap, alleleMapSize, data2, &incomingSiteDerivedAlleleCount, &incomingSiteTotalAlleleCount, (int)RSDCommandLine->ploidy);
+
+				if(RSDCommandLine->imputePerSNP==1 || RSDCommandLine->createPatternPoolMask==1 || (!skipSNP))
+				{
+					sampleSize += strlen(data2);					
+				}
+				else
+				{
+					//skipline
+					tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+					while(tstring[0]!='\n')
+						tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ); // get to the end of the line
+
+					setSitesDiscardedWithMissing++;
+
+					assert(skipSNP==1);
+								
+					break;
+				}
+			}			
+		}
+
+		if(RSDCommandLine->imputePerSNP==1 || RSDCommandLine->createPatternPoolMask==1)
+		{
+			skipSNP = strictPolymorphic_check(incomingSiteDerivedAlleleCount, incomingSiteTotalAlleleCount, &setSitesDiscardedStrictPolymorphicCheckFailed, 0)==1?0:1;
+
+			if(RSDCommandLine->imputePerSNP==1 && (!skipSNP))
+			{
+				skipSNP=0; // assume snp after impute
+			}	
+		}
+	}
+	else
+	{
+		assert(skipSNP==0);
+		skipSNP=1; // no snp if header-check failed
+
+		successSum = 0;
+		incomingSiteDerivedAlleleCount = 0;
+		incomingSiteTotalAlleleCount = 0;
+
+		//skipline
+		tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+		while(tstring[0]!='\n')
+			tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ); // get to the end of the line
+
+		setSitesDiscardedHeaderCheckFailed++;		
+	}
+
+	// snp checks
+	skipSNP = monomorphic_check(incomingSiteDerivedAlleleCount, sampleSize, &setSitesDiscardedMonomorphic, skipSNP)==1?0:1;
+	skipSNP = maf_check(incomingSiteDerivedAlleleCount, incomingSiteTotalAlleleCount, RSDCommandLine->maf, &setSitesDiscardedMafCheckFailed, skipSNP)==1?0:1;
+	
+	if(!skipSNP)
+		setSNPs++;
+
+	setVCFEntries++;
+
+/*********/	
+
+	//tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+	//while(tstring[0]!='\n' && tstring[0]!=EOF)
+	//	tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ); // get to the end of the line
 
 	while(setDone==0)
 	{
@@ -1031,12 +1229,160 @@ void RSDDataset_getSetRegionLength_vcf_gz (RSDDataset_t * RSDDataset)
 
 			setSizeTmp = (double)atof(tstring);
 
+			if(setSizeTmp<setRegionSize)
+			{
+				fprintf(fpOut, "\n\nERROR: Out-of-order VCF entry found at location %.0f! Unzip and rerun using -o to order the input file!\n\n", setSizeTmp);
+				fflush(fpOut);
+
+				fprintf(stdout, "\n\nERROR: Out-of-order VCF entry found at location %.0f! Unzip and rerun using -o to order the input file!\n\n", setSizeTmp);
+				fflush(stdout);
+
+				exit(0);
+			}
+
 			assert(setSizeTmp>=setRegionSize);
 			setRegionSize = setSizeTmp;
 
-			tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
-			while(tstring[0]!='\n' && tstring[0]!=EOF)
-				tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ); // get to the end of the line
+/****v2.4*****/
+			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // id
+			assert(rcnt==1);
+
+			int successSum = 0;
+			int alleleMapSize = 0;
+			char alleleMap[STRING_SIZE];
+
+			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // ref
+			assert(rcnt==1);
+
+			if(strlen(tstring)==1)
+			{
+				successSum++;
+				alleleMap[alleleMapSize++] = tstring[0];
+				alleleMap[alleleMapSize] = '\0';		
+			}
+
+			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // alt
+			assert(rcnt==1);
+
+			if(strlen(tstring)==1)
+			{
+				successSum++;
+				alleleMap[alleleMapSize++] = tstring[0];
+				alleleMap[alleleMapSize] = '\0';
+			}
+
+			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // qual
+			assert(rcnt==1);
+	
+			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // filter
+			assert(rcnt==1);
+
+			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // info
+			assert(rcnt==1);
+
+			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // format
+			assert(rcnt==1);
+
+			int gtLoc = getGXLocation_vcf (tstring, "GT");
+	
+			if(gtLoc!=-1)
+				successSum++;
+
+			int gpLoc = -1, glLoc = -1;
+
+			if(gtLoc==-1)
+			{
+				gpLoc = getGXLocation_vcf (tstring, "GP");
+				glLoc = getGXLocation_vcf (tstring, "GL");
+
+				if(gpLoc!=-1 && glLoc!=-1)
+					successSum++;
+			}
+	
+			skipSNP = 0;
+
+			if(successSum>=3)
+			{
+				successSum = 1;
+				sampleSize = 0;
+
+				int i;
+				char data[STRING_SIZE], data2[STRING_SIZE];
+
+				incomingSiteDerivedAlleleCount = 0;
+				incomingSiteTotalAlleleCount = 0;
+
+
+				for(i=0;i<RSDDataset->numberOfSamplesVCF;i++) 
+				{
+					rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // sample
+					assert(rcnt==1);
+
+					if(RSDDataset->sampleValid[i]==SAMPLE_IS_VALID)
+					{
+						getGTData_vcf(tstring, gtLoc, gpLoc, glLoc, data);
+						skipSNP = getGTAlleles_vcf (data, alleleMap, alleleMapSize, data2, &incomingSiteDerivedAlleleCount, &incomingSiteTotalAlleleCount, (int)RSDCommandLine->ploidy);
+
+						if(RSDCommandLine->imputePerSNP==1 || RSDCommandLine->createPatternPoolMask==1 || (!skipSNP))
+						{
+							sampleSize += strlen(data2);
+						}
+						else
+						{
+							//skipline
+							tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+							while(tstring[0]!='\n')
+								tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ); // get to the end of the line
+
+							setSitesDiscardedWithMissing++;
+
+							assert(skipSNP==1);
+								
+							break;
+						}
+					}			
+				}
+
+				if(RSDCommandLine->imputePerSNP==1 || RSDCommandLine->createPatternPoolMask==1)
+				{
+
+					skipSNP = strictPolymorphic_check(incomingSiteDerivedAlleleCount, incomingSiteTotalAlleleCount, &setSitesDiscardedStrictPolymorphicCheckFailed, 0)==1?0:1;
+
+					if(RSDCommandLine->imputePerSNP==1 && (!skipSNP))
+					{
+						skipSNP=0; // assume snp after impute
+					}	
+				}
+			}
+			else
+			{
+				assert(skipSNP==0);
+				skipSNP=1; // no snp if header-check failed
+
+				successSum = 0;
+				incomingSiteDerivedAlleleCount = 0;
+				incomingSiteTotalAlleleCount = 0;
+
+				//skipline
+				tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+				while(tstring[0]!='\n')
+					tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ); // get to the end of the line
+
+				setSitesDiscardedHeaderCheckFailed++;		
+			}
+
+			// snp checks
+			skipSNP = monomorphic_check(incomingSiteDerivedAlleleCount, sampleSize, &setSitesDiscardedMonomorphic, skipSNP)==1?0:1;
+			skipSNP = maf_check(incomingSiteDerivedAlleleCount, incomingSiteTotalAlleleCount, RSDCommandLine->maf, &setSitesDiscardedMafCheckFailed, skipSNP)==1?0:1;
+	
+			if(!skipSNP)
+				setSNPs++;
+	
+			setVCFEntries++;		
+/*********/
+			//tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+			//while(tstring[0]!='\n' && tstring[0]!=EOF)
+			//	tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ); // get to the end of the line
 
 			if(tstring[0]==EOF)
 				setDone = 1;
@@ -1047,6 +1393,8 @@ void RSDDataset_getSetRegionLength_vcf_gz (RSDDataset_t * RSDDataset)
 		}	
 	}
 
+	RSDDataset->preLoadedsetSNPs = (uint64_t)setSNPs;
+
 	gzseek(RSDDataset->inputFilePtrGZ, setPositionGZ, SEEK_SET);
 	//fsetpos(RSDDataset->inputFilePtr, &setPosition); // restore start position
 	RSDDataset->setRegionLength = (uint64_t)setRegionSize;
@@ -1054,10 +1402,15 @@ void RSDDataset_getSetRegionLength_vcf_gz (RSDDataset_t * RSDDataset)
 
 int RSDDataset_getFirstSNP_vcf_gz (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut)
 {
-	if(length!=0ull)
+	if(length!=0ull && RSDCommandLine->regionSNPs!=0ull)
+	{
 		RSDDataset->setRegionLength = length;
+		RSDDataset->preLoadedsetSNPs = RSDCommandLine->regionSNPs;
+	}
 	else
-		RSDDataset_getSetRegionLength_vcf_gz (RSDDataset);
+	{
+		RSDDataset_getSetRegionLength_vcf_gz (RSDDataset, RSDCommandLine, fpOut);
+	}
 
 	int setDone = 0;
 	while(!setDone && RSDPatternPool->incomingSitePosition<=-1.0) 
@@ -1114,7 +1467,7 @@ int RSDDataset_getNextSNP_vcf_gz (RSDDataset_t * RSDDataset, RSDPatternPool_t * 
 
 	if(vali>(double)length)
 	{
-		fprintf(stderr, "\nERROR: Data is found at position %.0f, whereas the region size is set to %.0f via -L.\n       (-L is not required with VCF files)\n\n",vali, (double)length);
+		fprintf(stderr, "\nERROR: A VCF entry is found at position %.0f, whereas the region size is set to %.0f via -B.\n       (-B is not required with VCF files)\n\n",vali, (double)length);
 		exit(0);
 	}
 
@@ -1200,7 +1553,7 @@ int RSDDataset_getNextSNP_vcf_gz (RSDDataset_t * RSDDataset, RSDPatternPool_t * 
 
 		for(i=0;i<RSDDataset->numberOfSamplesVCF;i++) 
 		{
-			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // format
+			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring); // sample
 			assert(rcnt==1);
 
 			if(RSDDataset->sampleValid[i]==SAMPLE_IS_VALID)
@@ -1513,11 +1866,20 @@ int RSDDataset_getNumberOfSamples_vcf (RSDDataset_t * RSDDataset)
 	return -1;	
 }
 
-void RSDDataset_getSetRegionLength_vcf (RSDDataset_t * RSDDataset)
+void RSDDataset_getSetRegionLength_vcf (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine, FILE * fpOut)
 {
 	double setRegionSize=0.0, setSizeTmp=0.0;
 	int rcnt=0, setDone = 0;
 	char tstring[STRING_SIZE], chromosome[STRING_SIZE];
+
+	int64_t setSNPs=0;
+	int64_t setVCFEntries=0;
+
+	int64_t setSitesDiscardedMonomorphic=0;
+	int64_t setSitesDiscardedMafCheckFailed=0;
+	int64_t setSitesDiscardedStrictPolymorphicCheckFailed=0;
+	int64_t setSitesDiscardedHeaderCheckFailed = 0;
+	int64_t setSitesDiscardedWithMissing = 0;
 
 	fpos_t 	setPosition;
 	fgetpos(RSDDataset->inputFilePtr, &setPosition); // start position
@@ -1530,9 +1892,148 @@ void RSDDataset_getSetRegionLength_vcf (RSDDataset_t * RSDDataset)
 
 	setRegionSize = (double)atof(tstring);
 
-	tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
-	while(tstring[0]!='\n' && tstring[0]!=EOF)
-		tstring[0] = (char)fgetc(RSDDataset->inputFilePtr); // get to the end of the line
+/****v2.4*****/
+	rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // id
+	assert(rcnt==1);
+
+	int successSum = 0;
+	int alleleMapSize = 0;
+	char alleleMap[STRING_SIZE];
+
+	rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // ref
+	assert(rcnt==1);
+
+	if(strlen(tstring)==1)
+	{
+		successSum++;
+		alleleMap[alleleMapSize++] = tstring[0];
+		alleleMap[alleleMapSize] = '\0';		
+	}
+
+	rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // alt
+	assert(rcnt==1);
+
+	if(strlen(tstring)==1)
+	{
+		successSum++;
+		alleleMap[alleleMapSize++] = tstring[0];
+		alleleMap[alleleMapSize] = '\0';
+	}
+
+	rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // qual
+	assert(rcnt==1);
+	
+	rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // filter
+	assert(rcnt==1);
+
+	rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // info
+	assert(rcnt==1);
+
+	rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // format
+	assert(rcnt==1);
+
+	int gtLoc = getGXLocation_vcf (tstring, "GT");
+	
+	if(gtLoc!=-1)
+		successSum++;
+
+	int gpLoc = -1, glLoc = -1;
+
+	if(gtLoc==-1)
+	{
+		gpLoc = getGXLocation_vcf (tstring, "GP");
+		glLoc = getGXLocation_vcf (tstring, "GL");
+
+		if(gpLoc!=-1 && glLoc!=-1)
+			successSum++;
+	}
+	
+	int skipSNP = 0;
+
+	int incomingSiteDerivedAlleleCount = 0;
+	int incomingSiteTotalAlleleCount = 0;
+
+	int sampleSize = 0;
+
+	if(successSum>=3)
+	{
+		successSum = 1;
+		sampleSize = 0;
+
+		int i;
+		char data[STRING_SIZE], data2[STRING_SIZE];
+		
+		for(i=0;i<RSDDataset->numberOfSamplesVCF;i++) 
+		{
+			rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // sample
+			assert(rcnt==1);
+
+			if(RSDDataset->sampleValid[i]==SAMPLE_IS_VALID)
+			{
+				getGTData_vcf(tstring, gtLoc, gpLoc, glLoc, data);
+				skipSNP = getGTAlleles_vcf (data, alleleMap, alleleMapSize, data2, &incomingSiteDerivedAlleleCount, &incomingSiteTotalAlleleCount, (int)RSDCommandLine->ploidy);
+
+				if(RSDCommandLine->imputePerSNP==1 || RSDCommandLine->createPatternPoolMask==1 || (!skipSNP))
+				{
+					sampleSize += strlen(data2);					
+				}
+				else
+				{
+					//skipline
+					tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
+					while(tstring[0]!='\n')
+						tstring[0] = (char)fgetc(RSDDataset->inputFilePtr); // get to the end of the line
+
+					setSitesDiscardedWithMissing++;
+
+					assert(skipSNP==1);
+								
+					break;
+				}
+			}			
+		}
+
+		if(RSDCommandLine->imputePerSNP==1 || RSDCommandLine->createPatternPoolMask==1)
+		{
+			skipSNP = strictPolymorphic_check(incomingSiteDerivedAlleleCount, incomingSiteTotalAlleleCount, &setSitesDiscardedStrictPolymorphicCheckFailed, 0)==1?0:1;
+
+			if(RSDCommandLine->imputePerSNP==1 && (!skipSNP))
+			{
+				skipSNP=0; // assume snp after impute
+			}	
+		}
+	}
+	else
+	{
+		assert(skipSNP==0);
+		skipSNP=1; // no snp if header-check failed
+
+		successSum = 0;
+		incomingSiteDerivedAlleleCount = 0;
+		incomingSiteTotalAlleleCount = 0;
+
+		//skipline
+		tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
+		while(tstring[0]!='\n')
+			tstring[0] = (char)fgetc(RSDDataset->inputFilePtr); // get to the end of the line
+
+		setSitesDiscardedHeaderCheckFailed++;		
+	}
+
+	// snp checks
+	skipSNP = monomorphic_check(incomingSiteDerivedAlleleCount, sampleSize, &setSitesDiscardedMonomorphic, skipSNP)==1?0:1;
+	skipSNP = maf_check(incomingSiteDerivedAlleleCount, incomingSiteTotalAlleleCount, RSDCommandLine->maf, &setSitesDiscardedMafCheckFailed, skipSNP)==1?0:1;
+	
+	if(!skipSNP)
+		setSNPs++;
+
+	setVCFEntries++;
+
+/*********/	
+
+	//tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
+	//while(tstring[0]!='\n' && tstring[0]!=EOF)
+	//	tstring[0] = (char)fgetc(RSDDataset->inputFilePtr); // get to the end of the line
 
 	while(setDone==0)
 	{
@@ -1549,12 +2050,161 @@ void RSDDataset_getSetRegionLength_vcf (RSDDataset_t * RSDDataset)
 
 			setSizeTmp = (double)atof(tstring);
 
+			if(setSizeTmp<setRegionSize)
+			{
+				fprintf(fpOut, "\n\nERROR: Out-of-order VCF entry found at location %.0f! Rerun using -o to order the input file!\n\n", setSizeTmp);
+				fflush(fpOut);
+
+				fprintf(stdout, "\n\nERROR: Out-of-order VCF entry found at location %.0f! Rerun using -o to order the input file!\n\n", setSizeTmp);
+				fflush(stdout);
+
+				exit(0);
+			}
+
 			assert(setSizeTmp>=setRegionSize);
 			setRegionSize = setSizeTmp;
 
-			tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
-			while(tstring[0]!='\n' && tstring[0]!=EOF)
-				tstring[0] = (char)fgetc(RSDDataset->inputFilePtr); // get to the end of the line
+/****v2.4*****/
+			rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // id
+			assert(rcnt==1);
+
+			successSum = 0;
+			alleleMapSize = 0;
+			char alleleMapN[STRING_SIZE];
+
+			rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // ref
+			assert(rcnt==1);
+
+			if(strlen(tstring)==1)
+			{
+				successSum++;
+				alleleMapN[alleleMapSize++] = tstring[0];
+				alleleMapN[alleleMapSize] = '\0';		
+			}
+
+			rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // alt
+			assert(rcnt==1);
+
+			if(strlen(tstring)==1)
+			{
+				successSum++;
+				alleleMapN[alleleMapSize++] = tstring[0];
+				alleleMapN[alleleMapSize] = '\0';
+			}
+
+			rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // qual
+			assert(rcnt==1);
+	
+			rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // filter
+			assert(rcnt==1);
+
+			rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // info
+			assert(rcnt==1);
+
+			rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // format
+			assert(rcnt==1);
+
+			gtLoc = getGXLocation_vcf (tstring, "GT");
+	
+			if(gtLoc!=-1)
+				successSum++;
+
+			gpLoc = -1;
+			glLoc = -1;
+
+			if(gtLoc==-1)
+			{
+				gpLoc = getGXLocation_vcf (tstring, "GP");
+				glLoc = getGXLocation_vcf (tstring, "GL");
+
+				if(gpLoc!=-1 && glLoc!=-1)
+					successSum++;
+			}
+	
+			skipSNP = 0;
+
+			if(successSum>=3)
+			{
+				successSum = 1;
+				sampleSize = 0;
+
+				int i;
+				char data[STRING_SIZE], data2[STRING_SIZE];
+
+				incomingSiteDerivedAlleleCount = 0;
+				incomingSiteTotalAlleleCount = 0;
+
+
+				for(i=0;i<RSDDataset->numberOfSamplesVCF;i++) 
+				{
+					rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // sample
+					assert(rcnt==1);
+
+					if(RSDDataset->sampleValid[i]==SAMPLE_IS_VALID)
+					{
+						getGTData_vcf(tstring, gtLoc, gpLoc, glLoc, data);
+						skipSNP = getGTAlleles_vcf (data, alleleMapN, alleleMapSize, data2, &incomingSiteDerivedAlleleCount, &incomingSiteTotalAlleleCount, (int)RSDCommandLine->ploidy);
+
+						if(RSDCommandLine->imputePerSNP==1 || RSDCommandLine->createPatternPoolMask==1 || (!skipSNP))
+						{
+							sampleSize += strlen(data2);
+						}
+						else
+						{
+							//skipline
+							tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
+							while(tstring[0]!='\n')
+								tstring[0] = (char)fgetc(RSDDataset->inputFilePtr); // get to the end of the line
+
+							setSitesDiscardedWithMissing++;
+
+							assert(skipSNP==1);
+								
+							break;
+						}
+					}			
+				}
+
+				if(RSDCommandLine->imputePerSNP==1 || RSDCommandLine->createPatternPoolMask==1)
+				{
+
+					skipSNP = strictPolymorphic_check(incomingSiteDerivedAlleleCount, incomingSiteTotalAlleleCount, &setSitesDiscardedStrictPolymorphicCheckFailed, 0)==1?0:1;
+
+					if(RSDCommandLine->imputePerSNP==1 && (!skipSNP))
+					{
+						skipSNP=0; // assume snp after impute
+					}	
+				}
+			}
+			else
+			{
+				assert(skipSNP==0);
+				skipSNP=1; // no snp if header-check failed
+
+				successSum = 0;
+				incomingSiteDerivedAlleleCount = 0;
+				incomingSiteTotalAlleleCount = 0;
+
+				//skipline
+				tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
+				while(tstring[0]!='\n')
+					tstring[0] = (char)fgetc(RSDDataset->inputFilePtr); // get to the end of the line
+
+				setSitesDiscardedHeaderCheckFailed++;		
+			}
+
+			// snp checks
+			skipSNP = monomorphic_check(incomingSiteDerivedAlleleCount, sampleSize, &setSitesDiscardedMonomorphic, skipSNP)==1?0:1;
+			skipSNP = maf_check(incomingSiteDerivedAlleleCount, incomingSiteTotalAlleleCount, RSDCommandLine->maf, &setSitesDiscardedMafCheckFailed, skipSNP)==1?0:1;
+	
+			if(!skipSNP)
+				setSNPs++;
+	
+			setVCFEntries++;		
+/*********/
+			//tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
+			//while(tstring[0]!='\n' && tstring[0]!=EOF)
+			//	tstring[0] = (char)fgetc(RSDDataset->inputFilePtr); // get to the end of the line
 
 			if(tstring[0]==EOF)
 				setDone = 1;
@@ -1565,16 +2215,23 @@ void RSDDataset_getSetRegionLength_vcf (RSDDataset_t * RSDDataset)
 		}	
 	}
 
+	RSDDataset->preLoadedsetSNPs = (uint64_t)setSNPs;
+
 	fsetpos(RSDDataset->inputFilePtr, &setPosition); // restore start position
 	RSDDataset->setRegionLength = (uint64_t)setRegionSize;
 }
 
 int RSDDataset_getFirstSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut)
 {
-	if(length!=0ull)
+	if(length!=0ull && RSDCommandLine->regionSNPs!=0ull)
+	{
 		RSDDataset->setRegionLength = length;
+		RSDDataset->preLoadedsetSNPs = RSDCommandLine->regionSNPs;
+	}
 	else
-		RSDDataset_getSetRegionLength_vcf (RSDDataset);
+	{
+		RSDDataset_getSetRegionLength_vcf (RSDDataset, RSDCommandLine, fpOut);
+	}
 
 	int setDone = 0;
 	while(!setDone && RSDPatternPool->incomingSitePosition<=-1.0) 
@@ -1629,7 +2286,7 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 
 	if(vali>(double)length)
 	{
-		fprintf(stderr, "\nERROR: Data is found at position %.0f, whereas the region size is set to %.0f via -L.\n       (-L is not required with VCF files)\n\n",vali, (double)length);
+		fprintf(stderr, "\nERROR: A VCF entry is found at position %.0f, whereas the region size is set to %.0f via -B.\n       (-B is not required with VCF files)\n\n",vali, (double)length);
 		exit(0);
 	}
 
@@ -1715,7 +2372,7 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 
 		for(i=0;i<RSDDataset->numberOfSamplesVCF;i++) 
 		{
-			rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // format
+			rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // sample
 			assert(rcnt==1);
 
 			if(RSDDataset->sampleValid[i]==SAMPLE_IS_VALID)

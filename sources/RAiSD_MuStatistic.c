@@ -1845,7 +1845,8 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		muVar = RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf];
 		muVar /= RSDDataset->setRegionLength;
 		muVar /= RSDMuStat->windowSize;
-		muVar *= RSDDataset->setSNPs;
+		//muVar *= RSDDataset->setSNPs;
+		muVar *= RSDDataset->preLoadedsetSNPs; // v2.4
 
 		// Mu_SFS
 		if(snpf>=1)
@@ -1986,8 +1987,9 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 		// Mu_Var
 		muVar = RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf];
 		muVar /= RSDDataset->setRegionLength;
-		muVar /= RSDMuStat->windowSize; 
-		muVar *= RSDDataset->setSNPs;
+		muVar /= RSDMuStat->windowSize;
+		//muVar *= RSDDataset->setSNPs;
+		muVar *= RSDDataset->preLoadedsetSNPs; // v2.4
 
 		// Mu_SFS
 		if(snpf>=1)
