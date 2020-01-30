@@ -496,6 +496,8 @@ v2.2 (22/1/2020): Added missing field (discarded monomorphic sites) in the site 
 
 v2.3 (23/1/2020): -X to exclude regions per chromosome from the analysis.
 
+v2.4 (Jan 30, 2020): -B for chromosome length and SNP size. Fixed bug with the memory-reduction optimization for large chromosomes. -o to request vcf ordering and generation.
+
 Support
 -------
 
