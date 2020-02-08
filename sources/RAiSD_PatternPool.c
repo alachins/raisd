@@ -1061,7 +1061,7 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 			assert(RSDChunk->chunkData!=NULL);
 		}
 #else
-		RSDChunk->sitePosition = rsd_realloc(RSDChunk->sitePosition, sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
+		RSDChunk->sitePosition = rsd_realloc(RSDChunk->sitePosition, sizeof(double)*((unsigned long)RSDChunk->chunkMemSize));
 		RSDChunk->derivedAlleleCount = rsd_realloc(RSDChunk->derivedAlleleCount, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
 		RSDChunk->patternID = rsd_realloc(RSDChunk->patternID, sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));
 #endif
@@ -1081,7 +1081,7 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 		RSDChunk->chunkData[(RSDChunk->chunkSize-1)*3+2] =  (float) i;
 	}
 #else
-	RSDChunk->sitePosition[RSDChunk->chunkSize-1] = (float) RSDPatternPool->incomingSitePosition;
+	RSDChunk->sitePosition[RSDChunk->chunkSize-1] = RSDPatternPool->incomingSitePosition;
 	RSDChunk->derivedAlleleCount[RSDChunk->chunkSize-1] = RSDPatternPool->incomingSiteDerivedAlleleCount;
 	RSDChunk->patternID[RSDChunk->chunkSize-1] = i;
 #endif

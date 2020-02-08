@@ -1800,7 +1800,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 
 	int i, j, size = (int)RSDChunk->chunkSize;
 
-	float windowCenter = 0.0f, windowStart = 0.0f, windowEnd = 0.0f;
+	double windowCenter = 0.0, windowStart = 0.0, windowEnd = 0.0;
 
 	float muVar = 0.0f;
 	float muSfs = 0.0f;
@@ -1831,7 +1831,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		int winrsnpl = snpl;
 		
 		// Window center (bp)
-		windowCenter = (RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0f;
+		windowCenter = round((RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0);
 		windowStart = RSDChunk->sitePosition[snpf];
 		windowEnd = RSDChunk->sitePosition[snpl];
 
@@ -1927,7 +1927,7 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 
 	int i, j, size = (int)RSDChunk->chunkSize;
 
-	float windowCenter = 0.0f, windowStart = 0.0f, windowEnd = 0.0f;
+	double windowCenter = 0.0, windowStart = 0.0, windowEnd = 0.0;
 
 	float muVar = 0.0f;
 	float muSfs = 0.0f;
@@ -1974,7 +1974,7 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 		int winrsnpl = snpl;
 		
 		// Window center (bp)
-		windowCenter = (RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0f;
+		windowCenter = round((RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0);
 		windowStart = RSDChunk->sitePosition[snpf];
 		windowEnd = RSDChunk->sitePosition[snpl];
 

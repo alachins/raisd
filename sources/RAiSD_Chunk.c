@@ -78,6 +78,9 @@ void RSDChunk_init(RSDChunk_t * RSDChunk, int64_t numberOfSamples, int64_t creat
 	assert(RSDChunk->seqPosition!=NULL);
 
 #ifdef _MLT
+
+	assert(0); // sitePosition was changed to double in version 2.5. MLT is in a proof-of-concept state.
+
 	if(createPatternPoolMask==1)
 	{
 		RSDChunk->sitePosition = (float*)rsd_malloc(sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
@@ -97,7 +100,7 @@ void RSDChunk_init(RSDChunk_t * RSDChunk, int64_t numberOfSamples, int64_t creat
 #else
 	assert(createPatternPoolMask==0 || createPatternPoolMask==1);
 
-	RSDChunk->sitePosition = (float*)rsd_malloc(sizeof(float)*((unsigned long)RSDChunk->chunkMemSize));
+	RSDChunk->sitePosition = (double*)rsd_malloc(sizeof(double)*((unsigned long)RSDChunk->chunkMemSize));
 	assert(RSDChunk->sitePosition != NULL);
 
 	RSDChunk->derivedAlleleCount = (int*)rsd_malloc(sizeof(int)*((unsigned long)RSDChunk->chunkMemSize));

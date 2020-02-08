@@ -26,13 +26,14 @@
 #include <inttypes.h>
 #include <time.h>
 #include <unistd.h>
+#include <math.h>
 #ifdef _ZLIB
 #include "zlib.h"
 #endif
 
 #define MAJOR_VERSION 2
-#define MINOR_VERSION 4
-#define RELEASE_MONTH "January"
+#define MINOR_VERSION 5
+#define RELEASE_MONTH "February"
 #define RELEASE_YEAR 2020
 
 /*Testing*/
@@ -232,7 +233,7 @@ typedef struct
 	fpos_t		posPosition;
 	fpos_t * 	seqPosition;
 
-	float * 	sitePosition;
+	double * 	sitePosition;
 	int * 		derivedAlleleCount;
 	int * 		patternID;
 
@@ -470,16 +471,16 @@ typedef struct
 	int *		pCntVec;    // temp array used to count pattern occurences, contains (sequentially and at a stride): pattern count left, pattern count right, pattern count exclusive left, pattern count exclusive right
 	
 	float 		muVarMax; 
-	float 		muVarMaxLoc;
+	double 		muVarMaxLoc;
 
 	float 		muSfsMax; 
-	float 		muSfsMaxLoc;
+	double 		muSfsMaxLoc;
 
 	float 		muLdMax; 
-	float		muLdMaxLoc;
+	double		muLdMaxLoc;
 
 	float 		muMax; 
-	float 		muMaxLoc;
+	double 		muMaxLoc;
 
 #ifdef _MUMEM
 	int64_t		muReportBufferSize;
