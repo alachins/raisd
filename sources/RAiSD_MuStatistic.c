@@ -43,16 +43,16 @@ RSDMuStat_t * RSDMuStat_new (void)
 	mu->pCntVec = NULL; 
 
 	mu->muVarMax = 0.0f; 
-	mu->muVarMaxLoc = 0.0f;
+	mu->muVarMaxLoc = 0.0;
 
 	mu->muSfsMax = 0.0f; 
-	mu->muSfsMaxLoc = 0.0f;
+	mu->muSfsMaxLoc = 0.0;
 
 	mu->muLdMax = 0.0f;
-	mu->muLdMaxLoc = 0.0f;
+	mu->muLdMaxLoc = 0.0;
 
 	mu->muMax = 0.0f; 
-	mu->muMaxLoc = 0.0f;
+	mu->muMaxLoc = 0.0;
 
 #ifdef _MUMEM
 	mu->muReportBufferSize = 1;
@@ -147,16 +147,16 @@ void RSDMuStat_init (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine)
 	assert(RSDCommandLine!=NULL);
 
 	RSDMuStat->muVarMax = 0.0f; 
-	RSDMuStat->muVarMaxLoc = 0.0f;
+	RSDMuStat->muVarMaxLoc = 0.0;
 
 	RSDMuStat->muSfsMax = 0.0f; 
-	RSDMuStat->muSfsMaxLoc = 0.0f;
+	RSDMuStat->muSfsMaxLoc = 0.0;
 
 	RSDMuStat->muLdMax = 0.0f;
-	RSDMuStat->muLdMaxLoc = 0.0f;
+	RSDMuStat->muLdMaxLoc = 0.0;
 
 	RSDMuStat->muMax = 0.0f; 
-	RSDMuStat->muMaxLoc = 0.0f;
+	RSDMuStat->muMaxLoc = 0.0;
 
 	RSDMuStat->windowSize = RSDCommandLine->windowSize;
 
@@ -1842,7 +1842,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 				isValid = 0.0;
 
 		// Mu_Var
-		muVar = RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf];
+		muVar = (float)(RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf]);
 		muVar /= RSDDataset->setRegionLength;
 		muVar /= RSDMuStat->windowSize;
 		//muVar *= RSDDataset->setSNPs;
@@ -1985,7 +1985,7 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 				isValid = 0.0;
 
 		// Mu_Var
-		muVar = RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf];
+		muVar = (float)(RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf]);
 		muVar /= RSDDataset->setRegionLength;
 		muVar /= RSDMuStat->windowSize;
 		//muVar *= RSDDataset->setSNPs;

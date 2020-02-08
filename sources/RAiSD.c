@@ -256,31 +256,31 @@ int main (int argc, char ** argv)
 			// Dist and Succ
 			if(selectionTarget!=0ull)
 			{
-				MuVar_Accum += (double) DIST (RSDMuStat->muVarMaxLoc, (float)selectionTarget);
+				MuVar_Accum += DIST (RSDMuStat->muVarMaxLoc, (double)selectionTarget);
 				if(selectionTargetDThreshold!=0ull)
 				{
-					if(DIST (RSDMuStat->muVarMaxLoc, (float)selectionTarget)<=selectionTargetDThreshold)
+					if(DIST (RSDMuStat->muVarMaxLoc, (double)selectionTarget)<=selectionTargetDThreshold)
 						MuVar_Success += 1.0;
 				}
 
-				MuSfs_Accum += (double) DIST (RSDMuStat->muSfsMaxLoc, (float)selectionTarget);
+				MuSfs_Accum += DIST (RSDMuStat->muSfsMaxLoc, (double)selectionTarget);
 				if(selectionTargetDThreshold!=0ull)
 				{
-					if(DIST (RSDMuStat->muSfsMaxLoc, (float)selectionTarget)<=selectionTargetDThreshold)
+					if(DIST (RSDMuStat->muSfsMaxLoc, (double)selectionTarget)<=selectionTargetDThreshold)
 						MuSfs_Success += 1.0;
 				}
 
-				MuLd_Accum += (double) DIST (RSDMuStat->muLdMaxLoc, (float)selectionTarget);
+				MuLd_Accum += DIST (RSDMuStat->muLdMaxLoc, (double)selectionTarget);
 				if(selectionTargetDThreshold!=0ull)
 				{
-					if(DIST (RSDMuStat->muLdMaxLoc, (float)selectionTarget)<=selectionTargetDThreshold)
+					if(DIST (RSDMuStat->muLdMaxLoc, (double)selectionTarget)<=selectionTargetDThreshold)
 						MuLd_Success += 1.0;
 				}
 
-				Mu_Accum += (double) DIST (RSDMuStat->muMaxLoc, (float)selectionTarget);
+				Mu_Accum += DIST (RSDMuStat->muMaxLoc, (double)selectionTarget);
 				if(selectionTargetDThreshold!=0ull)
 				{
-					if(DIST (RSDMuStat->muMaxLoc, (float)selectionTarget)<=selectionTargetDThreshold)
+					if(DIST (RSDMuStat->muMaxLoc, (double)selectionTarget)<=selectionTargetDThreshold)
 						Mu_Success += 1.0;
 				}
 			}

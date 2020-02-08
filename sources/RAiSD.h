@@ -134,7 +134,7 @@ int 			getGXData_vcf 			(char * string, int location, char * data);
 void			getGTData_vcf 			(char * string, int locationGT, int locationGP, int locationGL, char * data);
 int			getGTAlleles_vcf		(char * string, char * stateVector, int statesTotal, char * sampleData, int * derivedAlleleCount, int * totalAlleleCount, int ploidy);
 int			rsd_popcnt_u64			(uint64_t input);
-float 			DIST 				(float a, float b);
+double 			DIST 				(double a, double b);
 float * 		putInSortVector			(int * size, float * vector, float value);
 char 			alleleMask_binary 		(char c, int * isDerived, int *isValid, FILE * fpOut);
 int 			monomorphic_check 		(int incomingSiteDerivedAlleleCount, int setSamples, int64_t * cnt, int skipSNP);
@@ -471,15 +471,13 @@ typedef struct
 	int *		pCntVec;    // temp array used to count pattern occurences, contains (sequentially and at a stride): pattern count left, pattern count right, pattern count exclusive left, pattern count exclusive right
 	
 	float 		muVarMax; 
-	double 		muVarMaxLoc;
-
 	float 		muSfsMax; 
-	double 		muSfsMaxLoc;
-
 	float 		muLdMax; 
-	double		muLdMaxLoc;
+	float 		muMax;
 
-	float 		muMax; 
+	double 		muVarMaxLoc;
+	double 		muSfsMaxLoc;
+	double		muLdMaxLoc; 
 	double 		muMaxLoc;
 
 #ifdef _MUMEM

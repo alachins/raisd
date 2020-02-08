@@ -463,7 +463,7 @@ float * putInSortVector(int * size, float * vector, float value)
 	return vector;
 }
 
-float DIST (float a, float b)
+double DIST (double a, double b)
 {
 	if(a>=b)
 		return a-b;
