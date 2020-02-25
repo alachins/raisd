@@ -21,7 +21,8 @@
 
 #include "RAiSD.h"
 
-float 	getPatternCounts 		(int * pCntVec, int offset, int * patternID, int p0, int p1, int p2, int p3, int * pcntl, int * pcntr, int * pcntexll, int * pcntexlr);
+//float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int p1, int p2, int p3, int * pcntl, int * pcntr, int * pcntexll, int * pcntexlr);
+float 	getPatternCounts (int winMode, RSDMuStat_t * RSDMuStat, int sizeL, int sizeR, int * patternID, int p0, int p1, int p2, int p3, int * pcntl, int * pcntr, int * pcntexll, int * pcntexlr);
 float 	getCrossLD 			(RSDPatternPool_t * pp, int p0, int p1, int p2, int p3, int samples);
 float 	getRegionLD 			(RSDPatternPool_t * pp, int p0, int p1, int samples);
 float 	pwLD 				(RSDPatternPool_t * pp, int p1, int p2, int samples);
@@ -378,6 +379,7 @@ float getCrossLD (RSDPatternPool_t * pp, int p0, int p1, int p2, int p3, int sam
 	return (float)totalLD;
 }
 
+/*#ifdef _REF
 float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int p1, int p2, int p3, int * pcntl, int * pcntr, int * pcntexll, int * pcntexlr)
 {
 	int i, j;
@@ -478,6 +480,172 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 	assert(list_left_size - excl_left == list_right_size - excl_right);
 
 
+	// Exclusive SNPs left 
+	int excntsnpsl = 0;
+	for(i=p0;i<=p1;i++)
+	{
+		int match = 0;
+		for(j=p2;j<=p3;j++)
+		{
+			if(patternID[i]==patternID[j])
+			{
+				match = 1;
+				j=p3+1;
+				
+			}
+		}
+
+		if(match==0)
+		{
+			excntsnpsl++;
+		}
+	}
+	*pcntexll = (*pcntexll) * excntsnpsl;
+
+	int excntsnpsr = 0;
+	for(i=p2;i<=p3;i++)
+	{
+		int match = 0;
+		for(j=p0;j<=p1;j++)
+		{
+			if(patternID[i]==patternID[j])
+			{
+				match = 1;
+				j=p1+1;
+				
+			}
+		}
+
+		if(match==0)
+		{
+			excntsnpsr++;
+		}
+	}
+	*pcntexlr = (*pcntexlr) * excntsnpsr;
+
+	return 0;
+}
+#endif
+*/
+
+float getPatternCounts (int winMode, RSDMuStat_t * RSDMuStat, int sizeL, int sizeR, int * patternID, int p0, int p1, int p2, int p3, int * pcntl, int * pcntr, int * pcntexll, int * pcntexlr)
+{
+	int i, j;
+
+	if(winMode!=WIN_MODE_FXD)
+	{ // TODO: Realloc must be called when needed. Not per call. Fix this before release.
+		if(RSDMuStat->pCntVec!=NULL)
+		{
+			free(RSDMuStat->pCntVec);
+			RSDMuStat->pCntVec = NULL;
+		}
+
+		if(RSDMuStat->pCntVec==NULL)
+		{
+			RSDMuStat->pCntVec = (int *)rsd_malloc(sizeof(int)*((unsigned long)(RSDMuStat->windowSize*4)));
+			assert(RSDMuStat->pCntVec!=NULL);
+		}
+	}
+
+	int * pCntVec = RSDMuStat->pCntVec;
+	assert(pCntVec!=NULL);
+
+	int list_left_size = 0;
+	int * list_left = &(pCntVec[0]); 
+	int * list_left_cnt = &(pCntVec[sizeL]); 
+	list_left[0] = patternID[p0];
+	list_left_cnt[0] = 1;
+	list_left_size++;
+
+	// Left subwindow
+	for(i=p0+1;i<=p1;i++)
+	{
+		int match = 0;
+		for(j=0;j<list_left_size;j++)
+		{
+			if(list_left[j]==patternID[i])
+			{
+				match = 1;
+				list_left_cnt[j]++;
+				
+			}
+		}
+
+		if(match==0)
+		{
+			list_left_size++;
+			list_left[list_left_size-1] = patternID[i];
+			list_left_cnt[list_left_size-1] = 1;
+		}
+	}
+		
+	*pcntl = list_left_size; 
+
+	int checksum = 0;
+	for(i=0;i<list_left_size;i++)
+		checksum += list_left_cnt[i];
+
+	assert(checksum==p1-p0+1);
+
+
+	int list_right_size = 0;
+	int * list_right = &(pCntVec[2*sizeL]); 
+	int * list_right_cnt = &(pCntVec[2*sizeL+sizeR]); 
+	list_right[0] = patternID[p2];
+	list_right_cnt[0] = 1;
+	list_right_size++;	
+
+	for(i=p2+1;i<=p3;i++)
+	{
+		int match = 0;
+		for(j=0;j<list_right_size;j++)
+		{
+			if(list_right[j]==patternID[i])
+			{
+				match = 1;
+				list_right_cnt[j]++;
+			}
+		}
+
+		if(match==0)
+		{
+			list_right_size++;
+			list_right[list_right_size-1] = patternID[i];
+			list_right_cnt[list_right_size-1] = 1;
+		}
+	}
+		
+	*pcntr = list_right_size;
+
+
+	int excl_left = list_left_size;
+	for(i=0;i<list_left_size;i++)
+	{
+		for(j=0;j<list_right_size;j++)
+		{
+			if(list_left[i] == list_right[j])
+			{
+				excl_left--;
+			}
+		}
+	}
+	*pcntexll = excl_left;
+
+	int excl_right = list_right_size;
+	for(i=0;i<list_right_size;i++)
+	{
+		for(j=0;j<list_left_size;j++)
+		{
+			if(list_right[i] == list_left[j])
+			{
+				excl_right--;
+			}
+		}
+	}
+	*pcntexlr = excl_right;
+	assert(list_left_size - excl_left == list_right_size - excl_right);
+
+
 	/* Exclusive SNPs left */
 	/* */
 	int excntsnpsl = 0;
@@ -521,6 +689,12 @@ float getPatternCounts (int * pCntVec, int offset, int * patternID, int p0, int 
 		}
 	}
 	*pcntexlr = (*pcntexlr) * excntsnpsr;
+
+	if(winMode!=WIN_MODE_FXD)
+	{
+		free(RSDMuStat->pCntVec);
+		RSDMuStat->pCntVec = NULL;
+	}
 
 	return 0;
 }
@@ -1792,6 +1966,929 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 }
 // End of TRETS2019 MuStatistic implementation (DAER2+HAM+MLT)
 #else
+#ifdef _EXP1
+// Start of experimental sliding-window implementation 1: one-sided expansion, single evaluation
+void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
+{
+	assert(RSDCommandLine!=NULL);
+	assert(RSDPatternPool!=NULL);
+
+	int i, j, size = (int)RSDChunk->chunkSize;
+
+	double windowCenter = 0.0, windowStart = 0.0, windowEnd = 0.0;
+
+	float muVar = 0.0f;
+	float muSfs = 0.0f;
+	float muLd = 0.0f;
+	float mu = 0.0f;
+
+	int64_t sfsSlack = RSDCommandLine->sfsSlack;
+
+	int doExtra = 0; // min 0
+
+	int64_t initWinSize = RSDMuStat->windowSize;
+
+	for(i=0;i<size-RSDMuStat->windowSize+1-doExtra*2;i++)
+	{
+		for(int k=0;k<=doExtra*2;k=k+2)
+		{
+			RSDMuStat->windowSize = initWinSize + k;
+
+			assert(RSDMuStat->windowSize%2==0);
+			
+			// SNP window range
+			int snpf = i;
+			int snpl = (int)(snpf + RSDMuStat->windowSize - 1);
+			
+			int winlsnpf = snpf;
+			int winlsnpl = (int)(winlsnpf + RSDMuStat->windowSize/2 - 1);
+
+			int winrsnpf = winlsnpl + 1;
+			int winrsnpl = snpl;
+
+			int totalSNPsL = winlsnpl - winlsnpf + 1;
+			int totalSNPsR = winrsnpl - winrsnpf + 1;
+
+			// Window center (bp)
+			windowCenter = round((RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0);
+			windowStart = RSDChunk->sitePosition[snpf];
+			windowEnd = RSDChunk->sitePosition[snpl];
+			/**/
+
+			float isValid = 1.0;
+	
+			for(j=0;j<RSDMuStat->excludeRegionsTotal;j++)
+				if((windowEnd>=RSDMuStat->excludeRegionStart[j]) && (windowStart<=RSDMuStat->excludeRegionStop[j]))
+					isValid = 0.0;
+
+			// Mu_Var
+			muVar = (float)(RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf]);
+			muVar /= RSDDataset->setRegionLength;
+			muVar /= RSDMuStat->windowSize;
+			//muVar *= RSDDataset->setSNPs;
+			muVar *= RSDDataset->preLoadedsetSNPs; // v2.4
+
+			// Mu_SFS
+			int dCnt1 = 0, dCntN = 0;
+			for(j=0;j<RSDMuStat->windowSize - 0;j++)
+			{
+				dCnt1 += (RSDChunk->derivedAlleleCount[i+j]<=sfsSlack);
+				dCntN += (RSDChunk->derivedAlleleCount[i+j]>=RSDDataset->setSamples-sfsSlack);
+			}
+
+			float facN = 1.0;//(float)RSDChunk->derAll1CntTotal/(float)RSDChunk->derAllNCntTotal;
+			muSfs = (float)dCnt1 + (float)dCntN*facN; 
+
+			if(dCnt1+dCntN==0) 
+				muSfs = 0.0000000001f;
+
+			muSfs *= RSDDataset->muVarDenom; 
+			muSfs /= (float)RSDMuStat->windowSize;
+
+			// Mu_Ld
+			int pcntl = 0, pcntr = 0, pcntexll=0, pcntexlr=0;
+
+			float tempTest = getPatternCounts (WIN_MODE_OSE, RSDMuStat, totalSNPsL, totalSNPsR, RSDChunk->patternID, winlsnpf, winlsnpl, winrsnpf, winrsnpl, &pcntl, &pcntr, &pcntexll, &pcntexlr);
+			muLd = tempTest;
+
+			if(pcntexll + pcntexlr==0) 
+			{
+				muLd = 0.0000000001f;
+			}
+			else
+			{
+				muLd = (((float)pcntexll)+((float)pcntexlr)) / ((float)(pcntl * pcntr));
+			}
+
+			// Mu
+			mu =  muVar * muSfs * muLd * isValid;
+
+			// MuVar Max
+			if (muVar > RSDMuStat->muVarMax)
+			{
+				RSDMuStat->muVarMax = muVar;
+				RSDMuStat->muVarMaxLoc = windowCenter;
+			}
+
+			// MuSfs Max
+			if (muSfs > RSDMuStat->muSfsMax)
+			{
+				RSDMuStat->muSfsMax = muSfs;
+				RSDMuStat->muSfsMaxLoc = windowCenter;
+			}
+
+			// MuLd Max
+			if (muLd > RSDMuStat->muLdMax)
+			{
+				RSDMuStat->muLdMax = muLd;
+				RSDMuStat->muLdMaxLoc = windowCenter;
+			}
+
+			// Mu Max
+			if (mu > RSDMuStat->muMax)
+			{
+				RSDMuStat->muMax = mu;
+				RSDMuStat->muMaxLoc = windowCenter;
+			}	
+		}
+
+		RSDMuStat->windowSize = initWinSize ;
+
+		if(RSDCommandLine->fullReport==1)
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)windowStart, (double)windowEnd, (double)muVar, (double)muSfs, (double)muLd, (double)mu);	else
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)windowCenter, (double)mu);	
+	}
+}
+// End of experimental sliding-window implementation 1: one-sided expansion
+#endif
+
+#ifdef _EXP2
+// Start of experimental sliding-window implementation 2: floating window center, single evaluation
+void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
+{
+	assert(RSDCommandLine!=NULL);
+	assert(RSDPatternPool!=NULL);
+
+	int i, j, size = (int)RSDChunk->chunkSize;
+
+	double windowCenter = 0.0, windowStart = 0.0, windowEnd = 0.0;
+
+	float muVar = 0.0f;
+	float muSfs = 0.0f;
+	float muLd = 0.0f;
+	float mu = 0.0f;
+
+	int64_t sfsSlack = RSDCommandLine->sfsSlack;
+
+	int slackVal = 5;
+
+	for(i=0;i<size-RSDMuStat->windowSize+1;i++)
+	{
+		// SNP window range
+		int snpf = i;
+		int snpl = (int)(snpf + RSDMuStat->windowSize - 1);
+
+		int curMiddleFxd = (int)(snpf + RSDMuStat->windowSize/2);		
+
+		for(int curMiddle=curMiddleFxd-slackVal;curMiddle<=curMiddleFxd+slackVal;curMiddle++) 
+		{
+			int winlsnpf = snpf;
+			int winlsnpl = curMiddle-1;
+
+			int winrsnpf = curMiddle;
+			int winrsnpl = snpl;
+		
+			int totalSNPsL = winlsnpl - winlsnpf + 1;
+			int totalSNPsR = winrsnpl - winrsnpf + 1;
+
+			// Window center (bp)
+			windowCenter = round((RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0);
+			windowStart = RSDChunk->sitePosition[snpf];
+			windowEnd = RSDChunk->sitePosition[snpl];
+
+			float isValid = 1.0;
+
+			for(j=0;j<RSDMuStat->excludeRegionsTotal;j++)
+				if((windowEnd>=RSDMuStat->excludeRegionStart[j]) && (windowStart<=RSDMuStat->excludeRegionStop[j]))
+					isValid = 0.0;
+
+			// Mu_Var
+			muVar = (float)(RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf]);
+			muVar /= RSDDataset->setRegionLength;
+			muVar /= RSDMuStat->windowSize;
+			//muVar *= RSDDataset->setSNPs;
+			muVar *= RSDDataset->preLoadedsetSNPs; // v2.4
+
+			// Mu_SFS
+			int dCnt1 = 0, dCntN = 0;
+			for(j=0;j<RSDMuStat->windowSize - 0;j++)
+			{
+				dCnt1 += (RSDChunk->derivedAlleleCount[i+j]<=sfsSlack);
+				dCntN += (RSDChunk->derivedAlleleCount[i+j]>=RSDDataset->setSamples-sfsSlack);
+			}
+
+			float facN = 1.0;//(float)RSDChunk->derAll1CntTotal/(float)RSDChunk->derAllNCntTotal;
+			muSfs = (float)dCnt1 + (float)dCntN*facN; 
+
+			if(dCnt1+dCntN==0) 
+				muSfs = 0.0000000001f;
+
+			muSfs *= RSDDataset->muVarDenom; 
+			muSfs /= (float)RSDMuStat->windowSize;
+
+			// Mu_Ld
+			int pcntl = 0, pcntr = 0, pcntexll=0, pcntexlr=0;
+
+			float tempTest = getPatternCounts (WIN_MODE_FC, RSDMuStat, totalSNPsL, totalSNPsR, RSDChunk->patternID, winlsnpf, winlsnpl, winrsnpf, winrsnpl, &pcntl, &pcntr, &pcntexll, &pcntexlr);
+			muLd = tempTest;
+
+			if(pcntexll + pcntexlr==0) 
+			{
+				muLd = 0.0000000001f;
+			}
+			else
+			{
+				muLd = (((float)pcntexll)+((float)pcntexlr)) / ((float)(pcntl * pcntr));
+			}
+
+			// Mu
+			mu =  muVar * muSfs * muLd * isValid;
+
+			// MuVar Max
+			if (muVar > RSDMuStat->muVarMax)
+			{
+				RSDMuStat->muVarMax = muVar;
+				RSDMuStat->muVarMaxLoc = windowCenter;
+			}
+
+			// MuSfs Max
+			if (muSfs > RSDMuStat->muSfsMax)
+			{
+				RSDMuStat->muSfsMax = muSfs;
+				RSDMuStat->muSfsMaxLoc = windowCenter;
+			}
+
+			// MuLd Max
+			if (muLd > RSDMuStat->muLdMax)
+			{
+				RSDMuStat->muLdMax = muLd;
+				RSDMuStat->muLdMaxLoc = windowCenter;
+			}
+
+			// Mu Max
+			if (mu > RSDMuStat->muMax)
+			{
+				RSDMuStat->muMax = mu;
+				RSDMuStat->muMaxLoc = windowCenter;
+			}				
+		}		
+
+		if(RSDCommandLine->fullReport==1)
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)windowStart, (double)windowEnd, (double)muVar, (double)muSfs, (double)muLd, (double)mu);	else
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)windowCenter, (double)mu);	
+	}
+}
+// End of experimental sliding-window implementation 2: floating window center
+#endif
+
+#ifdef _EXP3
+// Start of experimental sliding-window implementation 3: double-sided reduction, all-to-all evaluation
+void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
+{
+	assert(RSDCommandLine!=NULL);
+	assert(RSDPatternPool!=NULL);
+
+	int i, j, size = (int)RSDChunk->chunkSize;
+
+	double windowCenter = 0.0, windowStart = 0.0, windowEnd = 0.0;
+
+	float muVar = 0.0f;
+	float muSfs = 0.0f;
+	float muLd = 0.0f;
+	float mu = 0.0f;
+
+	int64_t sfsSlack = RSDCommandLine->sfsSlack;
+
+	int doSearch = 10; // min 1
+
+	for(i=0;i<size-RSDMuStat->windowSize+1;i++)
+	{
+		int hSize = (int)(RSDMuStat->windowSize/2);
+		
+		// SNP window range
+		int snpf = i;
+		int snpl = (int)(snpf + RSDMuStat->windowSize - 1);	
+
+		int curMiddle = (int)(snpf + RSDMuStat->windowSize/2);		
+
+		for(int m=snpf;m<=curMiddle-(hSize-doSearch+1);m++)
+		{
+			for(int n=curMiddle+(hSize-doSearch);n<=snpl;n++)
+			{
+				int winlsnpf = m;
+				int winlsnpl = curMiddle-1;
+
+				int winrsnpf = curMiddle;
+				int winrsnpl = n;
+
+				int totalSNPsL = winlsnpl - winlsnpf + 1;
+				int totalSNPsR = winrsnpl - winrsnpf + 1;
+
+				// Window center (bp)
+				windowCenter = round((RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0);
+				windowStart = RSDChunk->sitePosition[snpf];
+				windowEnd = RSDChunk->sitePosition[snpl];
+
+				float isValid = 1.0;
+
+				for(j=0;j<RSDMuStat->excludeRegionsTotal;j++)
+					if((windowEnd>=RSDMuStat->excludeRegionStart[j]) && (windowStart<=RSDMuStat->excludeRegionStop[j]))
+						isValid = 0.0;
+
+				// Mu_Var
+				muVar = (float)(RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf]);
+				muVar /= RSDDataset->setRegionLength;
+				muVar /= RSDMuStat->windowSize;
+				//muVar *= RSDDataset->setSNPs;
+				muVar *= RSDDataset->preLoadedsetSNPs; // v2.4	
+		
+				// Mu_SFS
+				int dCnt1 = 0, dCntN = 0;
+				for(j=0;j<RSDMuStat->windowSize - 0;j++)
+				{
+					dCnt1 += (RSDChunk->derivedAlleleCount[i+j]<=sfsSlack);
+					dCntN += (RSDChunk->derivedAlleleCount[i+j]>=RSDDataset->setSamples-sfsSlack);
+				}
+
+				float facN = 1.0;//(float)RSDChunk->derAll1CntTotal/(float)RSDChunk->derAllNCntTotal;
+				muSfs = (float)dCnt1 + (float)dCntN*facN; 
+
+				if(dCnt1+dCntN==0) 
+					muSfs = 0.0000000001f;
+
+				muSfs *= RSDDataset->muVarDenom; 
+				muSfs /= (float)RSDMuStat->windowSize;
+		
+				// Mu_Ld
+				int pcntl = 0, pcntr = 0, pcntexll=0, pcntexlr=0;
+
+				float tempTest = getPatternCounts (WIN_MODE_DSR, RSDMuStat, totalSNPsL, totalSNPsR, RSDChunk->patternID, winlsnpf, winlsnpl, winrsnpf, winrsnpl, &pcntl, &pcntr, &pcntexll, &pcntexlr);
+				muLd = tempTest;
+
+				if(pcntexll + pcntexlr==0) 
+				{
+					muLd = 0.0000000001f;
+				}
+				else
+				{
+					muLd = (((float)pcntexll)+((float)pcntexlr)) / ((float)(pcntl * pcntr));
+				}	
+
+				// Mu
+				mu =  muVar * muSfs * muLd * isValid;
+
+				// MuVar Max
+				if (muVar > RSDMuStat->muVarMax)
+				{
+					RSDMuStat->muVarMax = muVar;
+					RSDMuStat->muVarMaxLoc = windowCenter;
+				}
+
+				// MuSfs Max
+				if (muSfs > RSDMuStat->muSfsMax)
+				{
+					RSDMuStat->muSfsMax = muSfs;
+					RSDMuStat->muSfsMaxLoc = windowCenter;
+				}
+
+				// MuLd Max
+				if (muLd > RSDMuStat->muLdMax)
+				{
+					RSDMuStat->muLdMax = muLd;
+					RSDMuStat->muLdMaxLoc = windowCenter;
+				}
+
+				// Mu Max
+				if (mu > RSDMuStat->muMax)
+				{
+					RSDMuStat->muMax = mu;
+					RSDMuStat->muMaxLoc = windowCenter;
+				}				
+			}
+		}			
+	
+		if(RSDCommandLine->fullReport==1)
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)windowStart, (double)windowEnd, (double)muVar, (double)muSfs, (double)muLd, (double)mu);	else
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)windowCenter, (double)mu);	
+	}
+}
+// End of experimental sliding-window implementation 3: double-sided expansion, all-to-all evaluation
+#endif
+
+#ifdef _EXP4
+// Start of experimental sliding-window implementation 4: all three
+void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
+{
+	assert(RSDCommandLine!=NULL);
+	assert(RSDPatternPool!=NULL);
+
+	int i, j, size = (int)RSDChunk->chunkSize;
+
+	double windowCenter = 0.0, windowStart = 0.0, windowEnd = 0.0;
+
+	float muVar = 0.0f, muVarM1 = 0.0f, muVarM2 = 0.0f, muVarM3 = 0.0f;
+	float muSfs = 0.0f, muSfsM1 = 0.0f, muSfsM2 = 0.0f, muSfsM3 = 0.0f;
+	float muLd = 0.0f, muLdM1 = 0.0f, muLdM2 = 0.0f, muLdM3 = 0.0f;
+	float mu = 0.0f, muM1 = 0.0f, muM2 = 0.0f, muM3 = 0.0f;
+
+	double windowCenter_muM1 = 0.0, windowStart_muM1 = 0.0, windowEnd_muM1 = 0.0;
+	double windowCenter_muVarM1 = 0.0;//, windowStart_muVarM1 = 0.0, windowEnd_muVarM1 = 0.0;
+	double windowCenter_muSfsM1 = 0.0;//, windowStart_muSfsM1 = 0.0, windowEnd_muSfsM1 = 0.0;
+	double windowCenter_muLdM1 = 0.0;//, windowStart_muLdM1 = 0.0, windowEnd_muLdM1 = 0.0;
+
+	double windowCenter_muM2 = 0.0, windowStart_muM2 = 0.0, windowEnd_muM2 = 0.0;
+	double windowCenter_muVarM2 = 0.0;//, windowStart_muVarM2 = 0.0, windowEnd_muVarM2 = 0.0;
+	double windowCenter_muSfsM2 = 0.0;//, windowStart_muSfsM2 = 0.0, windowEnd_muSfsM2 = 0.0;
+	double windowCenter_muLdM2 = 0.0;//, windowStart_muLdM2 = 0.0, windowEnd_muLdM2 = 0.0;
+
+	double windowCenter_muM3 = 0.0, windowStart_muM3 = 0.0, windowEnd_muM3 = 0.0;
+	double windowCenter_muVarM3 = 0.0;//, windowStart_muVarM3 = 0.0, windowEnd_muVarM3 = 0.0;
+	double windowCenter_muSfsM3 = 0.0;//, windowStart_muSfsM3 = 0.0, windowEnd_muSfsM3 = 0.0;
+	double windowCenter_muLdM3 = 0.0;//, windowStart_muLdM3 = 0.0, windowEnd_muLdM3 = 0.0;
+
+
+	int64_t sfsSlack = RSDCommandLine->sfsSlack;
+		
+	int64_t initWinSize = RSDMuStat->windowSize;
+
+	int doExtra = (int)(initWinSize/2); // min 0
+	int slackVal = (int)(initWinSize/2-1);
+	int doSearch = (int)(initWinSize/2); // min 1	
+
+	for(i=0;i<size-RSDMuStat->windowSize+1-doExtra*2;i++)
+	{
+		// mode 1
+		{
+			muVarM1 = 0.0f;
+			muSfsM1 = 0.0f;
+			muLdM1 = 0.0f;
+  			muM1 = 0.0f;
+
+			for(int k=0;k<=doExtra*2;k=k+2)
+			{
+				RSDMuStat->windowSize = initWinSize + k;
+
+				assert(RSDMuStat->windowSize%2==0);
+			
+				// SNP window range
+				int snpf = i;
+				int snpl = (int)(snpf + RSDMuStat->windowSize - 1);
+			
+				int winlsnpf = snpf;
+				int winlsnpl = (int)(winlsnpf + RSDMuStat->windowSize/2 - 1);
+
+				int winrsnpf = winlsnpl + 1;
+				int winrsnpl = snpl;
+
+				int totalSNPsL = winlsnpl - winlsnpf + 1;
+				int totalSNPsR = winrsnpl - winrsnpf + 1;
+
+				// Window center (bp)
+				windowCenter = round((RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0);
+				windowStart = RSDChunk->sitePosition[snpf];
+				windowEnd = RSDChunk->sitePosition[snpl];
+				/**/
+
+				float isValid = 1.0;
+	
+				for(j=0;j<RSDMuStat->excludeRegionsTotal;j++)
+					if((windowEnd>=RSDMuStat->excludeRegionStart[j]) && (windowStart<=RSDMuStat->excludeRegionStop[j]))
+						isValid = 0.0;
+
+				// Mu_Var
+				muVar = (float)(RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf]);
+				muVar /= RSDDataset->setRegionLength;
+				muVar /= RSDMuStat->windowSize;
+				//muVar *= RSDDataset->setSNPs;
+				muVar *= RSDDataset->preLoadedsetSNPs; // v2.4
+
+				// Mu_SFS
+				int dCnt1 = 0, dCntN = 0;
+				for(j=0;j<RSDMuStat->windowSize - 0;j++)
+				{
+					dCnt1 += (RSDChunk->derivedAlleleCount[i+j]<=sfsSlack);
+					dCntN += (RSDChunk->derivedAlleleCount[i+j]>=RSDDataset->setSamples-sfsSlack);
+				}
+
+				float facN = 1.0;//(float)RSDChunk->derAll1CntTotal/(float)RSDChunk->derAllNCntTotal;
+				muSfs = (float)dCnt1 + (float)dCntN*facN; 
+
+				if(dCnt1+dCntN==0) 
+					muSfs = 0.0000000001f;
+
+				muSfs *= RSDDataset->muVarDenom; 
+				muSfs /= (float)RSDMuStat->windowSize;
+
+				// Mu_Ld
+				int pcntl = 0, pcntr = 0, pcntexll=0, pcntexlr=0;
+
+				float tempTest = getPatternCounts (WIN_MODE_OSE, RSDMuStat, totalSNPsL, totalSNPsR, RSDChunk->patternID, winlsnpf, winlsnpl, winrsnpf, winrsnpl, &pcntl, &pcntr, &pcntexll, &pcntexlr);
+				muLd = tempTest;
+
+				if(pcntexll + pcntexlr==0) 
+				{
+					muLd = 0.0000000001f;
+				}
+				else
+				{
+					muLd = (((float)pcntexll)+((float)pcntexlr)) / ((float)(pcntl * pcntr));
+				}
+
+				// Mu
+				mu =  muVar * muSfs * muLd * isValid;
+
+				if(mu > muM1)
+				{
+					muM1 = mu;
+					windowCenter_muM1 = windowCenter;
+					windowStart_muM1 = windowStart;
+					windowEnd_muM1 = windowEnd;
+					
+				}
+
+				if(muVar > muVarM1)
+				{
+					muVarM1 = muVar;
+					windowCenter_muVarM1 = windowCenter;
+					//windowStart_muVarM1 = windowStart;
+					//windowEnd_muVarM1 = windowEnd;
+					
+				}
+
+				if(muSfs > muSfsM1)
+				{
+					muSfsM1 = muSfs;
+					windowCenter_muSfsM1 = windowCenter;
+					//windowStart_muSfsM1 = windowStart;
+					//windowEnd_muSfsM1 = windowEnd;
+					
+				}
+
+				if(muLd > muLdM1)
+				{
+					muLdM1 = muLd;
+					windowCenter_muLdM1 = windowCenter;
+					//windowStart_muLdM1 = windowStart;
+					//windowEnd_muLdM1 = windowEnd;
+					
+				}				
+			}
+
+			RSDMuStat->windowSize = initWinSize ;
+		}
+
+		// mode 2
+		{
+			// SNP window range
+			int snpf = i;
+			int snpl = (int)(snpf + RSDMuStat->windowSize - 1);
+
+			int curMiddleFxd = (int)(snpf + RSDMuStat->windowSize/2);		
+
+			for(int curMiddle=curMiddleFxd-slackVal;curMiddle<=curMiddleFxd+slackVal;curMiddle++) 
+			{
+				int winlsnpf = snpf;
+				int winlsnpl = curMiddle-1;
+
+				int winrsnpf = curMiddle;
+				int winrsnpl = snpl;
+		
+				int totalSNPsL = winlsnpl - winlsnpf + 1;
+				int totalSNPsR = winrsnpl - winrsnpf + 1;
+
+				// Window center (bp)
+				windowCenter = round((RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0);
+				windowStart = RSDChunk->sitePosition[snpf];
+				windowEnd = RSDChunk->sitePosition[snpl];
+
+				float isValid = 1.0;
+
+				for(j=0;j<RSDMuStat->excludeRegionsTotal;j++)
+					if((windowEnd>=RSDMuStat->excludeRegionStart[j]) && (windowStart<=RSDMuStat->excludeRegionStop[j]))
+						isValid = 0.0;
+
+				// Mu_Var
+				muVar = (float)(RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf]);
+				muVar /= RSDDataset->setRegionLength;
+				muVar /= RSDMuStat->windowSize;
+				//muVar *= RSDDataset->setSNPs;
+				muVar *= RSDDataset->preLoadedsetSNPs; // v2.4
+
+				// Mu_SFS
+				int dCnt1 = 0, dCntN = 0;
+				for(j=0;j<RSDMuStat->windowSize - 0;j++)
+				{
+					dCnt1 += (RSDChunk->derivedAlleleCount[i+j]<=sfsSlack);
+					dCntN += (RSDChunk->derivedAlleleCount[i+j]>=RSDDataset->setSamples-sfsSlack);
+				}
+
+				float facN = 1.0;//(float)RSDChunk->derAll1CntTotal/(float)RSDChunk->derAllNCntTotal;
+				muSfs = (float)dCnt1 + (float)dCntN*facN; 
+
+				if(dCnt1+dCntN==0) 
+					muSfs = 0.0000000001f;
+
+				muSfs *= RSDDataset->muVarDenom; 
+				muSfs /= (float)RSDMuStat->windowSize;
+
+				// Mu_Ld
+				int pcntl = 0, pcntr = 0, pcntexll=0, pcntexlr=0;
+
+				float tempTest = getPatternCounts (WIN_MODE_FC, RSDMuStat, totalSNPsL, totalSNPsR, RSDChunk->patternID, winlsnpf, winlsnpl, winrsnpf, winrsnpl, &pcntl, &pcntr, &pcntexll, &pcntexlr);
+				muLd = tempTest;
+
+				if(pcntexll + pcntexlr==0) 
+				{
+					muLd = 0.0000000001f;
+				}
+				else
+				{
+					muLd = (((float)pcntexll)+((float)pcntexlr)) / ((float)(pcntl * pcntr));
+				}
+
+				// Mu
+				mu =  muVar * muSfs * muLd * isValid;
+
+				if(mu > muM2)
+				{
+					muM2 = mu;
+					windowCenter_muM2 = windowCenter;
+					windowStart_muM2 = windowStart;
+					windowEnd_muM2 = windowEnd;
+					
+				}
+
+				if(muVar > muVarM2)
+				{
+					muVarM2 = muVar;
+					windowCenter_muVarM2 = windowCenter;
+					//windowStart_muVarM2 = windowStart;
+					//windowEnd_muVarM2 = windowEnd;
+					
+				}
+
+				if(muSfs > muSfsM2)
+				{
+					muSfsM2 = muSfs;
+					windowCenter_muSfsM2 = windowCenter;
+					//windowStart_muSfsM2 = windowStart;
+					//windowEnd_muSfsM2 = windowEnd;
+					
+				}
+
+				if(muLd > muLdM2)
+				{
+					muLdM2 = muLd;
+					windowCenter_muLdM2 = windowCenter;
+					//windowStart_muLdM2 = windowStart;
+					//windowEnd_muLdM2 = windowEnd;
+					
+				}					
+			}
+		}
+
+		// Mode 3
+		{
+			int hSize = (int)(RSDMuStat->windowSize/2);
+		
+			// SNP window range
+			int snpf = i;
+			int snpl = (int)(snpf + RSDMuStat->windowSize - 1);	
+
+			int curMiddle = (int)(snpf + RSDMuStat->windowSize/2);		
+
+			for(int m=snpf;m<=curMiddle-(hSize-doSearch+1);m++)
+			{
+				for(int n=curMiddle+(hSize-doSearch);n<=snpl;n++)
+				{
+					int winlsnpf = m;
+					int winlsnpl = curMiddle-1;
+
+					int winrsnpf = curMiddle;
+					int winrsnpl = n;
+
+					int totalSNPsL = winlsnpl - winlsnpf + 1;
+					int totalSNPsR = winrsnpl - winrsnpf + 1;
+
+					// Window center (bp)
+					windowCenter = round((RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0);
+					windowStart = RSDChunk->sitePosition[snpf];
+					windowEnd = RSDChunk->sitePosition[snpl];
+
+					float isValid = 1.0;
+
+					for(j=0;j<RSDMuStat->excludeRegionsTotal;j++)
+						if((windowEnd>=RSDMuStat->excludeRegionStart[j]) && (windowStart<=RSDMuStat->excludeRegionStop[j]))
+							isValid = 0.0;
+
+					// Mu_Var
+					muVar = (float)(RSDChunk->sitePosition[snpl] - RSDChunk->sitePosition[snpf]);
+					muVar /= RSDDataset->setRegionLength;
+					muVar /= RSDMuStat->windowSize;
+					//muVar *= RSDDataset->setSNPs;
+					muVar *= RSDDataset->preLoadedsetSNPs; // v2.4	
+		
+					// Mu_SFS
+					int dCnt1 = 0, dCntN = 0;
+					for(j=0;j<RSDMuStat->windowSize - 0;j++)
+					{
+						dCnt1 += (RSDChunk->derivedAlleleCount[i+j]<=sfsSlack);
+						dCntN += (RSDChunk->derivedAlleleCount[i+j]>=RSDDataset->setSamples-sfsSlack);
+					}
+
+					float facN = 1.0;//(float)RSDChunk->derAll1CntTotal/(float)RSDChunk->derAllNCntTotal;
+					muSfs = (float)dCnt1 + (float)dCntN*facN; 
+
+					if(dCnt1+dCntN==0) 
+						muSfs = 0.0000000001f;
+
+					muSfs *= RSDDataset->muVarDenom; 
+					muSfs /= (float)RSDMuStat->windowSize;
+		
+					// Mu_Ld
+					int pcntl = 0, pcntr = 0, pcntexll=0, pcntexlr=0;
+
+					float tempTest = getPatternCounts (WIN_MODE_DSR, RSDMuStat, totalSNPsL, totalSNPsR, RSDChunk->patternID, winlsnpf, winlsnpl, winrsnpf, winrsnpl, &pcntl, &pcntr, &pcntexll, &pcntexlr);
+					muLd = tempTest;
+
+					if(pcntexll + pcntexlr==0) 
+					{
+						muLd = 0.0000000001f;
+					}
+					else
+					{
+						muLd = (((float)pcntexll)+((float)pcntexlr)) / ((float)(pcntl * pcntr));
+					}	
+
+					// Mu
+					mu =  muVar * muSfs * muLd * isValid;
+
+					if(mu > muM3)
+					{
+						muM3 = mu;
+						windowCenter_muM3 = windowCenter;
+						windowStart_muM3 = windowStart;
+						windowEnd_muM3 = windowEnd;
+					
+					}
+
+					if(muVar > muVarM3)
+					{
+						muVarM3 = muVar;
+						windowCenter_muVarM3 = windowCenter;
+						//windowStart_muVarM3 = windowStart;
+						//windowEnd_muVarM3 = windowEnd;
+					
+					}
+
+					if(muSfs > muSfsM3)
+					{
+						muSfsM3 = muSfs;
+						windowCenter_muSfsM3 = windowCenter;
+						//windowStart_muSfsM3 = windowStart;
+						//windowEnd_muSfsM3 = windowEnd;
+					
+					}
+
+					if(muLd > muLdM3)
+					{
+						muLdM3 = muLd;
+						windowCenter_muLdM3 = windowCenter;
+						//windowStart_muLdM3 = windowStart;
+						//windowEnd_muLdM3 = windowEnd;
+					
+					}				
+				}
+			}
+		}
+
+		// MuVar Max over M1, M2, M3
+		if(muVarM1 > muVarM2)
+		{
+			muVar = muVarM1;
+			windowCenter = windowCenter_muVarM1;
+			//windowStart = windowStart_muVarM1;
+			//windowEnd = windowEnd_muVarM1;
+		}
+		else
+		{
+			muVar = muVarM2;
+			windowCenter = windowCenter_muVarM2;
+			//windowStart = windowStart_muVarM2;
+			//windowEnd = windowEnd_muVarM2;
+		}
+
+		if(muVarM3 > muVar)
+		{
+			muVar = muVarM3;
+			windowCenter = windowCenter_muVarM3;
+			//windowStart = windowStart_muVarM3;
+			//windowEnd = windowEnd_muVarM3;
+		}
+
+		// MuVar Max
+		if (muVar > RSDMuStat->muVarMax)
+		{
+			RSDMuStat->muVarMax = muVar;
+			RSDMuStat->muVarMaxLoc = windowCenter;
+		}
+
+
+		// MuSfs Max over M1, M2, M3
+		if(muSfsM1 > muSfsM2)
+		{
+			muSfs = muSfsM1;
+			windowCenter = windowCenter_muSfsM1;
+			//windowStart = windowStart_muVarM1;
+			//windowEnd = windowEnd_muVarM1;
+		}
+		else
+		{
+			muSfs = muSfsM2;
+			windowCenter = windowCenter_muSfsM2;
+			//windowStart = windowStart_muVarM2;
+			//windowEnd = windowEnd_muVarM2;
+		}
+
+		if(muSfsM3 > muSfs)
+		{
+			muSfs = muSfsM3;
+			windowCenter = windowCenter_muSfsM3;
+			//windowStart = windowStart_muVarM3;
+			//windowEnd = windowEnd_muVarM3;
+		}		
+
+		// MuSfs Max
+		if (muSfs > RSDMuStat->muSfsMax)
+		{
+			RSDMuStat->muSfsMax = muSfs;
+			RSDMuStat->muSfsMaxLoc = windowCenter;
+		}
+
+		// MuLd Max over M1, M2, M3
+		if(muLdM1 > muLdM2)
+		{
+			muLd = muLdM1;
+			windowCenter = windowCenter_muLdM1;
+			//windowStart = windowStart_muVarM1;
+			//windowEnd = windowEnd_muVarM1;
+		}
+		else
+		{
+			muLd = muLdM2;
+			windowCenter = windowCenter_muLdM2;
+			//windowStart = windowStart_muVarM2;
+			//windowEnd = windowEnd_muVarM2;
+		}
+
+		if(muLdM3 > muLd)
+		{
+			muLd = muLdM3;
+			windowCenter = windowCenter_muLdM3;
+			//windowStart = windowStart_muVarM3;
+			//windowEnd = windowEnd_muVarM3;
+		}	
+
+		// MuLd Max
+		if (muLd > RSDMuStat->muLdMax)
+		{
+			RSDMuStat->muLdMax = muLd;
+			RSDMuStat->muLdMaxLoc = windowCenter;
+		}
+
+		// Mu Max over M1, M2, M3
+		if(muM1 > muM2)
+		{
+			mu = muM1;
+			windowCenter = windowCenter_muM1;
+			windowStart = windowStart_muM1;
+			windowEnd = windowEnd_muM1;
+		}
+		else
+		{
+			mu = muM2;
+			windowCenter = windowCenter_muM2;
+			windowStart = windowStart_muM2;
+			windowEnd = windowEnd_muM2;
+		}
+
+		if(muM3 > mu)
+		{
+			mu = muM3;
+			windowCenter = windowCenter_muM3;
+			windowStart = windowStart_muM3;
+			windowEnd = windowEnd_muM3;
+		}
+
+		// Mu Max
+		if (mu > RSDMuStat->muMax)
+		{
+			RSDMuStat->muMax = mu;
+			RSDMuStat->muMaxLoc = windowCenter;
+		}				
+
+		if(RSDCommandLine->fullReport==1)
+		{
+			assert(0);
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)windowStart, (double)windowEnd, (double)muVar, (double)muSfs, (double)muLd, (double)mu);	}
+		else
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)windowCenter, (double)mu);	
+	}
+}
+// End of experimental sliding-window implementation 4: all three
+#endif
+
+#ifdef _REF
 // Default SW implementation
 void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
 {
@@ -1819,7 +2916,6 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 
 	for(i=0;i<size-RSDMuStat->windowSize+1;i++)
 	{
-
 		// SNP window range
 		int snpf = i;
 		int snpl = (int)(snpf + RSDMuStat->windowSize - 1);
@@ -1829,6 +2925,8 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 
 		int winrsnpf = winlsnpl + 1;
 		int winrsnpl = snpl;
+
+		
 		
 		// Window center (bp)
 		windowCenter = round((RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0);
@@ -1836,6 +2934,8 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		windowEnd = RSDChunk->sitePosition[snpl];
 
 		float isValid = 1.0;
+
+		
 
 		for(j=0;j<RSDMuStat->excludeRegionsTotal;j++)
 			if((windowEnd>=RSDMuStat->excludeRegionStart[j]) && (windowStart<=RSDMuStat->excludeRegionStop[j]))
@@ -1869,7 +2969,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		// Mu_Ld
 		int pcntl = 0, pcntr = 0, pcntexll=0, pcntexlr=0;
 		
-		float tempTest = getPatternCounts (RSDMuStat->pCntVec, (int)RSDMuStat->windowSize, RSDChunk->patternID, winlsnpf, winlsnpl, winrsnpf, winrsnpl, &pcntl, &pcntr, &pcntexll, &pcntexlr);
+		float tempTest = getPatternCounts (WIN_MODE_FXD, RSDMuStat, (int)RSDMuStat->windowSize, (int)RSDMuStat->windowSize, RSDChunk->patternID, winlsnpf, winlsnpl, winrsnpf, winrsnpl, &pcntl, &pcntr, &pcntexll, &pcntexlr);
 		muLd = tempTest;
 
 		if(pcntexll + pcntexlr==0) 
@@ -1918,6 +3018,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 	}
 }
 // End of Default SW implementation
+#endif
 #endif
 
 void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
@@ -2032,7 +3133,7 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 		// Mu_Ld
 		int pcntl = 0, pcntr = 0, pcntexll=0, pcntexlr=0;
 		
-		float tempTest = getPatternCounts (RSDMuStat->pCntVec, (int)RSDMuStat->windowSize, RSDChunk->patternID, winlsnpf, winlsnpl, winrsnpf, winrsnpl, &pcntl, &pcntr, &pcntexll, &pcntexlr);
+		float tempTest = getPatternCounts (WIN_MODE_FXD, RSDMuStat, (int)RSDMuStat->windowSize, (int)RSDMuStat->windowSize, RSDChunk->patternID, winlsnpf, winlsnpl, winrsnpf, winrsnpl, &pcntl, &pcntr, &pcntexll, &pcntexlr);
 		muLd = tempTest;
 
 		if(pcntexll + pcntexlr==0) 

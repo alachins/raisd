@@ -15,7 +15,7 @@ SRC_PATH = sources
 # Space-separated pkg-config libraries used by this project
 LIBS = 
 # General compiler flags
-COMPILE_FLAGS = -Wall -Wextra -g -O2 -D_C1 #-Weverything # -std=c99
+COMPILE_FLAGS = -Wall -Wextra -g -O2 -D_C1 -D_REF #EXP4 #-Weverything #-std=c99
 # Experimental compiler flags 
 #-D_PTIMES 
 #-D_TM 

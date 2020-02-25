@@ -65,6 +65,11 @@ extern struct timespec requestEndMu;
 extern double TotalMuTime;
 #endif
 
+#define WIN_MODE_FXD 0 // this is the default one
+#define WIN_MODE_OSE 1 // one-sided expansion
+#define WIN_MODE_FC 2 // floating-center
+#define WIN_MODE_DSR 3 // double-sided reduction
+
 
 #define STRING_SIZE 8192
 #define PATTERNPOOL_SIZE 1 // MBs without the mask (actual memfootprint approx. double)
