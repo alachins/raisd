@@ -506,6 +506,46 @@ char alleleMask_binary (char c, int * isDerived, int * isValid, FILE * fpOut)
 	}	
 }
 
+char alleleMask_fasta (char c, int * isDerived, int *isValid, FILE * fpOut, char outgroupState)
+{
+	assert(fpOut!=NULL);
+
+	*isDerived = 0;
+	*isValid = 0;
+
+	switch(c)
+	{
+		case '-':
+			*isDerived = 0;
+			*isValid = 1;
+			return 'N';
+
+		case 'N':
+			*isDerived = 0;
+			*isValid = 1;
+			return 'N';
+
+		case 'n':
+			*isDerived = 0;
+			*isValid = 1;
+			return 'N';
+
+		default:
+			if(c==outgroupState)
+			{
+				*isDerived = 0;
+				*isValid = 1;
+				return '0';
+			}
+			else
+			{
+				*isDerived = 1;
+				*isValid = 1;
+				return '1';
+			}
+	}	
+}
+
 int monomorphic_check (int incomingSiteDerivedAlleleCount, int setSamples, int64_t * cnt, int skipSNP)
 {
 	if(skipSNP==1) // to avoid double counting
@@ -855,6 +895,19 @@ void VCFFileCheck (void * vRSDDataset, FILE * fpX, char * fileName, FILE * fpOut
 
 		fprintf(stdout, "\n\n");
 		fflush(stdout);	
+	}
+
+	if(chromList!=NULL)
+	{
+		for(i=0;i<chromListSize;i++)
+		{
+			if(chromList[i]!=NULL)
+			{	
+				free(chromList[i]);
+				chromList[i] = NULL;
+			}
+		}	
+		free(chromList);
 	}
 
 	assert(fp!=NULL);

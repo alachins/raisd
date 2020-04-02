@@ -32,8 +32,8 @@
 #endif
 
 #define MAJOR_VERSION 2
-#define MINOR_VERSION 5
-#define RELEASE_MONTH "February"
+#define MINOR_VERSION 6
+#define RELEASE_MONTH "April"
 #define RELEASE_YEAR 2020
 
 /*Testing*/
@@ -69,7 +69,6 @@ extern double TotalMuTime;
 #define WIN_MODE_OSE 1 // one-sided expansion
 #define WIN_MODE_FC 2 // floating-center
 #define WIN_MODE_DSR 3 // double-sided reduction
-
 
 #define STRING_SIZE 8192
 #define PATTERNPOOL_SIZE 1 // MBs without the mask (actual memfootprint approx. double)
@@ -112,6 +111,24 @@ extern double TotalMuTime;
 #define	L_FLAG_INDEX 2
 #define B_FLAG_INDEX 17
 
+#define FASTA2VCF_CONVERT_n_PROCESS 0
+#define FASTA2VCF_CONVERT_n_EXIT 1
+
+#define GAP '-'
+#define AD 'A'
+#define CY 'C'
+#define GU 'G'
+#define TH 'T'
+#define UN 'N'
+#define ad 'a'
+#define cy 'c'
+#define gu 'g'
+#define th 't'
+#define un 'n'
+
+#define MAJORITY 0
+#define PROBABILITY 1
+
 // RAiSD.c
 extern struct timespec requestStart;
 extern struct timespec requestEnd;
@@ -122,7 +139,6 @@ extern double MemoryFootprint;
 extern FILE * RAiSD_Info_FP;
 extern FILE * RAiSD_SiteReport_FP;
 extern FILE * RAiSD_ReportList_FP;
-
 
 void 			RSD_header 			(FILE * fpOut);
 
@@ -142,6 +158,7 @@ int			rsd_popcnt_u64			(uint64_t input);
 double 			DIST 				(double a, double b);
 float * 		putInSortVector			(int * size, float * vector, float value);
 char 			alleleMask_binary 		(char c, int * isDerived, int *isValid, FILE * fpOut);
+char 			alleleMask_fasta 		(char c, int * isDerived, int *isValid, FILE * fpOut, char outgroupState);
 int 			monomorphic_check 		(int incomingSiteDerivedAlleleCount, int setSamples, int64_t * cnt, int skipSNP);
 int 			maf_check 			(int ac, int at, double maf, int64_t * cnt, int skipSNP);
 int 			strictPolymorphic_check 	(int incomingSiteDerivedAlleleCount, int incomingSiteTotalAlleleCount, int64_t * cnt, int skipSNP);
@@ -189,7 +206,7 @@ void 			RSDLinkedList_appendToFile 	(RSDLinkedListNode_t * listHead, FILE * fp);
 
 // RAiSD_CommandLine.c
 typedef struct
-{
+{	// -a is also reserved for the rand gen's seed
 	char 		runName[STRING_SIZE]; // Flag: N
 	char 		inputFileName[STRING_SIZE]; // Flag: I
 	uint64_t	regionLength; // Flag: L for ms, Flag: B for vcf
@@ -216,6 +233,10 @@ typedef struct
 	int64_t		sfsSlack; // Flag: c
 	char		excludeRegionsFile[STRING_SIZE]; // Flag: X
 	int64_t		orderVCF; // Flag: o
+	char		outgroupName[STRING_SIZE]; // Flag: C
+	char		outgroupName2[STRING_SIZE]; // Flag: C2
+	char		chromNameVCF[STRING_SIZE]; // Flag: H
+	int64_t		fasta2vcfMode; // E
 
 } RSDCommandLine_t;
 
@@ -438,6 +459,12 @@ typedef struct
 	
 	double		muVarDenom;
 
+	char *		outgroupSequence;
+	char		outgroupName[STRING_SIZE];
+
+	char *		outgroupSequence2;
+	char		outgroupName2[STRING_SIZE];
+
 } RSDDataset_t;
 
 RSDDataset_t * 	RSDDataset_new				(void);
@@ -463,6 +490,24 @@ void		RSDDataset_calcMuVarDenom		(RSDDataset_t * RSDDataset);
 void		RSDDataset_getSetRegionLength_vcf_gz	(RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine, FILE * fpOut);
 int 		RSDDataset_getNextSNP_vcf_gz 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut);
 #endif
+
+// RAiSD_Fasta2Vcf.c
+typedef struct
+{
+	int		statesMax;
+	int		statesTotal;
+	char *		statesChar;
+	int *		statesCount;
+
+	int 		imputeStatesMax;
+	int 		imputeStatesTotal;
+	char * 		imputeStatesChar;
+	double * 	imputeStatesProb;
+
+} RSDFastaStates_t;
+
+void RSDDataset_convertFasta2VCF (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine, FILE * fpOut);
+
 
 // RAiSD_MuStatistic.c
 typedef struct

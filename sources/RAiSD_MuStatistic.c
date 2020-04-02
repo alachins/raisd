@@ -2492,8 +2492,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 					muM1 = mu;
 					windowCenter_muM1 = windowCenter;
 					windowStart_muM1 = windowStart;
-					windowEnd_muM1 = windowEnd;
-					
+					windowEnd_muM1 = windowEnd;					
 				}
 
 				if(muVar > muVarM1)
@@ -2501,8 +2500,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 					muVarM1 = muVar;
 					windowCenter_muVarM1 = windowCenter;
 					//windowStart_muVarM1 = windowStart;
-					//windowEnd_muVarM1 = windowEnd;
-					
+					//windowEnd_muVarM1 = windowEnd;					
 				}
 
 				if(muSfs > muSfsM1)
@@ -2510,8 +2508,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 					muSfsM1 = muSfs;
 					windowCenter_muSfsM1 = windowCenter;
 					//windowStart_muSfsM1 = windowStart;
-					//windowEnd_muSfsM1 = windowEnd;
-					
+					//windowEnd_muSfsM1 = windowEnd;					
 				}
 
 				if(muLd > muLdM1)
@@ -2519,8 +2516,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 					muLdM1 = muLd;
 					windowCenter_muLdM1 = windowCenter;
 					//windowStart_muLdM1 = windowStart;
-					//windowEnd_muLdM1 = windowEnd;
-					
+					//windowEnd_muLdM1 = windowEnd;					
 				}				
 			}
 
@@ -2529,6 +2525,11 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 
 		// mode 2
 		{
+			muVarM2 = 0.0f;
+			muSfsM2 = 0.0f;
+			muLdM2 = 0.0f;
+  			muM2 = 0.0f;
+
 			// SNP window range
 			int snpf = i;
 			int snpl = (int)(snpf + RSDMuStat->windowSize - 1);
@@ -2604,8 +2605,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 					muM2 = mu;
 					windowCenter_muM2 = windowCenter;
 					windowStart_muM2 = windowStart;
-					windowEnd_muM2 = windowEnd;
-					
+					windowEnd_muM2 = windowEnd;					
 				}
 
 				if(muVar > muVarM2)
@@ -2613,8 +2613,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 					muVarM2 = muVar;
 					windowCenter_muVarM2 = windowCenter;
 					//windowStart_muVarM2 = windowStart;
-					//windowEnd_muVarM2 = windowEnd;
-					
+					//windowEnd_muVarM2 = windowEnd;					
 				}
 
 				if(muSfs > muSfsM2)
@@ -2622,8 +2621,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 					muSfsM2 = muSfs;
 					windowCenter_muSfsM2 = windowCenter;
 					//windowStart_muSfsM2 = windowStart;
-					//windowEnd_muSfsM2 = windowEnd;
-					
+					//windowEnd_muSfsM2 = windowEnd;					
 				}
 
 				if(muLd > muLdM2)
@@ -2631,14 +2629,18 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 					muLdM2 = muLd;
 					windowCenter_muLdM2 = windowCenter;
 					//windowStart_muLdM2 = windowStart;
-					//windowEnd_muLdM2 = windowEnd;
-					
+					//windowEnd_muLdM2 = windowEnd;					
 				}					
 			}
 		}
 
 		// Mode 3
 		{
+			muVarM3 = 0.0f;
+			muSfsM3 = 0.0f;
+			muLdM3 = 0.0f;
+  			muM3 = 0.0f;
+
 			int hSize = (int)(RSDMuStat->windowSize/2);
 		
 			// SNP window range
@@ -2718,8 +2720,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 						muM3 = mu;
 						windowCenter_muM3 = windowCenter;
 						windowStart_muM3 = windowStart;
-						windowEnd_muM3 = windowEnd;
-					
+						windowEnd_muM3 = windowEnd;					
 					}
 
 					if(muVar > muVarM3)
@@ -2736,8 +2737,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 						muSfsM3 = muSfs;
 						windowCenter_muSfsM3 = windowCenter;
 						//windowStart_muSfsM3 = windowStart;
-						//windowEnd_muSfsM3 = windowEnd;
-					
+						//windowEnd_muSfsM3 = windowEnd;					
 					}
 
 					if(muLd > muLdM3)
@@ -2745,8 +2745,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 						muLdM3 = muLd;
 						windowCenter_muLdM3 = windowCenter;
 						//windowStart_muLdM3 = windowStart;
-						//windowEnd_muLdM3 = windowEnd;
-					
+						//windowEnd_muLdM3 = windowEnd;					
 					}				
 				}
 			}
@@ -2879,7 +2878,7 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 
 		if(RSDCommandLine->fullReport==1)
 		{
-			assert(0);
+			//assert(0);
 			fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)windowStart, (double)windowEnd, (double)muVar, (double)muSfs, (double)muLd, (double)mu);	}
 		else
 			fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)windowCenter, (double)mu);	

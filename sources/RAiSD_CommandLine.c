@@ -67,6 +67,12 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\n\t--- ADDITIONAL EXECUTION PARAMETERS\n\n");	
 	fprintf(fp, "\t[-b]\n");
 	fprintf(fp, "\t[-a INTEGER]\n");
+
+	fprintf(fp, "\n\t--- FASTA-to-VCF CONVERSION PARAMETERS\n\n");
+	fprintf(fp, "\t[-C STRING]\n");
+	fprintf(fp, "\t[-C2 STRING]\n");
+	fprintf(fp, "\t[-H STRING]\n");
+	fprintf(fp, "\t[-E STRING]\n");
 	
 	fprintf(fp, "\n\t--- HELP and VERSION NOTES\n\n");
 	fprintf(fp, "\t[-h]\n");
@@ -107,11 +113,16 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t-d\tProvides a maximum distance from the selection target (in base pairs) to calculate success rates,\n\t\ti.e., reported locations in the proximity of the target of selection (provided via -T).\n");
 	fprintf(fp, "\t-k\tProvides the false positive rate (e.g., 0.05) to report the corresponding reported score after sorting\n\t\tthe reported locations for all the datasets in the input file.\n");
 	fprintf(fp, "\t-l\tProvides the threshold score, reported by a previous run using a false positive rate (e.g., 0.05, via -k)\n\t\tto report the true positive rate.\n");
-	
 
 	fprintf(fp, "\n\t--- ADDITIONAL EXECUTION PARAMETERS\n\n");
 	fprintf(fp, "\t-b\tIndicates that the input file is in mbs format.\n");
 	fprintf(fp, "\t-a\tProvides a seed for the random number generator.\n");	
+
+	fprintf(fp, "\n\t--- FASTA-to-VCF CONVERSION PARAMETERS\n\n");
+	fprintf(fp, "\t-C\tProvides the outgroup to be used for the ancestral states (REF field in VCF). The first ingroup sequence\n\t\tis used if the outgroup is not given or found.\n");
+	fprintf(fp, "\t-C2\tProvides a second outgroup to be used for the ancestral states (REF field in VCF).\n");
+	fprintf(fp, "\t-H\tProvides the chromosome name (CHROM field in VCF) to overwrite default \"chrom\" string.\n");
+	fprintf(fp, "\t-E\tConverts input FASTA to VCF and terminates execution without further processing.\n");
 
 	fprintf(fp, "\n\t--- HELP and VERSION NOTES\n\n");
 	fprintf(fp, "\t-h\tPrints this help message.\n");
@@ -145,10 +156,7 @@ void RSDVersions(FILE * fp)
 	fprintf(fp, " %d. RAiSD v%d.%d (Jan 23, 2020): -X to exclude regions per chromosome from the analysis.\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Jan 30, 2020): -B for chromosome length and SNP size. Fixed bug with the memory-reduction optimization for large chromosomes. -o to request vcf ordering and generation.\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Feb 8, 2020): Fixed position bug due to typecasting. Some site positions were off by 1 bp.\n", releaseIndex++, majorIndex, minorIndex++);
-
-	// TODO: add message here for outoforder vcf
-	// TODO: add message here for adding the monomorphic count in the site report
-	// TODO: need to fix the inflated values bug
+	fprintf(fp, " %d. RAiSD v%d.%d (Apr 2, 2020): Parses, converts to vcf, and analyzes fasta input files (-C for outgroup, -H for chromosome name).\n", releaseIndex++, majorIndex, minorIndex++);
 }
 
 RSDCommandLine_t * RSDCommandLine_new(void)
@@ -192,7 +200,11 @@ void RSDCommandLine_init(RSDCommandLine_t * RSDCommandLine)
 	RSDCommandLine->windowSize = DEFAULT_WINDOW_SIZE;
 	RSDCommandLine->sfsSlack = 1; // singletons, and S-1 snp class (S is the sample size)
 	strncpy(RSDCommandLine->excludeRegionsFile, "\0", STRING_SIZE);
-	RSDCommandLine->orderVCF = 0; 
+	RSDCommandLine->orderVCF = 0;
+	strncpy(RSDCommandLine->outgroupName, "\0", STRING_SIZE);
+	strncpy(RSDCommandLine->outgroupName2, "\0", STRING_SIZE);
+	strncpy(RSDCommandLine->chromNameVCF, "chrom", STRING_SIZE);
+	RSDCommandLine->fasta2vcfMode = FASTA2VCF_CONVERT_n_PROCESS;
 }
 
 void flagCheck (char ** argv, int i, int * flagVector, int flagIndex)
@@ -720,6 +732,58 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 			RSDCommandLine->orderVCF = 1;
 			continue;
 		}
+
+		if(!strcmp(argv[i], "-C")) 
+		{ 
+			flagCheck (argv, i, flagVector, 18);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
+				strcpy(RSDCommandLine->outgroupName, argv[++i]);
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
+
+			continue;
+		}
+
+		if(!strcmp(argv[i], "-C2")) 
+		{ 
+			flagCheck (argv, i, flagVector, 19);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
+				strcpy(RSDCommandLine->outgroupName2, argv[++i]);
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
+
+			continue;
+		}
+
+		if(!strcmp(argv[i], "-H")) 
+		{ 
+			flagCheck (argv, i, flagVector, 20);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
+				strcpy(RSDCommandLine->chromNameVCF, argv[++i]);
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
+
+			continue;
+		}
+
+		if(!strcmp(argv[i], "-E")) 
+		{ 
+			RSDCommandLine->fasta2vcfMode = FASTA2VCF_CONVERT_n_EXIT;
+			continue;
+		}
+
 
 		/*if(!strcmp(argv[i], "-set")) 
 		{ 

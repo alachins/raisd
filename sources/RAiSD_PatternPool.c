@@ -765,6 +765,7 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 	}
 	else
 	{	// default or with N imputation (-M 1)
+	
 		for(j=0;j<numberOfSamples;j++)
 		{
 			assert(RSDPatternPool->incomingSite[j]=='0' || RSDPatternPool->incomingSite[j]=='1');

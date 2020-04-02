@@ -44,7 +44,6 @@ char 	RSDDataset_goToNextSet_vcf_gz 		(RSDDataset_t * RSDDataset);
 int 	RSDDataset_getValidSampleList_vcf_gz 	(RSDDataset_t * RSDDataset);
 int 	RSDDataset_getNumberOfSamples_vcf_gz 	(RSDDataset_t * RSDDataset);
 int 	RSDDataset_getFirstSNP_vcf_gz 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut);
-
 #endif
 
 /***********/
@@ -86,7 +85,10 @@ RSDDataset_t * RSDDataset_new(void)
 	d->setSitesDiscardedMonomorphic = 0;
 	d->setSitesImputedTotal = 0;
 	d->muVarDenom = 1.0;
-
+	strcpy(d->outgroupName, "\0");
+	d->outgroupSequence = NULL;
+	strcpy(d->outgroupName2, "\0");
+	d->outgroupSequence2 = NULL;
 	return d;
 }
 
@@ -120,6 +122,12 @@ void RSDDataset_free(RSDDataset_t * d)
 
 	if(d->sampleValid!=NULL)
 		free(d->sampleValid);
+
+	if(d->outgroupSequence!=NULL)
+		free(d->outgroupSequence);
+
+	if(d->outgroupSequence2!=NULL)
+		free(d->outgroupSequence2);
 
 	free(d);
 }
@@ -242,8 +250,6 @@ int RSDDataset_detectFormat(RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCom
 
 	while(tmp!=EOF)
 	{
-
-	  
 		if(tmp=='/')
 		{
 			tmp = (char)fgetc(fp);			
@@ -263,7 +269,7 @@ int RSDDataset_detectFormat(RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCom
 		  	{
 			    	format = FASTA_FORMAT;
 				strcpy(RSDDataset->inputFileFormat, "fasta");
-				assert(isGZ==1);
+				//assert(isGZ==1);
 			    	break;
 		  	}
 			else
@@ -365,11 +371,16 @@ void RSDDataset_init (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLi
 	assert(isGZ==0 || isGZ==1);
 
 	fclose(RSDDataset->inputFilePtr);
+	RSDDataset->inputFilePtr = NULL;
 
+	if(!strcmp(RSDDataset->inputFileFormat, "fasta"))
+		RSDDataset_convertFasta2VCF (RSDDataset, RSDCommandLine, fpOut);
+	
 	RSDDataset->inputFilePtr = fopen(RSDCommandLine->inputFileName, "r");
 	assert(RSDDataset->inputFilePtr!=NULL);
 	
-	VCFFileCheck ((void*)RSDDataset, RSDDataset->inputFilePtr, RSDCommandLine->inputFileName, fpOut);
+	if(!strcmp(RSDDataset->inputFileFormat, "vcf"))
+		VCFFileCheck ((void*)RSDDataset, RSDDataset->inputFilePtr, RSDCommandLine->inputFileName, fpOut);
 
 	fclose(RSDDataset->inputFilePtr);
 
@@ -538,7 +549,6 @@ void RSDDataset_calcMuVarDenom (RSDDataset_t * RSDDataset)
 	for(i=1;i<RSDDataset->setSamples;i++)
 		RSDDataset->muVarDenom += 1.0/(double)i;
 }
-
 
 /*************/
 /* ms format */
@@ -2427,7 +2437,7 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 
 			if(RSDCommandLine->imputePerSNP==1 && (!skipSNP))
 			{
-				RSDDataset->setSitesImputedTotal+=RSDPatternPool_imputeIncomingSite (RSDPatternPool, RSDDataset->setSamples);
+				RSDDataset->setSitesImputedTotal+= RSDPatternPool_imputeIncomingSite (RSDPatternPool, RSDDataset->setSamples);
 				assert(RSDPatternPool->incomingSiteTotalAlleleCount==RSDDataset->setSamples);
 				skipSNP=0; // assume snp after impute
 			}	
@@ -2454,7 +2464,7 @@ int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 	// snp checks
 	skipSNP = monomorphic_check(RSDPatternPool->incomingSiteDerivedAlleleCount, (int)RSDDataset->setSamples, &RSDDataset->setSitesDiscardedMonomorphic, skipSNP)==1?0:1;
 	skipSNP = maf_check(RSDPatternPool->incomingSiteDerivedAlleleCount, RSDPatternPool->incomingSiteTotalAlleleCount, maf, &RSDDataset->setSitesDiscardedMafCheckFailed, skipSNP)==1?0:1;
-	
+
 	if(skipSNP)
 	{
 		assert(skipSNP==1);
