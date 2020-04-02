@@ -6,9 +6,9 @@ Authors: Nikolaos Alachiotis (n.alachiotis@gmail.com) and Pavlos Pavlidis (pavli
 
 First release: 9/6/2017 
 
-Last update: 8/2/2020       
+Last update: 2/4/2020       
 
-Version: 2.5
+Version: 2.6
 
 About
 -----
@@ -499,6 +499,8 @@ v2.3 (23/1/2020): -X to exclude regions per chromosome from the analysis.
 v2.4 (30/1/2020): -B for chromosome length and SNP size. Fixed bug with the memory-reduction optimization for large chromosomes. -o to request vcf ordering and generation.
 
 v2.5 (8/2/2020): Fixed position bug due to typecasting. Some site positions were off by 1 bp.
+
+v2.6 (2/4/2020): Parses, converts to vcf, and analyzes fasta input files (-C for outgroup, -H for chromosome name).
 
 Support
 -------
