@@ -477,7 +477,7 @@ It is generally recommended to exclude the centromeres from the analysis, as the
 
 FASTA-to-VCF conversion
 -----------------------
-As of version 2.6, RAiSD can also parse and process FASTA files. This is achieved by converting the input FASTA file to VCF format before processing. RAiSD generates the VCF file, which can be used in future runs to skip the conversion step. When processing FASTA files, up to two outgroups can be provided using parameters -C (primary outgroup) and -C2 (secondary outgroup). When no outgroup sequence is provided, the very first sequence in the alignment is used as outgroup. The outgroup sequence(s) must be included in the FASTA file. The -E parameter can be used to terminate execution right after the conversion is completed. The -H parameter can be used to provide a string for the CHROM field (default: "chrom"). 
+As of version 2.6, RAiSD can also parse and process FASTA files. This is achieved by converting the input FASTA file to VCF format before processing. RAiSD generates the VCF file, which can be used in future runs to skip the conversion step. When processing FASTA files, up to two outgroups can be specified using parameters -C (primary outgroup) and -C2 (secondary outgroup). When no outgroup sequence is provided, the very first sequence in the alignment is used as outgroup. The outgroup sequence(s) must be included in the FASTA file. The -E parameter can be used to terminate execution right after the conversion is completed. The -H parameter can be used to provide a string for the CHROM field (default: "chrom"). 
 
 The steps below describe the conversion process.
 
