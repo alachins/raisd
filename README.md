@@ -477,23 +477,27 @@ It is generally recommended to exclude the centromeres from the analysis, as the
 
 FASTA-to-VCF conversion
 -----------------------
-As of version 2.6, RAiSD can also parse and process FASTA files. This is achieved by converting the input FASTA file to VCF format before processing. RAiSD generates the VCF file, which can be used in future runs to skip the conversion step. When processing FASTA files, up to two outgroups can be provided using parameters -C (primary outgroup) and -C2 (secondary outgroup). When no outgroup sequence is provided, the very first sequence in the alignment is used as outgroup. The outgroup sequence(s) must be included in the FASTA file. The -E parameter can be used to terminate execution right after the conversion is completed. The -H parameter can be used to provide a string for the CHROM field (default: "chrom"). The steps below describe the conversion process.
+As of version 2.6, RAiSD can also parse and process FASTA files. This is achieved by converting the input FASTA file to VCF format before processing. RAiSD generates the VCF file, which can be used in future runs to skip the conversion step. When processing FASTA files, up to two outgroups can be provided using parameters -C (primary outgroup) and -C2 (secondary outgroup). When no outgroup sequence is provided, the very first sequence in the alignment is used as outgroup. The outgroup sequence(s) must be included in the FASTA file. The -E parameter can be used to terminate execution right after the conversion is completed. The -H parameter can be used to provide a string for the CHROM field (default: "chrom"). 
+
+The steps below describe the conversion process.
 
 a) When no outgroups are provided (or found in the FASTA file), the first ingroup sequence is used. 
-In this case, this sequence is also included the generated VCF. The outgroup sequences that are specified
-by the user are only used for the REF field and not included in the sample list of the VCF file.
+   In this case, this sequence is also included the generated VCF. The outgroup sequences that are specified
+   by the user are only used for the REF field and not included in the sample list of the VCF file.
 
 b) All ambiguous characters are replaced by N.
 
-c) At each position x (VCF line, POS: x), when the primary outgroup state is not informative (gap, N, or
-	   different than all ingroup states at position x), the secondary outgroup state is used for the REF field.
-	   If the secondary outgroup state is not informative as well, the igroup dominant allele at position x is 
-	   used for the REF field. 
-	d) At each position x, the first ingroup state that differs from the REF state is used for the ALT field. If
-	   no valid ingroup state exists (all ingroup states are gaps, Ns, or the REF state), the ALT field is arbitrarily
-	   set to a valid DNA state (excluding REF).
-	e) Per sample entry, all ALT states in the ingroup are set to 1, all remaining states are set to 0, and all gaps
-	   and N's are represented by '.'.
+c) At each position x (VCF line, POS: x), when the primary outgroup state is not informative (gap, N, or 
+   different than all ingroup states at position x), the secondary outgroup state is used for the REF field.
+   If the secondary outgroup state is not informative as well, the igroup dominant allele at position x is 
+   used for the REF field. 
+
+d) At each position x, the first ingroup state that differs from the REF state is used for the ALT field. If
+   no valid ingroup state exists (all ingroup states are gaps, Ns, or the REF state), the ALT field is arbitrarily
+   set to a valid DNA state (excluding REF).
+
+e) Per sample entry, all ALT states in the ingroup are set to 1, all remaining states are set to 0, and all gaps
+   and N's are represented by '.'.
 
 
 Changelog
