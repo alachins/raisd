@@ -497,7 +497,7 @@ d) At each position x, the first ingroup state that differs from the REF state i
    set to a valid DNA state that is not the REF state.
 
 e) Per sample entry, all ALT states in the ingroup are set to 1, all remaining states are set to 0, and all gaps
-   and N's are represented by '.'.
+   and Ns are represented by a dot (‘.’).
 
 
 Changelog
