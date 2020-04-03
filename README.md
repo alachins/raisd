@@ -483,7 +483,7 @@ The steps below describe the conversion process.
 
 a) When no outgroups are provided (or found in the FASTA file), the first ingroup sequence is used. 
    In this case, this sequence is also included in the generated VCF. The outgroup sequences that are specified
-   by the user are only used for the REF field and not included in the sample list of the VCF file.
+   by the user are only used for the REF field and are not included in the sample list of the VCF file.
 
 b) All ambiguous characters are replaced by N.
 
