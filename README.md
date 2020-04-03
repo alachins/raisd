@@ -494,7 +494,7 @@ c) At each position x (VCF line, POS: x), if the primary outgroup state is not i
 
 d) At each position x, the first ingroup state that differs from the REF state is used for the ALT field. If
    no valid ingroup state exists (all ingroup states are gaps, Ns, or the REF state), the ALT field is arbitrarily
-   set to a valid DNA state (excluding REF).
+   set to a valid DNA state that is not the REF state.
 
 e) Per sample entry, all ALT states in the ingroup are set to 1, all remaining states are set to 0, and all gaps
    and N's are represented by '.'.
