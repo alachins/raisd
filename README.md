@@ -477,7 +477,17 @@ It is generally recommended to exclude the centromeres from the analysis, as the
 
 FASTA-to-VCF conversion
 -----------------------
-As of version 2.6, RAiSD can also parse and process FASTA files. This is achieved by converting the input FASTA file to VCF format. RAiSD also generates the VCF file, which can be used for futher runs using RAiSD or any other tool. 
+As of version 2.6, RAiSD can also parse and process FASTA files. This is achieved by converting the input FASTA file to VCF format. RAiSD also generates the VCF file, which can be used for future runs using RAiSD or any other tool. When processing FASTA files, up to two outgroups can be provided using parameters -C (primary outgroup) and -C2 (secondary outgroup). When no outgroup sequence is provided, the very first sequence in the file is used as outgroup (and is also included in the generated VCF file). The outgroup sequence(s) must be included in the FASTA file. The -E parameter can be used to terminate execution right after the conversion is completed. The -H parameter can be used to set the CHROM field (default: "chrom"). The steps below desribe the conversion process implemented by RAiSD.
+
+	a) When no outgroup(s) are given or found in the FASTA file, the first sequence is used. In this case, the sequence is also included the generated VCF. The outgroup sequences that are provided by the user are only used for the REF field, and not included in the generated VCF as additional samples.
+	b) All ambiguous characters are replaced by N.
+	c) At each position (VCF entry), if the primary outgroup state is not informative, the secondary outgroup state is used. If that is not informative as well, then the dominant allele at that position is picked from the ingroup. 
+	d) Gaps and N's are represented by '.'.
+	e) At each position, the ALT field is the first ingroup state that is different from the REF. If no valid ingroup state exists, i.e., all are gaps or N's or the REF state, then the ALT field is arbitrarily set to 
+	f)
+
+
+The outgroup sequence(s) is used to set the REF field per VCF line. When the state at some position x in the primary outgroup sequence is not informative, then the state at position x of the secondary outgroup is used. 
 
 
 
