@@ -200,7 +200,8 @@ The current RAiSD release can process SNP data in Hudson's ms or VCF (Variant Ca
 
 RAiSD version 1.7 (or later) can also parse and process [ANGSD](http://www.popgen.dk/angsd/index.php/ANGSD) VCF files.  
 RAiSD version 1.8 (or later) can also parse compressed VCF files (including ANGSD-generated VCF files) in [GZ](https://www.gnu.org/software/gzip/) file format.                                                                     
-RAiSD version 2.1 (or later) can also parse and process unordered VCF files (compressed unordered files are not yet supported). 
+RAiSD version 2.1 (or later) can also parse and process unordered VCF files (compressed unordered files are not yet supported).
+RAiSD version 2.6 (or later) can also parse and process FASTA files.
 
 Output Files
 ------------
@@ -473,6 +474,12 @@ An example file to exclude three regions, two in chr1 and one in chr2, is provid
 	chr2	50	100
 
 It is generally recommended to exclude the centromeres from the analysis, as they can lead to inflated scores and misleading results. 
+
+FASTA-to-VCF conversion
+-----------------------
+As of version 2.6, RAiSD can also parse and process FASTA files. This is achieved by converting the input FASTA file to VCF format. RAiSD also generates the VCF file, which can be used for futher runs using RAiSD or any other tool. 
+
+
 
 Changelog
 ----------
