@@ -487,9 +487,9 @@ a) When no outgroups are provided (or found in the FASTA file), the first ingrou
 
 b) All ambiguous characters are replaced by N.
 
-c) At each position x (VCF line, POS: x), when the primary outgroup state is not informative (gap, N, or 
+c) At each position x (VCF line, POS: x), if the primary outgroup state is not informative (gap, N, or 
    different than all ingroup states at position x), the secondary outgroup state is used for the REF field.
-   If the secondary outgroup state is not informative as well, the igroup dominant allele at position x is 
+   If the secondary outgroup state is not informative as well, the ingroup dominant allele at position x is 
    used for the REF field. 
 
 d) At each position x, the first ingroup state that differs from the REF state is used for the ALT field. If
