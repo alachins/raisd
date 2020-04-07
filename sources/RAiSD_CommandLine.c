@@ -46,6 +46,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\n\t--- SLIDING WINDOW and MU STATISTIC\n\n");
 	fprintf(fp, "\t[-w INTEGER]\n");
 	fprintf(fp, "\t[-c INTEGER]\n");
+	fprintf(fp, "\t[-G INTEGER]\n");
 
 	fprintf(fp, "\n\t--- STANDARD OUTPUT and REPORTS\n\n");
 	fprintf(fp, "\t[-f]\n");
@@ -96,6 +97,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\n\t--- SLIDING WINDOW and MU STATISTIC\n\n");
 	fprintf(fp, "\t-w\tProvides the window size (integer value). The default value is 50 (empirically determined).\n");
 	fprintf(fp, "\t-c\tProvides the slack for the SFS edges to be used for the calculation of mu_SFS. The default value is 1\n\t\t(singletons and S-1 snp class, where S is the sample size).\n");
+	fprintf(fp, "\t-G\tProvides the grid size to specify the total number of evaluation points across the data.\n\t\tWhen used, RAiSD reports mu statistic scores at equidistant locations between the first and last SNPs.\n");
 
 	fprintf(fp, "\n\t--- STANDARD OUTPUT and REPORTS\n\n");
 	fprintf(fp, "\t-f\tOverwrites existing run files under the same run ID.\n");
@@ -153,10 +155,11 @@ void RSDVersions(FILE * fp)
 	fprintf(fp, " %d. RAiSD v%d.%d (May 15, 2019): -A to create Manhattan plots, scale factors for muVar and muSFS to yield comparable scores among different chromosomes\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Jan 21, 2020): Parser for unordered VCF files (e.g., extracted from DArTseq genotyping reports). The ordered VCF file is also created.\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Jan 22, 2020): Added missing field (discarded monomorphic sites) in the site report (Dataset.c file) for missing-data strategies M=1,2, or 3.\n", releaseIndex++, majorIndex, minorIndex++);
-	fprintf(fp, " %d. RAiSD v%d.%d (Jan 23, 2020): -X to exclude regions per chromosome from the analysis.\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Jan 23, 2020): -X to exclude regions per chromosome from the analysis\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Jan 30, 2020): -B for chromosome length and SNP size. Fixed bug with the memory-reduction optimization for large chromosomes. -o to request vcf ordering and generation.\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Feb 8, 2020): Fixed position bug due to typecasting. Some site positions were off by 1 bp.\n", releaseIndex++, majorIndex, minorIndex++);
-	fprintf(fp, " %d. RAiSD v%d.%d (Apr 2, 2020): Parses, converts to vcf, and analyzes fasta input files (-C for outgroup, -H for chromosome name).\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Apr 2, 2020): Parses, converts to vcf, and analyzes fasta input files (-C/-C2 for outgroups, -H for chromosome name, -E for conversion-only mode).\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Apr 8, 2020): -G parameter to specify the grid size\n", releaseIndex++, majorIndex, minorIndex++);
 }
 
 RSDCommandLine_t * RSDCommandLine_new(void)
@@ -205,6 +208,7 @@ void RSDCommandLine_init(RSDCommandLine_t * RSDCommandLine)
 	strncpy(RSDCommandLine->outgroupName2, "\0", STRING_SIZE);
 	strncpy(RSDCommandLine->chromNameVCF, "chrom", STRING_SIZE);
 	RSDCommandLine->fasta2vcfMode = FASTA2VCF_CONVERT_n_PROCESS;
+	RSDCommandLine->gridSize = -1;
 }
 
 void flagCheck (char ** argv, int i, int * flagVector, int flagIndex)
@@ -784,6 +788,29 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 			continue;
 		}
 
+		if(!strcmp(argv[i], "-G")) 
+		{ 
+			flagCheck (argv, i, flagVector, 21);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
+			{
+				int64_t grid = (int64_t)atoi(argv[++i]);
+				RSDCommandLine->gridSize = (int64_t) grid;
+
+				if(RSDCommandLine->gridSize<3)
+				{
+					fprintf(stderr, "\nERROR: Invalid grid size (valid: >=3)\n\n");
+					exit(0);
+				}
+			}
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
+
+			continue;
+		}
 
 		/*if(!strcmp(argv[i], "-set")) 
 		{ 
@@ -840,6 +867,12 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 		FILE * excludeRegionsFileExists = fopen(RSDCommandLine->excludeRegionsFile, "r");
 		assert(excludeRegionsFileExists!=NULL); // file exists check
 		fclose(excludeRegionsFileExists);
+	}
+
+	if(flagVector[M_FLAG_INDEX] && !(flagVector[Y_FLAG_INDEX]))
+	{
+		fprintf(stderr, "\nERROR: Missing input parameter -y, which is required when -M is used.\n\n");
+		exit(0);
 	}
 
 	if(RSDCommandLine->createPatternPoolMask==1)

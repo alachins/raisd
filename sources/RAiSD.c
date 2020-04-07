@@ -163,6 +163,8 @@ int main (int argc, char ** argv)
 	{
 		RSDDataset_setPosition (RSDDataset, &setIndex);
 
+		RSDMuStat->currentScoreIndex=-1;
+
 		if(setIndexValid!=-1 && setIndex!=setIndexValid)
 		{
 			char tchar = (char)fgetc(RSDDataset->inputFilePtr); // Note: this might generate a segfault with MakefileZLIB
@@ -284,6 +286,8 @@ int main (int argc, char ** argv)
 						Mu_Success += 1.0;
 				}
 			}
+
+			RSDMuStat_writeBuffer2File (RSDMuStat, RSDCommandLine);
 
 			if(RSDCommandLine->createPlot==1)
 				RSDPlot_createPlot (RSDCommandLine, RSDDataset, RSDMuStat, RSDPLOT_BASIC_MU);

@@ -27,12 +27,15 @@
 #include <time.h>
 #include <unistd.h>
 #include <math.h>
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_spline.h>
+#include <gsl/gsl_interp.h>
 #ifdef _ZLIB
 #include "zlib.h"
 #endif
 
 #define MAJOR_VERSION 2
-#define MINOR_VERSION 6
+#define MINOR_VERSION 7
 #define RELEASE_MONTH "April"
 #define RELEASE_YEAR 2020
 
@@ -111,6 +114,9 @@ extern double TotalMuTime;
 #define	L_FLAG_INDEX 2
 #define B_FLAG_INDEX 17
 
+#define M_FLAG_INDEX 6
+#define Y_FLAG_INDEX 5
+
 #define FASTA2VCF_CONVERT_n_PROCESS 0
 #define FASTA2VCF_CONVERT_n_EXIT 1
 
@@ -128,6 +134,8 @@ extern double TotalMuTime;
 
 #define MAJORITY 0
 #define PROBABILITY 1
+
+#define SCOREBUFFER_REALLOC_INCR 1024
 
 // RAiSD.c
 extern struct timespec requestStart;
@@ -237,6 +245,7 @@ typedef struct
 	char		outgroupName2[STRING_SIZE]; // Flag: C2
 	char		chromNameVCF[STRING_SIZE]; // Flag: H
 	int64_t		fasta2vcfMode; // E
+	int64_t		gridSize; // G
 
 } RSDCommandLine_t;
 
@@ -544,6 +553,16 @@ typedef struct
 	int64_t	*	excludeRegionStart;
 	int64_t	*	excludeRegionStop;
 
+	int64_t		bufferMemMaxSize;
+	double *	buffer0Data; // windowCenter
+	double *	buffer1Data; // windowStart	
+	double *	buffer2Data; // windowEnd
+	double *	buffer3Data; // muVAR
+	double *	buffer4Data; // muSFS
+	double *	buffer5Data; // muLD
+	double *	buffer6Data; // mu
+	int64_t		currentScoreIndex;
+
 } RSDMuStat_t;
 
 RSDMuStat_t * 	RSDMuStat_new 			(void);
@@ -557,6 +576,8 @@ void 		RSDMuStat_scanChunkWithMask	(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChu
 extern float   	getPatternCount			(RSDPatternPool_t * RSDPatternPool, int * pCntVec, int offset, int * patternID, int p0, int p1, int p2, int p3, int * pcntl, int * pcntr, int * pcntexll, int * pcntexlr);
 void		RSDMuStat_loadExcludeTable 	(RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine);
 void		RSDMuStat_excludeRegion 	(RSDMuStat_t * RSDMuStat, RSDDataset_t * RSDDataset);
+extern void 	(*RSDMuStat_storeOutput) 	(RSDMuStat_t * RSDMuStat, double windowCenter, double windowStart, double windowEnd, double muVar, double muSfs, double muLd, double mu);
+void 		RSDMuStat_writeBuffer2File 	(RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine);
 
 // RAiSD_Plot.c
 void 		RSDPlot_printRscriptVersion 	(RSDCommandLine_t * RSDCommandLine, FILE * fpOut);
@@ -566,4 +587,5 @@ void 		RSDPlot_generateRscript 	(RSDCommandLine_t * RSDCommandLine, int mode);
 void 		RSDPlot_removeRscript 		(RSDCommandLine_t * RSDCommandLine,int mode);
 void 		RSDPlot_createPlot 		(RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDataset, RSDMuStat_t * RSDMuStat, int mode);
 void 		RSDPlot_createReportListName 	(RSDCommandLine_t * RSDCommandLine, char * reportListName);
+
 

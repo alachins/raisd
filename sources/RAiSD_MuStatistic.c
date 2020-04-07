@@ -29,6 +29,14 @@ float 	pwLD 				(RSDPatternPool_t * pp, int p1, int p2, int samples);
 void	(*RSDMuStat_scanChunk) 		(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
 void 	RSDMuStat_scanChunkBinary	(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
 void 	RSDMuStat_scanChunkWithMask	(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
+void 	(*RSDMuStat_storeOutput) 	(RSDMuStat_t * RSDMuStat, double windowCenter, double windowStart, double windowEnd, double muVar, double muSfs, double muLd, double mu);
+void 	RSDMuStat_output2FileSimple 	(RSDMuStat_t * RSDMuStat, double windowCenter, double windowStart, double windowEnd, double muVar, double muSfs, double muLd, double mu);
+void 	RSDMuStat_output2FileFull 	(RSDMuStat_t * RSDMuStat, double windowCenter, double windowStart, double windowEnd, double muVar, double muSfs, double muLd, double mu);
+void 	RSDMuStat_output2BufferSimple 	(RSDMuStat_t * RSDMuStat, double windowCenter, double windowStart, double windowEnd, double muVar, double muSfs, double muLd, double mu);
+void 	RSDMuStat_output2BufferFull 	(RSDMuStat_t * RSDMuStat, double windowCenter, double windowStart, double windowEnd, double muVar, double muSfs, double muLd, double mu);
+
+
+
 
 RSDMuStat_t * RSDMuStat_new (void)
 {
@@ -69,6 +77,16 @@ RSDMuStat_t * RSDMuStat_new (void)
 	mu->excludeRegionsTotal = 0;
 	mu->excludeRegionStart = NULL;
 	mu->excludeRegionStop = NULL;
+
+	mu->bufferMemMaxSize = 0;
+	mu->buffer0Data = NULL; // windowCenter
+	mu->buffer1Data = NULL; // windowStart	
+	mu->buffer2Data = NULL; // windowEnd
+	mu->buffer3Data = NULL; // muVAR
+	mu->buffer4Data = NULL; // muSFS
+	mu->buffer5Data = NULL; // muLD
+	mu->buffer6Data = NULL; // mu
+	mu->currentScoreIndex = -1;
 
 	return mu;
 }
@@ -138,6 +156,48 @@ void RSDMuStat_free (RSDMuStat_t * mu)
 	{
 		free(mu->excludeRegionStop);
 		mu->excludeRegionStop = NULL;
+	}
+
+	if(mu->buffer0Data!=NULL)
+	{
+		free(mu->buffer0Data);
+		mu->buffer0Data = NULL;
+	}
+
+	if(mu->buffer1Data!=NULL)
+	{
+		free(mu->buffer1Data);
+		mu->buffer1Data = NULL;
+	}
+
+	if(mu->buffer2Data!=NULL)
+	{
+		free(mu->buffer2Data);
+		mu->buffer2Data = NULL;
+	}
+
+	if(mu->buffer3Data!=NULL)
+	{
+		free(mu->buffer3Data);
+		mu->buffer3Data = NULL;
+	}
+
+	if(mu->buffer4Data!=NULL)
+	{
+		free(mu->buffer4Data);
+		mu->buffer4Data = NULL;
+	}
+
+	if(mu->buffer5Data!=NULL)
+	{
+		free(mu->buffer5Data);
+		mu->buffer5Data = NULL;
+	}
+
+	if(mu->buffer6Data!=NULL)
+	{
+		free(mu->buffer6Data);
+		mu->buffer6Data = NULL;
 	}
 
 	free(mu);
@@ -2437,7 +2497,6 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 				windowCenter = round((RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0);
 				windowStart = RSDChunk->sitePosition[snpf];
 				windowEnd = RSDChunk->sitePosition[snpl];
-				/**/
 
 				float isValid = 1.0;
 	
@@ -2887,6 +2946,222 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 // End of experimental sliding-window implementation 4: all three
 #endif
 
+void RSDMuStat_output2FileSimple (RSDMuStat_t * RSDMuStat, double windowCenter, double windowStart, double windowEnd, double muVar, double muSfs, double muLd, double mu)
+{
+	windowStart = windowStart+0.0; // make compilers happy
+	windowEnd = windowEnd+0.0;
+	muVar = muVar+0.0;
+	muSfs = muSfs+0.0;
+	muLd = muLd+0.0;
+
+	fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", windowCenter, mu);	
+}
+
+void RSDMuStat_output2FileFull (RSDMuStat_t * RSDMuStat, double windowCenter, double windowStart, double windowEnd, double muVar, double muSfs, double muLd, double mu)
+{
+	fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", windowCenter, windowStart, windowEnd, muVar, muSfs, muLd, mu);
+}
+
+void RSDMuStat_output2BufferSimple (RSDMuStat_t * RSDMuStat, double windowCenter, double windowStart, double windowEnd, double muVar, double muSfs, double muLd, double mu)
+{
+	windowStart = windowStart+0.0; // make compilers happy
+	windowEnd = windowEnd+0.0;
+	muVar = muVar+0.0;
+	muSfs = muSfs+0.0;
+	muLd = muLd+0.0;
+
+	if(RSDMuStat->currentScoreIndex+1>=RSDMuStat->bufferMemMaxSize)
+	{
+		RSDMuStat->bufferMemMaxSize+=SCOREBUFFER_REALLOC_INCR;
+
+		RSDMuStat->buffer0Data = rsd_realloc(RSDMuStat->buffer0Data, sizeof(double)*(unsigned long)RSDMuStat->bufferMemMaxSize);
+		assert(RSDMuStat->buffer0Data!=NULL);
+
+		RSDMuStat->buffer6Data = rsd_realloc(RSDMuStat->buffer6Data, sizeof(double)*(unsigned long)RSDMuStat->bufferMemMaxSize);
+		assert(RSDMuStat->buffer6Data!=NULL);
+	}
+
+	RSDMuStat->buffer0Data[RSDMuStat->currentScoreIndex]=windowCenter;
+	RSDMuStat->buffer6Data[RSDMuStat->currentScoreIndex]=mu;	
+}
+
+void RSDMuStat_output2BufferFull (RSDMuStat_t * RSDMuStat, double windowCenter, double windowStart, double windowEnd, double muVar, double muSfs, double muLd, double mu)
+{
+	if(RSDMuStat->currentScoreIndex+1>=RSDMuStat->bufferMemMaxSize)
+	{
+		RSDMuStat->bufferMemMaxSize+=SCOREBUFFER_REALLOC_INCR;
+
+		RSDMuStat->buffer0Data = rsd_realloc(RSDMuStat->buffer0Data, sizeof(double)*(unsigned long)RSDMuStat->bufferMemMaxSize);
+		assert(RSDMuStat->buffer0Data!=NULL);
+
+		RSDMuStat->buffer1Data = rsd_realloc(RSDMuStat->buffer1Data, sizeof(double)*(unsigned long)RSDMuStat->bufferMemMaxSize);
+		assert(RSDMuStat->buffer1Data!=NULL);
+
+		RSDMuStat->buffer2Data = rsd_realloc(RSDMuStat->buffer2Data, sizeof(double)*(unsigned long)RSDMuStat->bufferMemMaxSize);
+		assert(RSDMuStat->buffer2Data!=NULL);
+
+		RSDMuStat->buffer3Data = rsd_realloc(RSDMuStat->buffer3Data, sizeof(double)*(unsigned long)RSDMuStat->bufferMemMaxSize);
+		assert(RSDMuStat->buffer3Data!=NULL);
+
+		RSDMuStat->buffer4Data = rsd_realloc(RSDMuStat->buffer4Data, sizeof(double)*(unsigned long)RSDMuStat->bufferMemMaxSize);
+		assert(RSDMuStat->buffer4Data!=NULL);
+
+		RSDMuStat->buffer5Data = rsd_realloc(RSDMuStat->buffer5Data, sizeof(double)*(unsigned long)RSDMuStat->bufferMemMaxSize);
+		assert(RSDMuStat->buffer5Data!=NULL);
+
+		RSDMuStat->buffer6Data = rsd_realloc(RSDMuStat->buffer6Data, sizeof(double)*(unsigned long)RSDMuStat->bufferMemMaxSize);
+		assert(RSDMuStat->buffer6Data!=NULL);
+	}
+
+	RSDMuStat->buffer0Data[RSDMuStat->currentScoreIndex]=windowCenter;
+	RSDMuStat->buffer1Data[RSDMuStat->currentScoreIndex]=windowStart;
+	RSDMuStat->buffer2Data[RSDMuStat->currentScoreIndex]=windowEnd;
+	RSDMuStat->buffer3Data[RSDMuStat->currentScoreIndex]=muVar;
+	RSDMuStat->buffer4Data[RSDMuStat->currentScoreIndex]=muSfs;
+	RSDMuStat->buffer5Data[RSDMuStat->currentScoreIndex]=muLd;
+	RSDMuStat->buffer6Data[RSDMuStat->currentScoreIndex]=mu;
+}
+
+inline void RSDMuStat_storeOutputConfigure (RSDCommandLine_t * RSDCommandLine)
+{
+	if(RSDCommandLine->gridSize==-1)
+	{
+		if(RSDCommandLine->fullReport==1)
+		{
+			RSDMuStat_storeOutput = &RSDMuStat_output2FileFull;
+		}
+		else
+		{
+			RSDMuStat_storeOutput = &RSDMuStat_output2FileSimple;
+		}
+	}
+	else
+	{
+		if(RSDCommandLine->fullReport==1)
+		{
+			RSDMuStat_storeOutput = &RSDMuStat_output2BufferFull;
+		}
+		else
+		{
+			RSDMuStat_storeOutput = &RSDMuStat_output2BufferSimple;
+		}
+	}
+}
+
+void RSDMuStat_writeBuffer2File (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine)
+{
+	if(RSDCommandLine->gridSize==-1)
+		return;
+
+	int i = 0;
+
+	double * windowCenter = (double*)rsd_malloc(sizeof(double)*(unsigned long)RSDCommandLine->gridSize);
+	assert(windowCenter!=NULL);
+
+	double firstPos = RSDMuStat->buffer0Data[0];
+	double lastPos = RSDMuStat->buffer0Data[RSDMuStat->currentScoreIndex];
+	double step = (double)(lastPos - firstPos)/(RSDCommandLine->gridSize-1.0);
+
+	for(i=0;i<RSDCommandLine->gridSize-1;i++)
+	{
+		windowCenter[i] = firstPos + i*step;
+	}
+	windowCenter[RSDCommandLine->gridSize-1] = lastPos;
+
+	//gsl_interp_accel * acc = gsl_interp_accel_alloc ();
+    	//gsl_spline * spline = gsl_spline_alloc (gsl_interp_cspline, RSDMuStat->currentScoreIndex+1);
+	//gsl_spline_init (spline, RSDMuStat->buffer0Data, RSDMuStat->buffer6Data, RSDMuStat->currentScoreIndex+1);
+	//val = gsl_spline_eval (spline, windowCenter, acc);	
+
+	double * mu = (double*)rsd_malloc(sizeof(double)*(unsigned long)RSDCommandLine->gridSize);
+	assert(mu!=NULL);
+
+   	gsl_interp_accel * accelerator =  gsl_interp_accel_alloc();
+	gsl_interp * interpolation = gsl_interp_alloc (gsl_interp_linear,(size_t)RSDMuStat->currentScoreIndex+1);
+      	gsl_interp_init(interpolation, RSDMuStat->buffer0Data, RSDMuStat->buffer6Data, (size_t)RSDMuStat->currentScoreIndex+1);
+
+	for(i=0;i<RSDCommandLine->gridSize;i++)
+	{
+		mu[i] =  gsl_interp_eval(interpolation, RSDMuStat->buffer0Data, RSDMuStat->buffer6Data, windowCenter[i], accelerator);
+	}
+     	gsl_interp_free (interpolation);
+	gsl_interp_accel_free(accelerator);
+
+	if(RSDCommandLine->fullReport==1)
+	{
+		double * muVAR = (double*)rsd_malloc(sizeof(double)*(unsigned long)RSDCommandLine->gridSize);
+		assert(muVAR!=NULL);
+
+		accelerator =  gsl_interp_accel_alloc();
+		interpolation = gsl_interp_alloc (gsl_interp_linear,(size_t)RSDMuStat->currentScoreIndex+1);
+		gsl_interp_init(interpolation, RSDMuStat->buffer0Data, RSDMuStat->buffer3Data, (size_t)RSDMuStat->currentScoreIndex+1);
+
+		for(i=0;i<RSDCommandLine->gridSize;i++)
+		{
+			muVAR[i] =  gsl_interp_eval(interpolation, RSDMuStat->buffer0Data, RSDMuStat->buffer3Data, windowCenter[i], accelerator);
+		}
+		gsl_interp_free (interpolation);
+		gsl_interp_accel_free(accelerator);
+
+		double * muSFS = (double*)rsd_malloc(sizeof(double)*(unsigned long)RSDCommandLine->gridSize);
+		assert(muSFS!=NULL);
+
+		accelerator =  gsl_interp_accel_alloc();
+		interpolation = gsl_interp_alloc (gsl_interp_linear,(size_t)RSDMuStat->currentScoreIndex+1);
+		gsl_interp_init(interpolation, RSDMuStat->buffer0Data, RSDMuStat->buffer4Data, (size_t)RSDMuStat->currentScoreIndex+1);
+
+		for(i=0;i<RSDCommandLine->gridSize;i++)
+		{
+			muSFS[i] =  gsl_interp_eval(interpolation, RSDMuStat->buffer0Data, RSDMuStat->buffer4Data, windowCenter[i], accelerator);
+		}
+		gsl_interp_free (interpolation);
+		gsl_interp_accel_free(accelerator);
+
+		double * muLD = (double*)rsd_malloc(sizeof(double)*(unsigned long)RSDCommandLine->gridSize);
+		assert(muLD!=NULL);
+
+		accelerator =  gsl_interp_accel_alloc();
+		interpolation = gsl_interp_alloc (gsl_interp_linear,(size_t)RSDMuStat->currentScoreIndex+1);
+		gsl_interp_init(interpolation, RSDMuStat->buffer0Data, RSDMuStat->buffer5Data, (size_t)RSDMuStat->currentScoreIndex+1);
+
+		for(i=0;i<RSDCommandLine->gridSize;i++)
+		{
+			muLD[i] =  gsl_interp_eval(interpolation, RSDMuStat->buffer0Data, RSDMuStat->buffer5Data, windowCenter[i], accelerator);
+		}
+		gsl_interp_free (interpolation);
+		gsl_interp_accel_free(accelerator);
+
+		for(i=1;i<RSDCommandLine->gridSize;i++)
+		{
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", windowCenter[i], 
+												   0.0, 
+												   0.0, 	
+												   muVAR[i],
+												   muSFS[i],
+												   muLD[i],
+												   mu[i]);
+
+		}
+
+		free(muVAR);
+		free(muSFS);
+		free(muLD);
+	}
+	else
+	{
+		for(i=1;i<RSDCommandLine->gridSize;i++)
+		{
+			fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", windowCenter[i], mu[i]);
+
+		}
+	}     
+	
+	free(windowCenter);	
+	free(mu);
+
+	fflush(RSDMuStat->reportFP);
+}
+
 #ifdef _REF
 // Default SW implementation
 void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine)
@@ -2904,6 +3179,8 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 	float mu = 0.0f;
 
 	int64_t sfsSlack = RSDCommandLine->sfsSlack;
+	
+	RSDMuStat_storeOutputConfigure(RSDCommandLine);
 
 	// Mu_SFS initialization
 	int dCnt1 = 0, dCntN = 0;
@@ -2923,18 +3200,14 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 		int winlsnpl = (int)(winlsnpf + RSDMuStat->windowSize/2 - 1);
 
 		int winrsnpf = winlsnpl + 1;
-		int winrsnpl = snpl;
-
-		
+		int winrsnpl = snpl;		
 		
 		// Window center (bp)
 		windowCenter = round((RSDChunk->sitePosition[snpf] + RSDChunk->sitePosition[snpl]) / 2.0);
 		windowStart = RSDChunk->sitePosition[snpf];
 		windowEnd = RSDChunk->sitePosition[snpl];
 
-		float isValid = 1.0;
-
-		
+		float isValid = 1.0;		
 
 		for(j=0;j<RSDMuStat->excludeRegionsTotal;j++)
 			if((windowEnd>=RSDMuStat->excludeRegionStart[j]) && (windowStart<=RSDMuStat->excludeRegionStop[j]))
@@ -3011,10 +3284,14 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 			RSDMuStat->muMaxLoc = windowCenter;
 		}
 
-		if(RSDCommandLine->fullReport==1)
-			fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)windowStart, (double)windowEnd, (double)muVar, (double)muSfs, (double)muLd, (double)mu);	else
-			fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)windowCenter, (double)mu);	
-	}
+		RSDMuStat->currentScoreIndex++;
+
+		RSDMuStat_storeOutput (RSDMuStat, (double)windowCenter, (double)windowStart, (double)windowEnd, (double)muVar, (double)muSfs, (double)muLd, (double)mu);
+
+		//if(RSDCommandLine->fullReport==1)
+		//	fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)windowStart, (double)windowEnd, (double)muVar, (double)muSfs, (double)muLd, (double)mu);	//else
+		//	fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)windowCenter, (double)mu);	
+	}	
 }
 // End of Default SW implementation
 #endif
@@ -3035,6 +3312,8 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 	float mu = 0.0f;
 
 	int64_t sfsSlack = RSDCommandLine->sfsSlack;
+
+	RSDMuStat_storeOutputConfigure(RSDCommandLine);
 
 	// Mu_SFS initialization
 	int dCnt1 = 0, dCntN = 0;
@@ -3175,9 +3454,13 @@ void RSDMuStat_scanChunkWithMask (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk
 			RSDMuStat->muMaxLoc = windowCenter;
 		}
 
-		if(RSDCommandLine->fullReport==1)
-			fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)windowStart, (double)windowEnd, (double)muVar, (double)muSfs, (double)muLd, (double)mu);	else
-			fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)windowCenter, (double)mu);	
+		RSDMuStat->currentScoreIndex++;
+
+		RSDMuStat_storeOutput (RSDMuStat, (double)windowCenter, (double)windowStart, (double)windowEnd, (double)muVar, (double)muSfs, (double)muLd, (double)mu);
+
+		//if(RSDCommandLine->fullReport==1)
+		//	fprintf(RSDMuStat->reportFP, "%.0f\t%.0f\t%.0f\t%.3e\t%.3e\t%.3e\t%.3e\n", (double)windowCenter, (double)windowStart, (double)windowEnd, (double)muVar, (double)muSfs, (double)muLd, (double)mu);	//else
+		//	fprintf(RSDMuStat->reportFP, "%.0f\t%.3e\n", (double)windowCenter, (double)mu);	
 
 	}
 }
