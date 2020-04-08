@@ -501,6 +501,9 @@ d) At each position x, the first ingroup state that differs from the REF state i
 e) Per sample entry, all ALT states in the ingroup are set to 1, all remaining states are set to 0, and all gaps
    and Ns are represented by a dot (‘.’).
 
+Grid size
+---------
+As of version 2.7, RAiSD can use a grid size parameter, provided via -G, to report mu, muVar, muSFS, and muLD scores. Note that the tool's inherent mu-statistic evaluation algorithm is driven by the number and location of SNPs, with denser SNP regions being evaluated more thoroughly whereas sparser ones being evaluated less exhaustively. It is generally recommended to provide a grid size value that is larger than the total number of SNPs in the dataset to be analyzed. When -G is provided with a grid size of N, RAiSD reports scores at N equidistant locations between the very first and very last sites in the dataset. 
 
 Changelog
 ----------
@@ -537,7 +540,9 @@ v2.4 (30/1/2020): -B for chromosome length and SNP size. Fixed bug with the memo
 
 v2.5 (8/2/2020): Fixed position bug due to typecasting. Some site positions were off by 1 bp.
 
-v2.6 (2/4/2020): Parses, converts to vcf, and analyzes fasta input files (-C for outgroup, -H for chromosome name).
+v2.6 (2/4/2020): Parses, converts to vcf, and analyzes fasta input files (-C/-C2 for outgroups, -H for chromosome name, -E for conversion-only mode).
+
+v2.7 (8/4/2020): -G parameter to specify the grid size
 
 Support
 -------
