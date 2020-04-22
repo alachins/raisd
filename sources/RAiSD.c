@@ -185,7 +185,7 @@ int main (int argc, char ** argv)
 		if(setIndexValid!=-1 && setIndex!=setIndexValid)
 		{
 			char tchar = (char)fgetc(RSDDataset->inputFilePtr); // Note: this might generate a segfault with MakefileZLIB
-			assert(tchar==tchar);
+			tchar = tchar;
 		}
 
 		if(setIndexValid==-1 || setIndex == setIndexValid)
@@ -223,14 +223,14 @@ int main (int argc, char ** argv)
 #ifdef _HM
 			RSDHashMap_free(RSDPatternPool->hashMap);
 			RSDPatternPool->hashMap = RSDHashMap_new();
-			RSDHashMap_init (RSDPatternPool->hashMap, RSDDataset->setSamples, RSDPatternPool->poolData, RSDPatternPool->maxSize, RSDPatternPool->patternSize);
+			RSDHashMap_init (RSDPatternPool->hashMap, RSDDataset->setSamples, RSDPatternPool->maxSize, RSDPatternPool->patternSize);
 #endif
 #ifdef _LM
 			RSDLutMap_free(RSDPatternPool->lutMap);
 			RSDPatternPool->lutMap =  RSDLutMap_new();
 			RSDLutMap_init (RSDPatternPool->lutMap, RSDDataset->setSamples);
 #endif
-			RSDPatternPool_pushSNP (RSDPatternPool, RSDChunk, RSDDataset->setSamples, RSDCommandLine);
+			RSDPatternPool_pushSNP (RSDPatternPool, RSDChunk, RSDDataset->setSamples);
 
 			int sitesloaded = 0;
 			int patternsloaded = 0;
@@ -246,7 +246,7 @@ int main (int argc, char ** argv)
 				while(!poolFull && !setDone) 
 				{
 					setDone = RSDDataset_getNextSNP(RSDDataset, RSDPatternPool, RSDChunk, RSDCommandLine, RSDDataset->setRegionLength, RSDCommandLine->maf, RAiSD_Info_FP);
-					poolFull = RSDPatternPool_pushSNP (RSDPatternPool, RSDChunk, RSDDataset->setSamples, RSDCommandLine); 
+					poolFull = RSDPatternPool_pushSNP (RSDPatternPool, RSDChunk, RSDDataset->setSamples); 
 				}
 	
 				RSDPatternPool_assessMissing (RSDPatternPool, RSDDataset->setSamples);
@@ -409,7 +409,7 @@ int main (int argc, char ** argv)
 
 	RSDCommonOutliers_free (RSDCommonOutliers);
 	RSDCommandLine_free(RSDCommandLine);
-	RSDPatternPool_free(RSDPatternPool, RSDDataset->setSamples);
+	RSDPatternPool_free(RSDPatternPool);
 	RSDChunk_free(RSDChunk, RSDDataset->setSamples);
 	RSDDataset_free(RSDDataset);
 	RSDMuStat_free(RSDMuStat);

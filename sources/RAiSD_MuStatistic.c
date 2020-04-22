@@ -3176,6 +3176,8 @@ void RSDMuStat_scanChunkBinary (RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, 
 	assert(RSDCommandLine!=NULL);
 	assert(RSDPatternPool!=NULL);
 
+	RSDPatternPool = RSDPatternPool;
+
 	int i, j, size = (int)RSDChunk->chunkSize;
 
 	double windowCenter = 0.0, windowStart = 0.0, windowEnd = 0.0;

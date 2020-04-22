@@ -73,10 +73,9 @@ void RSDHashMap_free (RSDHashMap_t * hm)
 	free(hm);
 }
 
-void RSDHashMap_init (RSDHashMap_t * RSDHashMap, int64_t setSamples, uint64_t * poolData, int maxSize, int patternSize)
+void RSDHashMap_init (RSDHashMap_t * RSDHashMap, int64_t setSamples, int maxSize, int patternSize)
 {
 	assert(RSDHashMap!=NULL);
-	assert(poolData!=NULL);
 
 	RSDHashMap->addressListSize = setSamples;
 	RSDHashMap->addressList = (uint64_t**)rsd_malloc(sizeof(uint64_t*)*(unsigned long)RSDHashMap->addressListSize);

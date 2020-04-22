@@ -380,7 +380,7 @@ void RSDDataset_init (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLi
 	assert(RSDDataset->inputFilePtr!=NULL);
 	
 	if(!strcmp(RSDDataset->inputFileFormat, "vcf"))
-		VCFFileCheck ((void*)RSDDataset, RSDDataset->inputFilePtr, RSDCommandLine->inputFileName, fpOut);
+		VCFFileCheck ((void*)RSDDataset, RSDCommandLine->inputFileName, fpOut);
 
 	fclose(RSDDataset->inputFilePtr);
 
@@ -391,8 +391,9 @@ void RSDDataset_init (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLi
 		RSDDataset->inputFilePtr = fopen(RSDCommandLine->inputFileName, "r");
 		assert(RSDDataset->inputFilePtr!=NULL);
 
-		int vcfCheckFlag = VCFFileCheckAndReorder ((void*)RSDDataset, RSDDataset->inputFilePtr, RSDCommandLine->inputFileName, RSDCommandLine->overwriteOutput, fpOut);
+		int vcfCheckFlag = VCFFileCheckAndReorder ((void*)RSDDataset, RSDCommandLine->inputFileName, RSDCommandLine->overwriteOutput, fpOut);
 		assert(vcfCheckFlag==VCF_FILE_CHECK_PASS);
+		vcfCheckFlag = vcfCheckFlag;
 
 		fclose(RSDDataset->inputFilePtr);
 	}
@@ -586,6 +587,8 @@ int RSDDataset_getValidSampleList_ms (RSDDataset_t * RSDDataset)
 {
 	assert(RSDDataset!=NULL);
 
+	RSDDataset = RSDDataset;
+
 	return 0;
 }
 
@@ -594,6 +597,8 @@ int RSDDataset_getNumberOfSamples_ms (RSDDataset_t * RSDDataset)
 	char tstring[STRING_SIZE];
 	int rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // ms/mssel/msHOT/command(if mbs)
 	assert(rcnt==1);
+	rcnt = rcnt;
+	
 	rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); // samples if !mbs
 	assert(rcnt==1);
 	
@@ -629,7 +634,8 @@ int RSDDataset_getFirstSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSD
 	fgetpos(RSDDataset->inputFilePtr, &(RSDDataset->setPosition));
 
 	int rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
-	assert(rcnt==1); // //
+	assert(rcnt==1);
+	rcnt = rcnt;
 
 	tstring[2] = '\0'; // for all ms-like keep just // (required for mbs)
 
@@ -797,6 +803,7 @@ int RSDDataset_getNextSNP_ms (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDP
 
 	int rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
 	assert(rcnt==1);
+	rcnt = rcnt;
 
 	double valf = atof(tstring);
 	valf = RSDDataset->inputFileIsMBS==1?valf:valf*(double)length;
@@ -1435,6 +1442,8 @@ int RSDDataset_getNextSNP_vcf_gz (RSDDataset_t * RSDDataset, RSDPatternPool_t * 
 {
 	assert(RSDChunk!=NULL);
 
+	RSDChunk = RSDChunk;
+
 	char tstring[STRING_SIZE];
 	int setDone = 0;
 
@@ -1690,6 +1699,7 @@ char RSDDataset_goToNextSet_vcf (RSDDataset_t * RSDDataset)
 		{
 			int rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
 			assert(rcnt==1);
+			rcnt = rcnt;
 
 			if(strcmp(tstring, RSDDataset->setID))
 			{
@@ -2255,6 +2265,8 @@ int RSDDataset_getFirstSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RS
 int RSDDataset_getNextSNP_vcf (RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut)
 {
 	assert(RSDChunk!=NULL);
+
+	RSDChunk = RSDChunk;
 
 	char tstring[STRING_SIZE];
 	int setDone = 0;

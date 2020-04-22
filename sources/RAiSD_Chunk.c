@@ -49,6 +49,8 @@ void RSDChunk_free(RSDChunk_t * ch, int64_t numberOfSamples)
 	assert(ch!=NULL);
 	assert(numberOfSamples!=0);
 
+	numberOfSamples = numberOfSamples;
+
 	//if(numberOfSamples!=-1)
 	//	MemoryFootprint += sizeof(fpos_t)*((unsigned long)numberOfSamples);
 	
@@ -76,6 +78,8 @@ void RSDChunk_init(RSDChunk_t * RSDChunk, int64_t numberOfSamples, int64_t creat
 {
 	RSDChunk->seqPosition = (fpos_t*)rsd_malloc(sizeof(fpos_t)*((unsigned long)numberOfSamples));
 	assert(RSDChunk->seqPosition!=NULL);
+
+	createPatternPoolMask = createPatternPoolMask;
 
 #ifdef _MLT
 

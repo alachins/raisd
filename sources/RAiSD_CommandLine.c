@@ -1123,6 +1123,8 @@ void RSDCommandLine_printWarnings (RSDCommandLine_t * RSDCommandLine, int argc, 
 	assert(RSDCommandLine!=NULL);
 	assert(RSDDataset!=NULL);
 
+	RSDCommandLine = RSDCommandLine;
+
 	RSDDataset_t * myRSDDataset = (RSDDataset_t *)RSDDataset;
 	
 	int i=0;

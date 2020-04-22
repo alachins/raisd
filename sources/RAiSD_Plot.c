@@ -75,12 +75,14 @@ void RSDPlot_printRscriptVersion (RSDCommandLine_t * RSDCommandLine, FILE * fpOu
 #ifdef _C1
 	int ret = system("Rscript --version > /dev/null 2>RscriptVersion.txt");
 	assert(ret!=-1);
+	ret = ret;
 #else
 	fp = popen("Rscript --version > /dev/null 2>RscriptVersion.txt", "r");
 	assert(fp!=NULL);
 
 	int ret = pclose(fp);
 	assert(ret!=-1);
+	ret = ret;
 #endif
 
 	fp = fopen("RscriptVersion.txt", "r");
@@ -148,7 +150,6 @@ void RSDPlot_generateRscript (RSDCommandLine_t * RSDCommandLine, int mode)
 	
 	fp = fopen(scriptName, "w");
 	assert(fp!=NULL);
-
 
 	if(mode==RSDPLOT_BASIC_MU)
 	{
@@ -245,6 +246,7 @@ void RSDPlot_removeRscript (RSDCommandLine_t * RSDCommandLine, int mode)
 		fclose(fp);
 		int ret = remove(scriptName);
 		assert(ret==0);	
+		ret = ret;
 	}
 	fp=NULL;
 
@@ -255,7 +257,8 @@ void RSDPlot_removeRscript (RSDCommandLine_t * RSDCommandLine, int mode)
 			fclose(RAiSD_ReportList_FP);
 			RSDPlot_createReportListName (RSDCommandLine, reportListName);
 			int ret = remove(reportListName);
-			assert(ret==0);	
+			assert(ret==0);
+			ret = ret;	
 		}
 		RAiSD_ReportList_FP=NULL;
 	}
@@ -327,6 +330,7 @@ void RSDPlot_createPlot (RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDa
 
 #ifdef _C1
 	int ret = system(tstring);
+	ret = ret;
 	assert(ret!=-1);
 #else
 	FILE *fp;

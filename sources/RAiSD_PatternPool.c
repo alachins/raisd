@@ -61,10 +61,9 @@ RSDPatternPool_t * RSDPatternPool_new(void)
 	return pp;
 }
 
-void RSDPatternPool_free(RSDPatternPool_t * pp, int64_t numberOfSamples)
+void RSDPatternPool_free(RSDPatternPool_t * pp)
 {
 	assert(pp!=NULL);
-	assert(numberOfSamples!=0);
 
 	free(pp->incomingSite);
 
@@ -192,6 +191,7 @@ void RSDPatternPool_resize (RSDPatternPool_t * RSDPatternPool, int64_t setSample
 	float maxSNPsInPool_num = ((float)RSDPatternPool->memorySize)*1024.0f*1024.0f;
 	float maxSNPsInPool = maxSNPsInPool_num/(wordsPerSNP*8.0f+8.0f); // +8 for the allelecount and the patterncount
 	RSDPatternPool->maxSize = (int) maxSNPsInPool;
+	prevMaxSize = prevMaxSize;
 	assert(RSDPatternPool->maxSize<=prevMaxSize);
 
 	free(RSDPatternPool->incomingSiteCompact);
@@ -332,6 +332,8 @@ void RSDPatternPool_partialReset (RSDPatternPool_t * RSDPatternPool)
 void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSamples, int64_t setSamples, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine)
 {
 	assert(RSDCommandLine!=NULL);
+
+	RSDCommandLine = RSDCommandLine;
 
 	int i;
 
@@ -692,7 +694,7 @@ void RSDPatternPool_reset (RSDPatternPool_t * RSDPatternPool, int64_t numberOfSa
 	}
 }
 
-int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, int64_t numberOfSamples, RSDCommandLine_t * RSDCommandLine)
+int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, int64_t numberOfSamples)
 {
 #ifdef _PTIMES
 	clock_gettime(CLOCK_REALTIME, &requestStartOoC);
@@ -700,8 +702,6 @@ int RSDPatternPool_pushSNP (RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDC
 
 	if(RSDPatternPool->incomingSitePosition<=-1.0)
 		return 0;
-
-	assert(RSDCommandLine!=NULL);
 
 	int i, j, lcnt=0, acnt=0, vcnt=0, avcnt=0, match=0;
 
@@ -1142,6 +1142,8 @@ void RSDPatternPool_assessMissing  (RSDPatternPool_t * RSDPatternPool, int64_t n
 {
 	if(RSDPatternPool->createPatternPoolMask==0)
 		return;
+
+	numberOfSamples = numberOfSamples; 
 
 	int i;
 	for(i=0;i<RSDPatternPool->dataSize;i++)

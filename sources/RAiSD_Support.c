@@ -265,6 +265,7 @@ void reconGT (char * data)
 
 	double checksum = p00+p01+p11;
 	assert(checksum>=0.999 && checksum<=1.001);
+	checksum = checksum;
 
 	int val = rand();
 	double rval = ((double)val) / ((double)RAND_MAX);
@@ -322,11 +323,13 @@ void getGTData_vcf (char * string, int locationGT, int locationGP, int locationG
 	{
 		int ret = getGXData_vcf(string, locationGT, data);
 		assert(ret==1);
+		ret = ret;
 	}
 	else
 	{
 		int ret = getGXData_vcf(string, locationGL, data);
 		assert(ret==1);
+		ret = ret;
 
 		double p00 = 0.0, p01 = 0.0, p11 = 0.0; // likelihoods
 		getGPProbs(data, &p00, &p01, &p11, 1); 
@@ -339,8 +342,7 @@ void getGTData_vcf (char * string, int locationGT, int locationGP, int locationG
 			reconGT (data);	
 		}
 		else
-			strcpy (data, "./.");
-			
+			strcpy (data, "./.");		
 	}
 }
 
@@ -366,6 +368,9 @@ int getGTAlleles_vcf (char * string, char * stateVector, int statesTotal, char *
 {	
 	assert(statesTotal>=2);
 	assert(stateVector!=NULL);
+
+	statesTotal = statesTotal;
+	stateVector = stateVector;
 
 	int i, j=0, index=0, start=0, end=0, len = (int)strlen(string), skipSNP=0;
 	
@@ -506,7 +511,7 @@ char alleleMask_binary (char c, int * isDerived, int * isValid, FILE * fpOut)
 	}	
 }
 
-char alleleMask_fasta (char c, int * isDerived, int *isValid, FILE * fpOut, char outgroupState)
+/*char alleleMask_fasta (char c, int * isDerived, int *isValid, FILE * fpOut, char outgroupState)
 {
 	assert(fpOut!=NULL);
 
@@ -544,7 +549,7 @@ char alleleMask_fasta (char c, int * isDerived, int *isValid, FILE * fpOut, char
 				return '1';
 			}
 	}	
-}
+}*/
 
 int monomorphic_check (int incomingSiteDerivedAlleleCount, int setSamples, int64_t * cnt, int skipSNP)
 {
@@ -761,11 +766,10 @@ char ** addChromToList (char * newChromName, char ** chromList, int * chromListS
 	return chromListNew;
 }
 
-void VCFFileCheck (void * vRSDDataset, FILE * fpX, char * fileName, FILE * fpOut) // TODO: Implement this for vcf.gz
+void VCFFileCheck (void * vRSDDataset, char * fileName, FILE * fpOut) // TODO: Implement this for vcf.gz
 {
 	assert(vRSDDataset!=NULL);
 	RSDDataset_t * RSDDataset = (RSDDataset_t *)vRSDDataset;
-	assert(fpX!=NULL);
 	assert(fileName);
 
 	FILE * fp = RSDDataset->inputFilePtr;
@@ -914,12 +918,11 @@ void VCFFileCheck (void * vRSDDataset, FILE * fpX, char * fileName, FILE * fpOut
 	RSDDataset->inputFilePtr = fp;
 }
 
-int VCFFileCheckAndReorder (void * vRSDDataset, FILE * fpX, char * fileName, int overwriteOutput, FILE * fpOut)
+int VCFFileCheckAndReorder (void * vRSDDataset, char * fileName, int overwriteOutput, FILE * fpOut)
 {
 	assert(vRSDDataset!=NULL);
 	RSDDataset_t * RSDDataset = (RSDDataset_t *)vRSDDataset;
-	assert(fpX!=NULL);
-	assert(fileName);
+	assert(fileName!=NULL);
 
 	FILE * fp = RSDDataset->inputFilePtr;
 	FILE * fpNew = NULL;
@@ -1198,6 +1201,9 @@ int VCFFileCheckAndReorder (void * vRSDDataset, FILE * fpX, char * fileName, int
 
 			int listSize = RSDLinkedList_getSize (RSDLinkedList);
 			assert(listSize==chromSNPSize[i]);
+
+			if(listSize!=chromSNPSize[i])
+				assert(0);
 
 			RSDLinkedList_appendToFile (RSDLinkedList, fpNew);
 

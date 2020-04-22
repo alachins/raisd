@@ -188,8 +188,8 @@ void 			reconGT 			(char * data);
 void 			RSD_printSiteReportLegend 	(FILE * fp, int64_t imputePerSNP, int64_t createPatternPoolMask);
 extern void *		rsd_malloc			(size_t size);
 extern void *		rsd_realloc			(void * p, size_t size);
-void 			VCFFileCheck 			(void * vRSDDataset, FILE * fpX, char * fileName, FILE * fpOut);
-int 			VCFFileCheckAndReorder		(void * vRSDDataset, FILE * fp, char * fileName, int overwriteOutput, FILE * fpOut);
+void 			VCFFileCheck 			(void * vRSDDataset, char * fileName, FILE * fpOut);
+int 			VCFFileCheckAndReorder		(void * vRSDDataset, char * fileName, int overwriteOutput, FILE * fpOut);
 void 			printRAiSD 			(FILE * fpOut);
 
 #ifndef _INTRINSIC_POPCOUNT
@@ -319,7 +319,7 @@ typedef struct
 } RSDHashMap_t;
 
 RSDHashMap_t * 	RSDHashMap_new				(void);
-void		RSDHashMap_init 			(RSDHashMap_t * RSDHashMap, int64_t numberOfSamples, uint64_t * poolData, int maxSize, int patternSize);
+void		RSDHashMap_init 			(RSDHashMap_t * RSDHashMap, int64_t numberOfSamples, int maxSize, int patternSize);
 void 		RSDHashMap_free 			(RSDHashMap_t * hm);
 void		RSDHashMap_setMainKey 			(RSDHashMap_t * RSDHashMap, int64_t mainKey);
 void		RSDHashMap_setSecondaryKey 		(RSDHashMap_t * RSDHashMap, int64_t secondaryKey);
@@ -428,11 +428,11 @@ typedef struct
 } RSDPatternPool_t;
 
 RSDPatternPool_t * 	RSDPatternPool_new			(void);
-void 			RSDPatternPool_free			(RSDPatternPool_t * pp, int64_t numberOfSamples);
+void 			RSDPatternPool_free			(RSDPatternPool_t * pp);
 void 			RSDPatternPool_init 			(RSDPatternPool_t * RSDPatternPool, RSDCommandLine_t * RSDCommandLine, int64_t numberOfSamples);
 void 			RSDPatternPool_print			(RSDPatternPool_t * RSDPatternPool, FILE * fpOut);
 void 			RSDPatternPool_reset 			(RSDPatternPool_t * RSDPatternPool, int64_t numberOfSamples, int64_t setSamples, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine);
-int			RSDPatternPool_pushSNP			(RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, int64_t numberOfSamples, RSDCommandLine_t * RSDCommandLine);
+int			RSDPatternPool_pushSNP			(RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, int64_t numberOfSamples);
 void			RSDPatternPool_resize 			(RSDPatternPool_t * RSDPatternPool, int64_t setSamples, FILE * fpOut);
 void 			RSDPatternPool_exchangePatterns 	(RSDPatternPool_t * RSDPatternPool, int pID_a, int pID_b);
 void 			RSDPatternPool_exchangePatternsFractions(RSDPatternPool_t * RSDPatternPool, int pID_a, int pID_b);

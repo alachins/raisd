@@ -500,6 +500,7 @@ void RSDCommonOutliers_process (RSDCommonOutliers_t * RSDCommonOutliers, RSDComm
 		strcpy(RSDCommonOutliers->report1Filename, tstring);
 		
 		int ret = remove(tstring);
+		ret = ret;
 		assert(ret==0);	
 
 		strcpy(tstring, "RAiSD_RAiSDReportSorted.");
