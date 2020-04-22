@@ -35,7 +35,7 @@
 #endif
 
 #define MAJOR_VERSION 2
-#define MINOR_VERSION 7
+#define MINOR_VERSION 8
 #define RELEASE_MONTH "April"
 #define RELEASE_YEAR 2020
 
@@ -80,7 +80,7 @@ extern double TotalMuTime;
 #define MULTI_STEP_PARSING 0
 #define SINGLE_STEP_PARSING 1 // set this to 0 to deactivate completely
 #define DEFAULT_WINDOW_SIZE 50
-#define MIN_WINDOW_SIZE 10
+#define MIN_WINDOW_SIZE 6
 #define MIN_NUMBER_OF_SAMPLES 3
 #define ALL_SAMPLES_VALID -1 // when -1, all samples are assumed valid and will be processed
 #define SAMPLE_IS_VALID 1
@@ -100,6 +100,7 @@ extern double TotalMuTime;
 
 #define RSDPLOT_BASIC_MU 0
 #define	RSDPLOT_MANHATTAN 1
+#define RSDPLOT_COMMONOUTLIERS 2
 
 #define LUTMAP_WIDTH		256 // 65536
 #define	LUTMAP_GROUPSIZE	8 // 16
@@ -116,6 +117,8 @@ extern double TotalMuTime;
 
 #define M_FLAG_INDEX 6
 #define Y_FLAG_INDEX 5
+
+#define CO_FLAG_INDEX 22
 
 #define FASTA2VCF_CONVERT_n_PROCESS 0
 #define FASTA2VCF_CONVERT_n_EXIT 1
@@ -136,6 +139,9 @@ extern double TotalMuTime;
 #define PROBABILITY 1
 
 #define SCOREBUFFER_REALLOC_INCR 1024
+
+#define SWEED_CO 0
+#define RAiSD_CO 1
 
 // RAiSD.c
 extern struct timespec requestStart;
@@ -211,7 +217,6 @@ RSDLinkedListNode_t * 	RSDLinkedList_addNode 		(RSDLinkedListNode_t * listHead, 
 int 			RSDLinkedList_getSize 		(RSDLinkedListNode_t * listHead);
 void 			RSDLinkedList_appendToFile 	(RSDLinkedListNode_t * listHead, FILE * fp);
 
-
 // RAiSD_CommandLine.c
 typedef struct
 {	// -a is also reserved for the rand gen's seed
@@ -246,6 +251,15 @@ typedef struct
 	char		chromNameVCF[STRING_SIZE]; // Flag: H
 	int64_t		fasta2vcfMode; // E
 	int64_t		gridSize; // G
+	int64_t		createCOPlot; // CO
+	char 		reportFilenameSweeD[STRING_SIZE]; // CO
+	int		positionIndexSweeD; // CO
+	int		scoreIndexSweeD; // CO
+	char 		reportFilenameRAiSD[STRING_SIZE]; // CO
+	int		positionIndexRAiSD; // CO
+	int		scoreIndexRAiSD; // CO
+	char		commonOutliersThreshold[STRING_SIZE]; // COT
+	double		commonOutliersMaxDistance; // COD
 
 } RSDCommandLine_t;
 
@@ -283,7 +297,6 @@ RSDChunk_t *	RSDChunk_new 			(void);
 void 		RSDChunk_free			(RSDChunk_t * ch, int64_t numberOfSamples);
 void 		RSDChunk_init			(RSDChunk_t * RSDChunk, int64_t numberOfSamples, int64_t createPatternPoolMask);
 void		RSDChunk_reset			(RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine);
-
 
 // RAiSD_HashMap.c
 typedef struct
@@ -500,23 +513,44 @@ void		RSDDataset_getSetRegionLength_vcf_gz	(RSDDataset_t * RSDDataset, RSDComman
 int 		RSDDataset_getNextSNP_vcf_gz 		(RSDDataset_t * RSDDataset, RSDPatternPool_t * RSDPatternPool, RSDChunk_t * RSDChunk, RSDCommandLine_t * RSDCommandLine, uint64_t length, double maf, FILE * fpOut);
 #endif
 
-// RAiSD_Fasta2Vcf.c
+// RAiSD_CommonOutliers.c
 typedef struct
 {
-	int		statesMax;
-	int		statesTotal;
-	char *		statesChar;
-	int *		statesCount;
+	char 		reportFilenameSweeD[STRING_SIZE];
+	int		positionIndexSweeD;
+	int		scoreIndexSweeD;
 
-	int 		imputeStatesMax;
-	int 		imputeStatesTotal;
-	char * 		imputeStatesChar;
-	double * 	imputeStatesProb;
+	int64_t		reportSizeSweeD;
+	double	*	positionSweeD;
+	double	* 	scoreSweeD;
 
-} RSDFastaStates_t;
+	int64_t		coPointSizeSweeD;
+	double	*	coPointPositionSweeD;
+	double	* 	coPointScoreSweeD;
 
-void RSDDataset_convertFasta2VCF (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine, FILE * fpOut);
+	char 		reportFilenameRAiSD[STRING_SIZE];
+	int		positionIndexRAiSD;
+	int		scoreIndexRAiSD;
 
+	int64_t		reportSizeRAiSD;
+	double	*	positionRAiSD;
+	double	* 	scoreRAiSD;
+
+	int64_t		coPointSizeRAiSD;
+	double	*	coPointPositionRAiSD;
+	double	* 	coPointScoreRAiSD;
+
+	char 		report1Filename[STRING_SIZE];
+	char 		report2Filename[STRING_SIZE];
+	char 		common1Filename[STRING_SIZE];
+	char 		common2Filename[STRING_SIZE];
+
+} RSDCommonOutliers_t;
+
+RSDCommonOutliers_t * 	RSDCommonOutliers_new 		(void);
+void 			RSDCommonOutliers_free 		(RSDCommonOutliers_t * RSDCommonOutliers);
+void 			RSDCommonOutliers_init 		(RSDCommonOutliers_t * RSDCommonOutliers, RSDCommandLine_t * RSDCommandLine);
+void 			RSDCommonOutliers_process 	(RSDCommonOutliers_t * RSDCommonOutliers, RSDCommandLine_t * RSDCommandLine);
 
 // RAiSD_MuStatistic.c
 typedef struct
@@ -569,7 +603,7 @@ RSDMuStat_t * 	RSDMuStat_new 			(void);
 void 		RSDMuStat_free 			(RSDMuStat_t * mu);
 void 		RSDMuStat_init 			(RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine);
 void 		RSDMuStat_setReportName 	(RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine, FILE * fpOut);
-void 		RSDMuStat_setReportNamePerSet 	(RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine, FILE * fpOut, RSDDataset_t * RSDDataset);
+void 		RSDMuStat_setReportNamePerSet 	(RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine, FILE * fpOut, RSDDataset_t * RSDDataset, RSDCommonOutliers_t * RSDCommonOutliers);
 extern void	(*RSDMuStat_scanChunk) 		(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
 void 		RSDMuStat_scanChunkBinary	(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
 void 		RSDMuStat_scanChunkWithMask	(RSDMuStat_t * RSDMuStat, RSDChunk_t * RSDChunk, RSDPatternPool_t * RSDPatternPool, RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine);
@@ -585,7 +619,23 @@ int 		RSDPlot_checkRscript 		(void);
 void 		RSDPlot_createRscriptName 	(RSDCommandLine_t * RSDCommandLine, char * scriptName);
 void 		RSDPlot_generateRscript 	(RSDCommandLine_t * RSDCommandLine, int mode);
 void 		RSDPlot_removeRscript 		(RSDCommandLine_t * RSDCommandLine,int mode);
-void 		RSDPlot_createPlot 		(RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDataset, RSDMuStat_t * RSDMuStat, int mode);
+void 		RSDPlot_createPlot 		(RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDataset, RSDMuStat_t * RSDMuStat, RSDCommonOutliers_t * RSDCommonOutliers, int mode);
 void 		RSDPlot_createReportListName 	(RSDCommandLine_t * RSDCommandLine, char * reportListName);
 
+// RAiSD_Fasta2Vcf.c
+typedef struct
+{
+	int		statesMax;
+	int		statesTotal;
+	char *		statesChar;
+	int *		statesCount;
+
+	int 		imputeStatesMax;
+	int 		imputeStatesTotal;
+	char * 		imputeStatesChar;
+	double * 	imputeStatesProb;
+
+} RSDFastaStates_t;
+
+void RSDDataset_convertFasta2VCF (RSDDataset_t * RSDDataset, RSDCommandLine_t * RSDCommandLine, FILE * fpOut);
 

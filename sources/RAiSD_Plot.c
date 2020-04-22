@@ -124,7 +124,7 @@ void RSDPlot_createReportListName (RSDCommandLine_t * RSDCommandLine, char * rep
 
 void RSDPlot_generateRscript (RSDCommandLine_t * RSDCommandLine, int mode)
 {
-	if(RSDCommandLine->createPlot==0 && RSDCommandLine->createMPlot==0)
+	if(RSDCommandLine->createPlot==0 && RSDCommandLine->createMPlot==0 && RSDCommandLine->createCOPlot==0)
 		return;
 
 	char scriptName[STRING_SIZE]="RSDPlot.R";
@@ -152,7 +152,6 @@ void RSDPlot_generateRscript (RSDCommandLine_t * RSDCommandLine, int mode)
 
 	if(mode==RSDPLOT_BASIC_MU)
 	{
-
 		const char * tscript = " \n \
 args = commandArgs(trailingOnly=TRUE) \n \
 RUNNAME <- args[1] \n \
@@ -175,9 +174,9 @@ dev.off() \n";
 
 		fprintf(fp,"%s", tscript);
 	}
-	else
+
+	if(mode==RSDPLOT_MANHATTAN)
 	{
-		assert(mode==RSDPLOT_MANHATTAN);
 		const char * tscript = " \n \
 args = commandArgs(trailingOnly=TRUE) \n \
 library(qqman) \n \
@@ -202,6 +201,30 @@ manhattan(mydf, chr=\"chr\", bp=\"pos\", cex = 0.5, p=\"value\", snp=\"snp\", lo
 title(title_msg) \n \
 abline(h=threshold, col=\"red\", lw=2) \n \
 dev.off() \n";
+
+		fprintf(fp,"%s", tscript);
+	}
+
+	if(mode==RSDPLOT_COMMONOUTLIERS)
+	{
+		const char * tscript = "\n \
+ args = commandArgs(trailingOnly=TRUE) \n \
+ d1 <- read.table( paste(args[3]), header=F, skip=0)[,1:2] \n \
+ d2 <- read.table( paste(args[4]), header=F, skip=0)[,1:2] \n \
+ d3 <- read.table( paste(args[5]), header=F, skip=0)[,1:2] \n \
+ d4 <- read.table( paste(args[6]), header=F, skip=0)[,1:2] \n \
+ pdf(paste(args[7]) , width=7, height=7) \n \
+ par(mfrow=c(2,1)) \n \
+ plot(d1[,1], d1[,2], col=\"darkgray\", pch=16, ylab=\"\", xlab=\"\") \n \
+ points(d3[,1], d3[,2], col=\"red\", pch=19, cex=1.0) \n \
+ mtext(side=1, text=\"Position\", 2) \n \
+ mtext(side=2, text=\"SweeD\", 2) \n \
+ title(paste(\"SweeD-RAiSD common outliers for \", args[1], \" ( top \", args[2],\" )\", sep=\"\")) \n \
+ plot(d2[,1], d2[,2], col=\"darkgray\", pch=16, ylab=\"\", xlab=\"\") \n \
+ points(d4[,1], d4[,2], col=\"red\", pch=19, cex=1.0) \n \
+ mtext(side=1, text=\"Position\", 2) \n \
+ mtext(side=2, text=\"RAiSD\", 2) \n \
+ dev.off() \n";
 
 		fprintf(fp,"%s", tscript);
 	}
@@ -238,7 +261,7 @@ void RSDPlot_removeRscript (RSDCommandLine_t * RSDCommandLine, int mode)
 	}
 }
 
-void RSDPlot_createPlot (RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDataset, RSDMuStat_t * RSDMuStat, int mode)
+void RSDPlot_createPlot (RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDataset, RSDMuStat_t * RSDMuStat, RSDCommonOutliers_t * RSDCommonOutliers, int mode)
 {
 	char tstring[STRING_SIZE];
 
@@ -255,10 +278,9 @@ void RSDPlot_createPlot (RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDa
 		strcat(tstring, RSDDataset->setID);
 		strcat(tstring, " > /dev/null 2>&1");
 	}
-	else
-	{
-		assert(mode==RSDPLOT_MANHATTAN);
 
+	if(mode==RSDPLOT_MANHATTAN)
+	{
 		strcpy(tstring, "Rscript ");
 		strcat(tstring, scriptName);
 		strcat(tstring, " ");	
@@ -268,10 +290,39 @@ void RSDPlot_createPlot (RSDCommandLine_t * RSDCommandLine, RSDDataset_t * RSDDa
 		strcat(tstring, " > /dev/null 2>&1");
 	}
 
-	if(RSDMuStat->reportFP!=NULL)
+	if(mode==RSDPLOT_COMMONOUTLIERS)
 	{
-		fclose(RSDMuStat->reportFP);
-		RSDMuStat->reportFP = NULL;
+		char outputFilename[STRING_SIZE];
+		strncpy(outputFilename, "RAiSD_CommonOutlierPlot.", STRING_SIZE);
+		strcat(outputFilename, RSDCommandLine->runName);
+		strcat(outputFilename, ".pdf");
+
+		strcpy(tstring, "Rscript ");
+		strcat(tstring, scriptName);
+		strcat(tstring, " ");	
+		strcat(tstring, RSDCommandLine->runName);
+		strcat(tstring, " ");
+		strcat(tstring, RSDCommandLine->commonOutliersThreshold);
+		strcat(tstring, " ");
+		strcat(tstring, RSDCommonOutliers->report1Filename);
+		strcat(tstring, " ");
+		strcat(tstring, RSDCommonOutliers->report2Filename);
+		strcat(tstring, " ");
+		strcat(tstring, RSDCommonOutliers->common1Filename);
+		strcat(tstring, " ");
+		strcat(tstring, RSDCommonOutliers->common2Filename);
+		strcat(tstring, " ");
+		strcat(tstring, outputFilename);
+		strcat(tstring, " > /dev/null 2>&1");
+	}
+
+	if(RSDMuStat!=NULL)
+	{
+		if(RSDMuStat->reportFP!=NULL)
+		{
+			fclose(RSDMuStat->reportFP);
+			RSDMuStat->reportFP = NULL;
+		}
 	}
 
 #ifdef _C1

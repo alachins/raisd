@@ -74,6 +74,11 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t[-C2 STRING]\n");
 	fprintf(fp, "\t[-H STRING]\n");
 	fprintf(fp, "\t[-E STRING]\n");
+
+	fprintf(fp, "\n\t--- COMMON-OUTLIER ANALYSIS\n\n");
+	fprintf(fp, "\t[-CO STRING INTEGER INTEGER] or [-CO STRING INTEGER INTEGER STRING INTEGER INTEGER]\n");
+	fprintf(fp, "\t[-COT FLOAT]\n");
+	fprintf(fp, "\t[-COD INTEGER]\n");
 	
 	fprintf(fp, "\n\t--- HELP and VERSION NOTES\n\n");
 	fprintf(fp, "\t[-h]\n");
@@ -108,7 +113,7 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t-R\tIncludes additional information in the report file(s), i.e., window start and end, and the mu-statistic\n\t\tfactors for variation, SFS, and LD.\n");
 	fprintf(fp, "\t-P\tGenerates four plots (for the three mu-statistic factors and the final score) in one PDF file per set of\n\t\tSNPs in the input file using Rscript (activates -s, -t, and -R).\n");
 	fprintf(fp, "\t-D\tGenerates a site report, e.g., total, discarded, imputed etc.\n");
-	fprintf(fp, "\t-A\tProvides a probability value to be used for the quantile function in R and generates a Manhattan plot for\n\t\tthe final mu-statistic score using Rscript (activates -s, -t, and -R).\n");
+	fprintf(fp, "\t-A\tProvides a probability value to be used for the quantile function in R, and generates a Manhattan plot for\n\t\tthe final mu-statistic score using Rscript (activates -s, -t, and -R).\n");
 
 	fprintf(fp, "\n\t--- ACCURACY and SENSITIVITY EVALUATION\n\n");
 	fprintf(fp, "\t-T\tProvides the selection target (in basepairs) and calculates the average distance (over all datasets in the\n\t\tinput file) between the selection target and the reported locations.\n");
@@ -125,6 +130,11 @@ void RSDHelp (FILE * fp)
 	fprintf(fp, "\t-C2\tProvides a second outgroup to be used for the ancestral states (REF field in VCF).\n");
 	fprintf(fp, "\t-H\tProvides the chromosome name (CHROM field in VCF) to overwrite default \"chrom\" string.\n");
 	fprintf(fp, "\t-E\tConverts input FASTA to VCF and terminates execution without further processing.\n");
+
+	fprintf(fp, "\n\t--- COMMON-OUTLIER ANALYSIS\n\n");
+	fprintf(fp, "\t-CO\tProvides the report name (and column indices for positions and scores) to be used for common-outlier analysis.\n\t\tTo perform a common-outlier analysis using RAiSD and SweeD, use -CO like this: \"-CO SweeD_Report.SweeD-Run-Name 1 2\".\n\t\tThe SweeD report must not contain a header. If you have already run RAiSD on your data and only want to perform a\n\t\tcommon-outlier analysis, use -CO like this: \"-CO SweeD_Report.SweeD-Run-Name 1 2 RAiSD_Report.RAiSD-Run-Name 1 X\",\n\t\twhere X is the index of the column you want to use depending on the RAiSD report.\n\t\tTo use the mu-statistic, set Y=2 if RAiSD was invoked with the default parameters, or set Y=7 if -R was explicitly\n\t\tprovided or implicitly activated through some other command-line parameter. Again, the RAiSD report must not contain\n\t\ta header.\n");
+	fprintf(fp, "\t-COT\tProvides the cut-off threshold for identifying top outliers per report (default: 0.05, i.e., top 5%%). \n");
+	fprintf(fp, "\t-COD\tProvides the maximum distance (in number of sites) between outlier points in the provided reports to identify\n\t\tmatching outlier positions reported by RAiSD and SweeD. Based on the accuracy of the implemented methods in SweeD\n\t\tand RAiSD, we typically set -COD to a value between 100 and 400 sites (default: 1, i.e., exact match).\n");
 
 	fprintf(fp, "\n\t--- HELP and VERSION NOTES\n\n");
 	fprintf(fp, "\t-h\tPrints this help message.\n");
@@ -160,6 +170,7 @@ void RSDVersions(FILE * fp)
 	fprintf(fp, " %d. RAiSD v%d.%d (Feb 8, 2020): Fixed position bug due to typecasting. Some site positions were off by 1 bp.\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Apr 2, 2020): Parses, converts to vcf, and analyzes fasta input files (-C/-C2 for outgroups, -H for chromosome name, -E for conversion-only mode).\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Apr 8, 2020): -G parameter to specify the grid size\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Apr 22, 2020): -CO, -COT, -COD parameters for common-outlier analysis between RAiSD and SweeD, install script for gsl\n", releaseIndex++, majorIndex, minorIndex++);
 }
 
 RSDCommandLine_t * RSDCommandLine_new(void)
@@ -209,6 +220,15 @@ void RSDCommandLine_init(RSDCommandLine_t * RSDCommandLine)
 	strncpy(RSDCommandLine->chromNameVCF, "chrom", STRING_SIZE);
 	RSDCommandLine->fasta2vcfMode = FASTA2VCF_CONVERT_n_PROCESS;
 	RSDCommandLine->gridSize = -1;
+	RSDCommandLine->createCOPlot = 0;
+	strncpy(RSDCommandLine->reportFilenameSweeD, "\0", STRING_SIZE);
+	RSDCommandLine->positionIndexSweeD = -1;
+	RSDCommandLine->scoreIndexSweeD = -1;
+	strncpy(RSDCommandLine->reportFilenameRAiSD, "\0", STRING_SIZE);
+	RSDCommandLine->positionIndexRAiSD = -1;
+	RSDCommandLine->scoreIndexRAiSD = -1;
+	strcpy(RSDCommandLine->commonOutliersThreshold, "0.05");
+	RSDCommandLine->commonOutliersMaxDistance = 1.0;
 }
 
 void flagCheck (char ** argv, int i, int * flagVector, int flagIndex)
@@ -229,6 +249,7 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 	char tstring [STRING_SIZE], tstring2[STRING_SIZE];
 	int * flagVector = (int*)calloc(MAX_COMMANDLINE_FLAGS, sizeof(int));
 	assert(flagVector!=NULL);
+	int co_mode = -1;
 
 	for(i=1; i<argc; ++i)
 	{
@@ -812,6 +833,145 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 			continue;
 		}
 
+		if(!strcmp(argv[i], "-CO")) 
+		{ 
+			flagCheck (argv, i, flagVector, 22);
+
+			if(i<=argc-7)
+			{
+				if(argv[i+1][0]!='-' && argv[i+2][0]!='-' && argv[i+3][0]!='-') // && argv[i+4][0]!='-' && argv[i+5][0]!='-' && argv[i+6][0]!='-')
+				{
+					if(argv[i+4][0]!='-' && argv[i+5][0]!='-' && argv[i+6][0]!='-')
+					{
+						co_mode = 1;
+						RSDCommandLine->createCOPlot = 1;
+					}
+					else
+					{
+						if(argv[i+4][0]=='-')
+						{
+							co_mode = 0;
+							RSDCommandLine->createCOPlot = 1;
+						}
+						else
+						{
+
+							fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+							exit(0);
+						}
+					}
+				}
+				else
+				{
+					fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+					exit(0);
+				}
+			}
+			else
+			{
+				if(i<=argc-4)
+				{
+					if(argv[i+1][0]!='-' && argv[i+2][0]!='-' && argv[i+3][0]!='-')
+					{
+						if(i==argc-4)
+						{
+							co_mode = 0;
+							RSDCommandLine->createCOPlot = 1;
+						}
+						else
+						{
+							if(argv[i+4][0]=='-')
+							{
+								co_mode = 0;
+								RSDCommandLine->createCOPlot = 1;
+							}
+							else
+							{
+								fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+								exit(0);
+							}
+						}
+					}
+					else
+					{
+						fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+						exit(0);
+					}
+				}
+				else
+				{
+					fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+					exit(0);
+				}
+			}
+
+			assert(co_mode==0 || co_mode==1);
+
+			strcpy(RSDCommandLine->reportFilenameSweeD, argv[++i]);
+			RSDCommandLine->positionIndexSweeD = (int)atoi(argv[++i]);
+			RSDCommandLine->scoreIndexSweeD = (int)atoi(argv[++i]);
+
+			if(co_mode)
+			{
+				strcpy(RSDCommandLine->reportFilenameRAiSD, argv[++i]);
+				RSDCommandLine->positionIndexRAiSD = (int)atoi(argv[++i]);
+				RSDCommandLine->scoreIndexRAiSD = (int)atoi(argv[++i]);
+			}
+
+			RSDCommandLine->splitOutput = 1; // activating output splitting
+			RSDCommandLine->fullReport = 1; // activating full report
+			RSDCommandLine->setSeparator = 0; // remove separator symbol
+
+			continue;
+		}
+
+		if(!strcmp(argv[i], "-COT")) 
+		{ 
+			flagCheck (argv, i, flagVector, 23);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
+			{
+				double threshold = (double)atof(argv[++i]);
+				if(threshold<0.0 || threshold>1.0)
+				{
+					fprintf(stderr, "\nERROR: Invalid threshold value for common outliers (valid: 0.0-1.0)\n\n");
+					exit(0);
+				}
+				strcpy(RSDCommandLine->commonOutliersThreshold, argv[i]);
+			}
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
+
+			continue;
+		}
+
+		if(!strcmp(argv[i], "-COD")) 
+		{ 
+			flagCheck (argv, i, flagVector, 24);
+
+			if (i!=argc-1 && argv[i+1][0]!='-')
+			{
+				double maxdistance = (double)atof(argv[++i]);
+				if(maxdistance<0.0)
+				{
+					fprintf(stderr, "\nERROR: Invalid maximum distance between common outliers (valid: 0.0>=0)\n\n");
+					exit(0);
+				}
+				RSDCommandLine->commonOutliersMaxDistance = maxdistance;
+			}
+			else
+			{
+				fprintf(stderr, "\nERROR: Missing argument after %s\n\n",argv[i]);
+				exit(0);	
+			}
+
+			continue;
+		}
+
+
 		/*if(!strcmp(argv[i], "-set")) 
 		{ 
 			if (i!=argc-1)
@@ -850,16 +1010,19 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 		exit(0);	
 	}
 
-	if(!strcmp(RSDCommandLine->inputFileName, "\0"))
+	if(!flagVector[CO_FLAG_INDEX] || (flagVector[CO_FLAG_INDEX] && co_mode!=1))
 	{
-		fprintf(stderr, "\nERROR: Missing required input parameter -I\n\n");
-		exit(0);	
-	}
-	else
-	{
-		FILE * inputFileExists = fopen(RSDCommandLine->inputFileName, "r");
-		assert(inputFileExists!=NULL); // file exists check
-		fclose(inputFileExists);
+		if(!strcmp(RSDCommandLine->inputFileName, "\0"))
+		{
+			fprintf(stderr, "\nERROR: Missing required input parameter -I\n\n");
+			exit(0);	
+		}
+		else
+		{
+			FILE * inputFileExists = fopen(RSDCommandLine->inputFileName, "r");
+			assert(inputFileExists!=NULL); // file exists check
+			fclose(inputFileExists);
+		}
 	}
 
 	if(strcmp(RSDCommandLine->excludeRegionsFile, "\0"))
@@ -877,6 +1040,61 @@ void RSDCommandLine_load(RSDCommandLine_t * RSDCommandLine, int argc, char ** ar
 
 	if(RSDCommandLine->createPatternPoolMask==1)
 		RSDCommandLine->imputePerSNP = 0;
+
+	if(flagVector[CO_FLAG_INDEX])
+	{
+		assert(co_mode==0 || co_mode==1);
+
+		FILE * commonOutlierFileExists = NULL;
+
+		commonOutlierFileExists = fopen(RSDCommandLine->reportFilenameSweeD, "r");
+		assert(commonOutlierFileExists!=NULL); // file exists check
+		fclose(commonOutlierFileExists);
+
+		if(RSDCommandLine->positionIndexSweeD<1)
+		{
+			fprintf(stderr, "\nERROR: Invalid position index after %s (valid: >=1)\n\n", RSDCommandLine->reportFilenameSweeD);
+			exit(0);
+		}
+
+		if(RSDCommandLine->scoreIndexSweeD<1)
+		{
+			fprintf(stderr, "\nERROR: Invalid score index after %s (valid: >=1)\n\n", RSDCommandLine->reportFilenameSweeD);
+			exit(0);
+		}
+
+		if(RSDCommandLine->positionIndexSweeD==RSDCommandLine->scoreIndexSweeD)
+		{
+			fprintf(stderr, "\nERROR: Same column indices for positions and scores after %s (valid: >=1)\n\n", RSDCommandLine->reportFilenameSweeD);
+			exit(0);
+		}
+
+		if(co_mode)
+		{
+			commonOutlierFileExists = fopen(RSDCommandLine->reportFilenameRAiSD, "r");
+			assert(commonOutlierFileExists!=NULL); // file exists check
+			fclose(commonOutlierFileExists);
+
+			if(RSDCommandLine->positionIndexRAiSD<1)
+			{
+				fprintf(stderr, "\nERROR: Invalid position index after %s (valid: >=1)\n\n", RSDCommandLine->reportFilenameRAiSD);
+				exit(0);
+			}
+
+			if(RSDCommandLine->scoreIndexRAiSD<1)
+			{
+				fprintf(stderr, "\nERROR: Invalid score index after %s (valid: >=1)\n\n", RSDCommandLine->reportFilenameRAiSD);
+				exit(0);
+			}
+
+			if(RSDCommandLine->positionIndexRAiSD==RSDCommandLine->scoreIndexRAiSD)
+			{
+				fprintf(stderr, "\nERROR: Same column indices for positions and scores after %s (valid: >=1)\n\n", RSDCommandLine->reportFilenameRAiSD);
+				exit(0);
+			}
+		}
+
+	}
 
 	free(flagVector);
 }

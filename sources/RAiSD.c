@@ -131,6 +131,23 @@ int main (int argc, char ** argv)
 	RSDCommandLine_print(argc, argv, RAiSD_Info_FP);
 	RSDCommandLine_print(argc, argv, RAiSD_SiteReport_FP);
 
+	RSDCommonOutliers_t * RSDCommonOutliers = RSDCommonOutliers_new ();
+	RSDCommonOutliers_init (RSDCommonOutliers, RSDCommandLine);
+	RSDCommonOutliers_process (RSDCommonOutliers, RSDCommandLine);
+
+	if(strcmp(RSDCommonOutliers->reportFilenameRAiSD, "\0"))
+	{
+		RSDCommonOutliers_free (RSDCommonOutliers);
+		RSDCommandLine_free (RSDCommandLine);
+
+		RSD_printTime(stdout, RAiSD_Info_FP);
+		RSD_printMemory(stdout, RAiSD_Info_FP);
+
+		fclose(RAiSD_Info_FP);
+		
+		return 0;
+	}	
+
 	RSD_printSiteReportLegend(RAiSD_SiteReport_FP, RSDCommandLine->imputePerSNP, RSDCommandLine->createPatternPoolMask);
 
 	RSDDataset_t * RSDDataset = RSDDataset_new();
@@ -173,7 +190,7 @@ int main (int argc, char ** argv)
 
 		if(setIndexValid==-1 || setIndex == setIndexValid)
 		{
-			RSDMuStat_setReportNamePerSet (RSDMuStat, RSDCommandLine, RAiSD_Info_FP, RSDDataset);
+			RSDMuStat_setReportNamePerSet (RSDMuStat, RSDCommandLine, RAiSD_Info_FP, RSDDataset, RSDCommonOutliers);
 
 			if(RSDCommandLine->setSeparator)
 				fprintf(RSDMuStat->reportFP, "// %s\n", RSDDataset->setID);	
@@ -290,7 +307,7 @@ int main (int argc, char ** argv)
 			RSDMuStat_writeBuffer2File (RSDMuStat, RSDCommandLine);
 
 			if(RSDCommandLine->createPlot==1)
-				RSDPlot_createPlot (RSDCommandLine, RSDDataset, RSDMuStat, RSDPLOT_BASIC_MU);
+				RSDPlot_createPlot (RSDCommandLine, RSDDataset, RSDMuStat, RSDCommonOutliers, RSDPLOT_BASIC_MU);
 
 			setsProcessedTotal++;
 
@@ -381,10 +398,16 @@ int main (int argc, char ** argv)
 	if(RSDCommandLine->createMPlot==1)
 	{
 		RSDPlot_generateRscript(RSDCommandLine, RSDPLOT_MANHATTAN);
-		RSDPlot_createPlot (RSDCommandLine, RSDDataset, RSDMuStat, RSDPLOT_MANHATTAN);		
+		RSDPlot_createPlot (RSDCommandLine, RSDDataset, RSDMuStat, RSDCommonOutliers, RSDPLOT_MANHATTAN);		
 		RSDPlot_removeRscript(RSDCommandLine, RSDPLOT_MANHATTAN);
 	}
 
+	if(RSDCommandLine->createCOPlot==1)
+	{
+		RSDCommonOutliers_process (RSDCommonOutliers, RSDCommandLine);
+	}
+
+	RSDCommonOutliers_free (RSDCommonOutliers);
 	RSDCommandLine_free(RSDCommandLine);
 	RSDPatternPool_free(RSDPatternPool, RSDDataset->setSamples);
 	RSDChunk_free(RSDChunk, RSDDataset->setSamples);
@@ -400,7 +423,7 @@ int main (int argc, char ** argv)
 	fclose(RAiSD_Info_FP);
 
 	if(RAiSD_SiteReport_FP!=NULL)
-		fclose(RAiSD_SiteReport_FP);
+		fclose(RAiSD_SiteReport_FP);	
 
 	return 0;
 }

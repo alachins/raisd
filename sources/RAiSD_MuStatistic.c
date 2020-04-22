@@ -347,7 +347,7 @@ void RSDMuStat_excludeRegion (RSDMuStat_t * RSDMuStat, RSDDataset_t * RSDDataset
 	
 }
 
-void RSDMuStat_setReportNamePerSet (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine, FILE * fpOut, RSDDataset_t * RSDDataset)
+void RSDMuStat_setReportNamePerSet (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * RSDCommandLine, FILE * fpOut, RSDDataset_t * RSDDataset, RSDCommonOutliers_t * RSDCommonOutliers)
 {
 	assert(fpOut!=NULL);
 
@@ -389,6 +389,13 @@ void RSDMuStat_setReportNamePerSet (RSDMuStat_t * RSDMuStat, RSDCommandLine_t * 
 
 	RSDMuStat->reportFP = fopen(tstring, "w");
 	assert(RSDMuStat->reportFP!=NULL);
+
+	if(!strcmp(RSDCommonOutliers->reportFilenameRAiSD, "\0"))
+	{
+		strncpy(RSDCommonOutliers->reportFilenameRAiSD, tstring, STRING_SIZE);
+		RSDCommonOutliers->positionIndexRAiSD = 1;
+		RSDCommonOutliers->scoreIndexRAiSD = 7;
+	}
 } 
 
 float pwLD (RSDPatternPool_t * pp, int p1, int p2, int samples)
