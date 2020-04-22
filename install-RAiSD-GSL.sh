@@ -5,4 +5,7 @@ mkdir gsl
 cd gsl-2.6
 ./configure --prefix=$curpath/gsl && make && make install
 cd ..
-make -f MakefileGSL
+rm Makefile
+cp makefiles/Makefile.GSL Makefile
+make clean
+make
