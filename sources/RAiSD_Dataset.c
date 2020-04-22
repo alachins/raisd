@@ -898,6 +898,7 @@ char RSDDataset_goToNextSet_vcf_gz (RSDDataset_t * RSDDataset)
 		{
 			int rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
 			assert(rcnt==1);
+			rcnt = rcnt;
 
 			if(strcmp(tstring, RSDDataset->setID))
 			{
