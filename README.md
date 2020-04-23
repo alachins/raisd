@@ -70,7 +70,7 @@ As of version 2.7 (or later), the [GNU Scientific Library (GSL)](https://www.gnu
 	make[1]: *** [build/release/RAiSD.o] Error 1
 	make: *** [release] Error 2
 
-As an alternative, you can install GSL locally (NOT RECOMMENDED) as follows: 
+As an alternative, you can install GSL locally (NOT RECOMMENDED) with the following command (in the raisd-master installation folder): 
 
   	 $ ./install-RAiSD-GSL.sh
 	 
