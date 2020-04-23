@@ -52,9 +52,11 @@ The following commands can be used to download and compile the source code.
     $ wget https://github.com/alachins/raisd/archive/master.zip
     $ unzip master.zip
     $ cd raisd-master
-    $ make
+    $ ./install-RAiSD.sh
     
-The executable is placed in the path RAiSD/raisd-master/bin/release. A link to the executable is placed in the installation folder, i.e., raisd-master.
+The executable is placed in the path RAiSD/raisd-master/bin/release. A link to the executable is placed in the installation folder, i.e., raisd-master. 
+
+RAiSD version 2.7 or later uses the [GNU Scientific Library (GSL)](https://www.gnu.org/software/gsl/)
 
 Test Run
 --------
