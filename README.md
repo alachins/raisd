@@ -80,7 +80,7 @@ Finally, and while still in the raisd-master directory, use the following comman
 	
 	$ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/gsl/lib
 
-This command should be executed in every newly opened terminal before running RAiSD, otherwise you will see the following error message at run time:
+This command should be used from within the installation directory (raisd-master) in every new terminal before running RAiSD. Otherwise, the following error message will appear when launching RAiSD:
 
 	./RAiSD: error while loading shared libraries: libgsl.so.25: cannot open shared object file: No such file or directory
 	
