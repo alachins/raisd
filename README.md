@@ -56,7 +56,7 @@ The following commands can be used to download and compile the source code.
     
 The executable is placed in the path RAiSD/raisd-master/bin/release. A link to the executable is placed in the installation folder, i.e., raisd-master. 
 
-As of version 2.7 (or later), the [GNU Scientific Library (GSL)](https://www.gnu.org/software/gsl/) needs to be installed to compile and run RAiSD. The following error message (or similar) will appear if GSL is not installed and found in the expected /usr/include/gsl directory. 
+As of version 2.7 (or later), the [GNU Scientific Library (GSL)](https://www.gnu.org/software/gsl/) needs to be installed to compile and run RAiSD. The following error message (or similar) will appear if GSL is not installed and found in the expected /usr/include/gsl directory. In this case, please contact your system administrator to install it (RECOMMENDED). 
 	
 	Error message:
 	Creating directories
@@ -70,11 +70,11 @@ As of version 2.7 (or later), the [GNU Scientific Library (GSL)](https://www.gnu
 	make[1]: *** [build/release/RAiSD.o] Error 1
 	make: *** [release] Error 2
 
-In this case, please contact your system administrator to install it (recommended). 
+As an alternative, you can install GSL locally (NOT RECOMMENDED) as follows: 
 
-As an alternative, you can install GSL locally (not recommended) as follows: 
-
-  	 $./install-RAiSD-GSL.sh	
+  	 $./install-RAiSD-GSL.sh
+	 
+This will download the latest GSL version from https://ftp.gnu.org/gnu/gsl/ , unzip it, and install it in the path raisd-master/gsl. 	 
 	
 
 
