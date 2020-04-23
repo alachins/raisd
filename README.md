@@ -56,7 +56,19 @@ The following commands can be used to download and compile the source code.
     
 The executable is placed in the path RAiSD/raisd-master/bin/release. A link to the executable is placed in the installation folder, i.e., raisd-master. 
 
-RAiSD version 2.7 or later uses the [GNU Scientific Library (GSL)](https://www.gnu.org/software/gsl/)
+As of version 2.7 (or later), the [GNU Scientific Library (GSL)](https://www.gnu.org/software/gsl/) needs to be installed to compile and run RAiSD. If you see the following message
+
+	Error message:
+	Creating directories
+	Beginning release build
+	Compiling: sources/RAiSD.c -> build/release/RAiSD.o
+	In file included from sources/RAiSD.c:22:0:
+	sources/RAiSD.h:30:27: fatal error: gsl/gsl_errno.h: No such file or directory
+ 	#include <gsl/gsl_errno.h>
+         	                  ^
+	compilation terminated.
+	make[1]: *** [build/release/RAiSD.o] Error 1
+	make: *** [release] Error 2
 
 Test Run
 --------
