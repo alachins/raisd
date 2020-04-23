@@ -1,0 +1,44 @@
+
+
+                                      _______________
+
+                                           SweeD
+                                      _______________
+
+
+
+ SweeD version 4.0.0 released by Nikolaos Alachiotis and Pavlos Pavlidis in July 2018.
+ Code contributions by Antonis Kioukis and Aggelos Koropoulis.
+
+
+ Command:
+
+	 ./SweeD-P -name SARS-CoV-2 -input gisaid_cov2020_sequences.oneline.filtered20200330.ns.aln.vcf -grid 5000 -osf gisaid_cov2020_sequences.oneline.filtered20200330.ns.aln.sf -threads 24
+
+
+
+ Input file format (0:ms, 1:fasta, 2:macs, 3:vcf, 4:sf, 5:mbs): 3
+ Total number of samples in the VCF:	1601
+ Samples excluded from the analysis:	0
+
+
+ Alignment 1
+
+		Chromosome:		covid19
+		Sequences:		1601
+		Sites:			30139
+		Discarded sites:	27860
+		Kept sites:	2279
+
+		Processing:		394487.71 seconds
+
+		Position:		2.981300e+04
+		Likelihood:		1.110907e+02
+		StartPos:		2.790300e+04
+		EndPos:			3.013900e+04
+		Alpha:			6.127552e-03
+
+
+ Total elapsed time 394490.49 seconds.
+
+

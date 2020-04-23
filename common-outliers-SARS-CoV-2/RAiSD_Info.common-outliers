@@ -1,0 +1,25 @@
+
+ ooooooooo.         .o.        o8o   .oooooo..o oooooooooo.
+ `888   `Y88.      .888.       `"'  d8P'    `Y8 `888'   `Y8b
+  888   .d88'     .8"888.     oooo  Y88bo.       888      888
+  888ooo88P'     .8' `888.    `888   `"Y8888o.   888      888
+  888`88b.      .88ooo8888.    888       `"Y88b  888      888
+  888  `88b.   .8'     `888.   888  oo     .d8P  888     d88'
+ o888o  o888o o88o     o8888o o888o 8""88888P'  o888bood8P'
+
+ RAiSD, Raised Accuracy in Sweep Detection
+ This is version 2.8 (released in April 2020)
+ Copyright (C) 2017, and GNU GPL'd, by Nikolaos Alachiotis and Pavlos Pavlidis
+ Contact n.alachiotis/pavlidisp at gmail.com
+
+ Command: ../RAiSD -n common-outliers -CO SweeD_Report.SARS-CoV-2 1 2 RAiSD_Report.SARS-CoV-2 1 2 -COT 0.05 -COD 400 -f 
+
+ COMMON-OUTLIER ANALYSIS
+ Top			0.05
+ SweeD threshold	1.636365
+ RAiSD threshold	26.150000
+ Max distance		400.0
+
+ Total execution time 0.21298 seconds
+ Total memory footprint 348896 kbytes
+

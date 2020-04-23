@@ -17,7 +17,7 @@ LIBS =
 # General compiler flags
 COMPILE_FLAGS = -std=gnu99 -Wall -Wextra -g -O2 -D_C1 -D_REF
 # Additional release-specific flags
-RCOMPILE_FLAGS = -D NDEBUG
+RCOMPILE_FLAGS = # -D NDEBUG
 # Additional debug-specific flags
 DCOMPILE_FLAGS = -D DEBUG
 # Add additional include paths

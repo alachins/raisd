@@ -1,0 +1,30 @@
+
+ ooooooooo.         .o.        o8o   .oooooo..o oooooooooo.
+ `888   `Y88.      .888.       `"'  d8P'    `Y8 `888'   `Y8b
+  888   .d88'     .8"888.     oooo  Y88bo.       888      888
+  888ooo88P'     .8' `888.    `888   `"Y8888o.   888      888
+  888`88b.      .88ooo8888.    888       `"Y88b  888      888
+  888  `88b.   .8'     `888.   888  oo     .d8P  888     d88'
+ o888o  o888o o88o     o8888o o888o 8""88888P'  o888bood8P'
+
+ RAiSD, Raised Accuracy in Sweep Detection
+ This is version 2.8 (released in April 2020)
+ Copyright (C) 2017, and GNU GPL'd, by Nikolaos Alachiotis and Pavlos Pavlidis
+ Contact n.alachiotis/pavlidisp at gmail.com
+
+ Command: ./RAiSD -I gisaid_cov2020_sequences.oneline.filtered20200330.ns.aln.vcf -n SARS-CoV-2 -O -c 2 -w 6 -G 5000 -f 
+ Samples: 1601
+ Format:  vcf
+
+ A pattern structure of 4854 patterns (max. capacity) and approx. 2 MB memory footprint has been created.
+
+
+ 0: Set covid19 | sites 30139 | snps 1059 | region 30139 - Var 15164 2.641e+00 | SFS 541 7.955e+00 | LD 13638 4.000e+00 | MuStat 7795 4.156e+01
+
+ Sets (total):     1
+ Sets (processed): 1
+ Sets (skipped):   0
+
+ Total execution time 8.45112 seconds
+ Total memory footprint 7100 kbytes
+
