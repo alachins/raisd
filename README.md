@@ -6,9 +6,9 @@ Authors: Nikolaos Alachiotis (n.alachiotis@gmail.com) and Pavlos Pavlidis (pavli
 
 First release: 9/6/2017 
 
-Last update: 8/4/2020       
+Last update: 22/4/2020       
 
-Version: 2.7
+Version: 2.8
 
 About
 -----
@@ -27,6 +27,9 @@ URL: https://ieeexplore.ieee.org/abstract/document/8533493
 
 3. RAiSD-X: A Fast and Accurate FPGA System for the Detection of Positive Selection in Thousands of Genomes ([PDF](https://github.com/alachins/raisd/blob/master/publications/RAiSD-X_TRETS2019.pdf))
 URL: https://dl.acm.org/doi/10.1145/3364225
+
+4. Population genomics insights into the recent evolution of SARS-CoV-2 ([PDF](https://www.biorxiv.org/content/10.1101/2020.04.21.054122v1.full.pdf))  
+URL: https://doi.org/10.1101/2020.04.21.054122  
 
 
 Changes to the μ statistic (May 2019)
