@@ -590,9 +590,9 @@ The CommonOutlierReport contains all position pairs, with the first column refer
 
 The CommonOutlierPlot illustrates the results of both tools and the common-outlier positions (red points).
 
-The CommonOutlierPoints files contain outlier positions and respective scores per tool/method. 
+The CommonOutlierPoints files contain outlier positions and their respective scores per tool/method. 
 
-An example of a common-outlier analysis, including the generated 
+An example of a common-outlier analysis applied on the RAiSD and SweeD reports obtained by the analysis of 1,601 SARS-CoV-2 genomes (available at the [GISAID database](https://platform.gisaid.org/), including the generated 
 
 
 
