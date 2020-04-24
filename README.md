@@ -560,7 +560,9 @@ As of version 2.8, RAiSD can be used to detect common outliers with SweeD or Ome
 	2) Remove the header line (if exists) from the generated SweeD_Report.RUNNAME file
 	3) Execute RAiSD with the same grid size that was used for SweeD, and provide the SweeD_Report as input via -CO.
 	
-To use SweeD, refer to its manual which is available at: https://github.com/alachins/sweed/blob/master/sweed3.0_manual.pdf
+To use SweeD, refer to its manual, which is available at: https://github.com/alachins/sweed/blob/master/sweed3.0_manual.pdf
+RAiSD (step 3) can be used in two different modes: A) process the input dataset and perform the common-outlier analysis at the end, or B) only perform the common-outlier analysis (using a RAiSD_Report from a previous run). 
+
 
 To use RAiSD for the analysis and the common-outlier analysis in a single launch
 
