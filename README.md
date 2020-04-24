@@ -577,7 +577,22 @@ In this case, the -CO command-line flag receives 3 additional arguments, i.e., a
 
 The optional -COT parameter allows to set the threshold for identifying top outliers per run. The default value is 0.05, which detects the top 5% scores as outliers in each of the two reports.
 
-The optional -COD parameter allows some flexibility in matching common-outlier positions between the two runs by setting a maximum distance among RAiSD/SweeD common outliers. When the distance between two outlier positions, one in RAiSD_Report and one in SweeD_Report, is less or equal than the value provided via -COD, these points are identified as a common-outlier pair. The default COD value is 1 site, which requires an exact match between outlier positions. This is unlikely to occur given that RAiSD and SweeD employ different routines for computing the evaluated positions. Therefore a larger number can be used, e.g., 100.
+The optional -COD parameter allows some flexibility in matching common-outlier positions between the two runs by setting a maximum distance among RAiSD/SweeD common outliers. When the distance between two outlier positions, one in RAiSD_Report and one in SweeD_Report, is less or equal than the value provided via -COD, these points are identified as a common-outlier pair. The default COD value is 1 site, which requires an exact match between outlier positions. This is unlikely to occur given that RAiSD and SweeD employ different routines for computing the evaluated positions. Therefore, a larger number can be used, e.g., 100.
+
+The output of a common-outlier analysis with RAiSD is a set of four files:
+
+	a) RAiSD_CommonOutlierReport.myrunname
+	b) RAiSD_CommonOutlierPlot.myrunname.pdf
+	c) RAiSD_CommonOutlierPointsRAiSD.myrunname
+	d) RAiSD_CommonOutlierPointsSweeD.myrunname
+
+The CommonOutlierReport contains all positions pairs, with the first column referring to a position in SweeD_Report while the second column refers to a position in RAiSD_Report.
+
+The CommonOutlierPlot illustrates the results of both tools and the common-outlier positions.
+
+The CommonOutlierPoints files contain outlier positions and respective scores per tool/method. 
+
+An example of a common-outlier analysis, including the generated 
 
 
 
