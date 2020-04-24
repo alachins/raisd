@@ -589,6 +589,8 @@ v2.6 (2/4/2020): Parses, converts to vcf, and analyzes fasta input files (-C/-C2
 
 v2.7 (8/4/2020): -G parameter to specify the grid size
 
+v2.8 (22/4/2020): -CO, -COT, -COD parameters for common-outlier analysis between RAiSD and SweeD, install script for gsl
+
 Support
 -------
 
