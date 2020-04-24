@@ -1,0 +1,169 @@
+
+ ooooooooo.         .o.        o8o   .oooooo..o oooooooooo.
+ `888   `Y88.      .888.       `"'  d8P'    `Y8 `888'   `Y8b
+  888   .d88'     .8"888.     oooo  Y88bo.       888      888
+  888ooo88P'     .8' `888.    `888   `"Y8888o.   888      888
+  888`88b.      .88ooo8888.    888       `"Y88b  888      888
+  888  `88b.   .8'     `888.   888  oo     .d8P  888     d88'
+ o888o  o888o o88o     o8888o o888o 8""88888P'  o888bood8P'
+
+ RAiSD, Raised Accuracy in Sweep Detection
+ This is version 2.8 (released in April 2020)
+ Copyright (C) 2017, and GNU GPL'd, by Nikolaos Alachiotis and Pavlos Pavlidis
+ Contact n.alachiotis/pavlidisp at gmail.com
+
+ This is RAiSD version 2.8, released in April 2020.
+
+ RAiSD
+	 -n STRING
+	 -I STRING
+
+	--- SNP and SAMPLE HANDLING
+
+	[-L INTEGER]
+	[-S STRING]
+	[-m FLOAT]
+	[-M 0|1|2|3]
+	[-y INTEGER]
+	[-X STRING]
+	[-B INTEGER INTEGER]
+	[-o]
+
+	--- SLIDING WINDOW and MU STATISTIC
+
+	[-w INTEGER]
+	[-c INTEGER]
+	[-G INTEGER]
+
+	--- STANDARD OUTPUT and REPORTS
+
+	[-f]
+	[-s]
+	[-t]
+	[-p]
+	[-O]
+	[-R]
+	[-P]
+	[-D]
+	[-A FLOAT]
+
+	--- ACCURACY and SENSITIVITY EVALUATION
+
+	[-T INTEGER]
+	[-d INTEGER]
+	[-k FLOAT]
+	[-l FLOAT]
+
+	--- ADDITIONAL EXECUTION PARAMETERS
+
+	[-b]
+	[-a INTEGER]
+
+	--- FASTA-to-VCF CONVERSION PARAMETERS
+
+	[-C STRING]
+	[-C2 STRING]
+	[-H STRING]
+	[-E STRING]
+
+	--- COMMON-OUTLIER ANALYSIS
+
+	[-CO STRING INTEGER INTEGER] or [-CO STRING INTEGER INTEGER STRING INTEGER INTEGER]
+	[-COT FLOAT]
+	[-COD INTEGER]
+
+	--- HELP and VERSION NOTES
+
+	[-h]
+	[-v]
+
+
+ DETAILED DESCRIPTION
+
+	-n	Provides a unique run ID that is used to name the output files, i.e., the info file and the report(s).
+	-I	Provides the path to the input file, which can be either in ms or in vcf format.
+
+	--- SNP and SAMPLE HANDLING
+
+	-L	Provides the size of the region in basepairs for ms files. See -B option for vcf files.
+	-S	Provides the path to the list of samples to be processed (supported only with VCF).
+	-m	Provides the threshold value for excluding SNPs with minor allele frequency < threshold (0.0-1.0).
+	-M	Indicates the missing-data handling strategy (0: discards SNP (default), 1: imputes N per SNP,
+		2: represents N through a mask, 3: ignores allele pairs with N).
+	-y	Provides the ploidy (integer value), used to correctly represent missing data.
+	-X	Provides the path to a tab-delimited file that contains regions per chromosome (one per line) to be
+		excluded from the analysis (Format: chromosome [tab] regionStart [tab] regionStop).
+	-B	Provides the chromosome size in basepairs (first INTEGER) and SNPs (second INTEGER) for vcf files that
+		contain a single chromosome. If -B is not provided, or the input vcf file contains multiple chromosomes,
+		RAiSD will determine the respective values by parsing each chromosome in its entirety before processing,
+		which will lead to slightly longer overall execution time.
+	-o	Enables dataset check and ordering of the input vcf file (only unzipped vcf files are supported).
+
+	--- SLIDING WINDOW and MU STATISTIC
+
+	-w	Provides the window size (integer value). The default value is 50 (empirically determined).
+	-c	Provides the slack for the SFS edges to be used for the calculation of mu_SFS. The default value is 1
+		(singletons and S-1 snp class, where S is the sample size).
+	-G	Provides the grid size to specify the total number of evaluation points across the data.
+		When used, RAiSD reports mu statistic scores at equidistant locations between the first and last SNPs.
+
+	--- STANDARD OUTPUT and REPORTS
+
+	-f	Overwrites existing run files under the same run ID.
+	-s	Generates a separate report file per set.
+	-t	Removes the set separator symbol from the report(s).
+	-p	Generates the output file RAiSD_Samples.STRING, where STRING is the run ID, comprising a list of samples
+		in the input file (supported only with VCF).
+	-O	Shows progress on the display device (at snp set granularity).
+	-R	Includes additional information in the report file(s), i.e., window start and end, and the mu-statistic
+		factors for variation, SFS, and LD.
+	-P	Generates four plots (for the three mu-statistic factors and the final score) in one PDF file per set of
+		SNPs in the input file using Rscript (activates -s, -t, and -R).
+	-D	Generates a site report, e.g., total, discarded, imputed etc.
+	-A	Provides a probability value to be used for the quantile function in R, and generates a Manhattan plot for
+		the final mu-statistic score using Rscript (activates -s, -t, and -R).
+
+	--- ACCURACY and SENSITIVITY EVALUATION
+
+	-T	Provides the selection target (in basepairs) and calculates the average distance (over all datasets in the
+		input file) between the selection target and the reported locations.
+	-d	Provides a maximum distance from the selection target (in base pairs) to calculate success rates,
+		i.e., reported locations in the proximity of the target of selection (provided via -T).
+	-k	Provides the false positive rate (e.g., 0.05) to report the corresponding reported score after sorting
+		the reported locations for all the datasets in the input file.
+	-l	Provides the threshold score, reported by a previous run using a false positive rate (e.g., 0.05, via -k)
+		to report the true positive rate.
+
+	--- ADDITIONAL EXECUTION PARAMETERS
+
+	-b	Indicates that the input file is in mbs format.
+	-a	Provides a seed for the random number generator.
+
+	--- FASTA-to-VCF CONVERSION PARAMETERS
+
+	-C	Provides the outgroup to be used for the ancestral states (REF field in VCF). The first ingroup sequence
+		is used if the outgroup is not given or found.
+	-C2	Provides a second outgroup to be used for the ancestral states (REF field in VCF).
+	-H	Provides the chromosome name (CHROM field in VCF) to overwrite default "chrom" string.
+	-E	Converts input FASTA to VCF and terminates execution without further processing.
+
+	--- COMMON-OUTLIER ANALYSIS
+
+	-CO	Provides the report name (and column indices for positions and scores) to be used for common-outlier analysis.
+		To perform a common-outlier analysis using RAiSD and SweeD, use -CO like this: "-CO SweeD_Report.SweeD-Run-Name 1 2".
+		The SweeD report must not contain a header. If you have already run RAiSD on your data and only want to perform a
+		common-outlier analysis, use -CO like this: "-CO SweeD_Report.SweeD-Run-Name 1 2 RAiSD_Report.RAiSD-Run-Name 1 X",
+		where X is the index of the column you want to use depending on the RAiSD report.
+		To use the mu-statistic, set Y=2 if RAiSD was invoked with the default parameters, or set Y=7 if -R was explicitly
+		provided or implicitly activated through some other command-line parameter. Again, the RAiSD report must not contain
+		a header.
+	-COT	Provides the cut-off threshold for identifying top outliers per report (default: 0.05, i.e., top 5%). 
+	-COD	Provides the maximum distance (in number of sites) between outlier points in the provided reports to identify
+		matching outlier positions reported by RAiSD and SweeD. Based on the accuracy of the implemented methods in SweeD
+		and RAiSD, we typically set -COD to a value between 100 and 400 sites (default: 1, i.e., exact match).
+
+	--- HELP and VERSION NOTES
+
+	-h	Prints this help message.
+	-v	Prints version information.
+
