@@ -554,7 +554,7 @@ As of version 2.7, RAiSD can use a grid size parameter, provided via -G, to repo
 Common outliers between RAiSD and SweeD/OmegaPlus
 -------------------------------------------------
 
-As of version 2.8, RAiSD can detect common outliers with SweeD/OmegaPlus.
+As of version 2.8, RAiSD can detect common outliers with SweeD/OmegaPlus. 
 
 Changelog
 ----------
