@@ -554,7 +554,14 @@ As of version 2.7, RAiSD can use a grid size parameter, provided via -G, to repo
 Common outliers between RAiSD and SweeD/OmegaPlus
 -------------------------------------------------
 
-As of version 2.8, RAiSD can detect common outliers with SweeD/OmegaPlus. 
+As of version 2.8, RAiSD can detect common outliers with SweeD/OmegaPlus. To perform a common-outlier analysis between RAiSD and SweeD for a dataset D, you can follow these steps:
+
+	1) Execute SweeD to process dataset D providing a grid size 'G'.
+
+
+To detect common outliers between RAiSD and SweeD, for example, a SweeD_Report file is required (RAiSD does not invoke SweeD)
+
+RAiSD can be used to compute the μ statistic and detect common outliers afterwards, or simply detect
 
 Changelog
 ----------
