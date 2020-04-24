@@ -550,6 +550,12 @@ Grid size
 ---------
 As of version 2.7, RAiSD can use a grid size parameter, provided via -G, to report mu, muVar, muSFS, and muLD scores. Note that the tool's inherent mu-statistic evaluation algorithm is driven by the number and location of SNPs, with denser SNP regions being evaluated more thoroughly whereas sparser ones being evaluated less exhaustively. It is generally recommended to provide a grid size value that is larger than the total number of SNPs in the dataset to be analyzed. When -G is provided with a grid size of N, RAiSD reports scores at N equidistant locations between the very first and very last sites in the dataset. 
 
+
+Common outliers between RAiSD and SweeD/OmegaPlus
+-------------------------------------------------
+
+As of version 2.8, RAiSD can detect common outliers with SweeD/OmegaPlus.
+
 Changelog
 ----------
 
