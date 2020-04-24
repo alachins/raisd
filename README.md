@@ -605,38 +605,22 @@ Changelog
 	v1.0 (9/6/2017): first release
 	v1.1 (7/3/2018): MAF threshold option	
 	v1.2 (28/3/2018): mbs format with -b
-
-v1.3 (18/7/2018): -i to impute N per SNP, -a for rand seed
-
-v1.4 (3/8/2018): -M to handle missing data, -O to show progress on the display device
-
-v1.5 (4/8/2018): -R to include additional information in the report (reduced default to location and score)
-
-v1.6 (3/9/2018): -P to create plots per set of SNPs using Rscript
-
-v1.7 (2/10/2018): -y for ploidy, -D for site report, fixed a bug in the plotting routine
-
-v1.8 (31/12/2018): MakefileZLIB to parse VCF files in gzip file format (requires the zlib library)
-
-v1.9 (27/4/2019): -w to set the window size (default 50), -c to set the SFS slack for the μ_SFS
-
-v2.0 (15/5/2019): -A to create Manhattan plots, scale factors for muVar and muSFS to yield comparable scores among different chromosomes
-
-v2.1 (21/1/2020): Parser for unordered VCF files (e.g., DArTseq genotyping reports). Creates the ordered VCF file as well.
-
-v2.2 (22/1/2020): Added missing field (discarded monomorphic sites) in the site report for M={1,2,3}.
-
-v2.3 (23/1/2020): -X to exclude regions per chromosome from the analysis.
-
-v2.4 (30/1/2020): -B for chromosome length and SNP size. Fixed bug with the memory-reduction optimization for large chromosomes. -o to request vcf ordering and generation.
-
-v2.5 (8/2/2020): Fixed position bug due to typecasting. Some site positions were off by 1 bp.
-
-v2.6 (2/4/2020): Parses, converts to vcf, and analyzes fasta input files (-C/-C2 for outgroups, -H for chromosome name, -E for conversion-only mode).
-
-v2.7 (8/4/2020): -G parameter to specify the grid size
-
-v2.8 (22/4/2020): -CO, -COT, -COD parameters for common-outlier analysis between RAiSD and SweeD, install script for gsl
+	v1.3 (18/7/2018): -i to impute N per SNP, -a for rand seed
+	v1.4 (3/8/2018): -M to handle missing data, -O to show progress on the display device
+	v1.5 (4/8/2018): -R to include additional information in the report (reduced default to location and score)
+	v1.6 (3/9/2018): -P to create plots per set of SNPs using Rscript
+	v1.7 (2/10/2018): -y for ploidy, -D for site report, fixed a bug in the plotting routine
+	v1.8 (31/12/2018): MakefileZLIB to parse VCF files in gzip file format (requires the zlib library)
+	v1.9 (27/4/2019): -w to set the window size (default 50), -c to set the SFS slack for the μ_SFS
+	v2.0 (15/5/2019): -A to create Manhattan plots, scale factors for muVar and muSFS to yield comparable scores among different chromosomes
+	v2.1 (21/1/2020): Parser for unordered VCF files (e.g., DArTseq genotyping reports). Creates the ordered VCF file as well.
+	v2.2 (22/1/2020): Added missing field (discarded monomorphic sites) in the site report for M={1,2,3}.
+	v2.3 (23/1/2020): -X to exclude regions per chromosome from the analysis.
+	v2.4 (30/1/2020): -B for chromosome length and SNP size. Fixed bug with the memory-reduction optimization for large chromosomes. -o to request vcf ordering and generation.
+	v2.5 (8/2/2020): Fixed position bug due to typecasting. Some site positions were off by 1 bp.
+	v2.6 (2/4/2020): Parses, converts to vcf, and analyzes fasta input files (-C/-C2 for outgroups, -H for chromosome name, -E for conversion-only mode).
+	v2.7 (8/4/2020): -G parameter to specify the grid size
+	v2.8 (22/4/2020): -CO, -COT, -COD parameters for common-outlier analysis between RAiSD and SweeD, install script for gsl
 
 Support
 -------
