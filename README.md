@@ -592,7 +592,9 @@ The CommonOutlierPlot illustrates the results of both tools and the common-outli
 
 The CommonOutlierPoints files contain outlier positions and their respective scores per tool/method. 
 
-An example of a common-outlier analysis applied on the RAiSD and SweeD reports obtained by the analysis of 1,601 SARS-CoV-2 genomes (available at the [GISAID database](https://platform.gisaid.org/), including the generated 
+An example of a common-outlier analysis applied on the RAiSD and SweeD reports obtained by the analysis of 1,601 SARS-CoV-2 genomes (available at the [GISAID database](https://platform.gisaid.org/)) can be found in the common-outliers-SARS-CoV-2 directory. The RAiSD command used to perform the common-outlier analysis is the following:
+
+	../RAiSD -n common-outliers -CO SweeD_Report.SARS-CoV-2 1 2 RAiSD_Report.SARS-CoV-2 1 2 -COT 0.05 -COD 400
 
 
 
@@ -600,11 +602,9 @@ An example of a common-outlier analysis applied on the RAiSD and SweeD reports o
 Changelog
 ----------
 
-v1.0 (9/6/2017): first release
-
-v1.1 (7/3/2018): MAF threshold option
-
-v1.2 (28/3/2018): mbs format with -b
+	v1.0 (9/6/2017): first release
+	v1.1 (7/3/2018): MAF threshold option	
+	v1.2 (28/3/2018): mbs format with -b
 
 v1.3 (18/7/2018): -i to impute N per SNP, -a for rand seed
 
