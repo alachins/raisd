@@ -586,11 +586,7 @@ The output of a common-outlier analysis with RAiSD is a set of four files:
 	c) RAiSD_CommonOutlierPointsRAiSD.myrunname
 	d) RAiSD_CommonOutlierPointsSweeD.myrunname
 
-The CommonOutlierReport contains all position pairs, with the first column referring to a position in SweeD_Report while the second column refers to a position in RAiSD_Report.
-
-The CommonOutlierPlot illustrates the results of both tools and the common-outlier positions (red points).
-
-The CommonOutlierPoints files contain outlier positions and their respective scores per tool/method. 
+The CommonOutlierReport contains all position pairs, with the first column referring to a position in SweeD_Report while the second column refers to a position in RAiSD_Report. The CommonOutlierPlot illustrates the results of both tools and the common-outlier positions (red points). The CommonOutlierPoints files contain outlier positions and their respective scores per tool/method. 
 
 An example of a common-outlier analysis applied on the RAiSD and SweeD reports obtained by the analysis of 1,601 SARS-CoV-2 genomes (available at the [GISAID database](https://platform.gisaid.org/)) can be found in the common-outliers-SARS-CoV-2 directory. The RAiSD command used to perform the common-outlier analysis is the following:
 
