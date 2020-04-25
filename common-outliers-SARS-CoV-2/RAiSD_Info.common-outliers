@@ -16,10 +16,10 @@
 
  COMMON-OUTLIER ANALYSIS
  Top			0.05
- SweeD threshold	1.636365
- RAiSD threshold	26.150000
+ SweeD threshold	2.011755
+ RAiSD threshold	24.730000
  Max distance		400.0
 
- Total execution time 0.21298 seconds
- Total memory footprint 348896 kbytes
+ Total execution time 0.28406 seconds
+ Total memory footprint 348968 kbytes
 
