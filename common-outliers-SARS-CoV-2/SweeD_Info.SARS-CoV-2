@@ -13,7 +13,7 @@
 
  Command:
 
-	 ./SweeD -name sweedCovNew -input gisaid_cov2020_sequences_hc_20200402_oneline_fullseq_ns_20200402.aln.vcf -grid 5000
+	 ./SweeD -name SARS-CoV-2 -input gisaid_cov2020_sequences_hc_20200402_oneline_fullseq_ns_20200402.aln.vcf -grid 5000
 
 
 
