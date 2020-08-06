@@ -171,6 +171,8 @@ void RSDVersions(FILE * fp)
 	fprintf(fp, " %d. RAiSD v%d.%d (Apr 2, 2020): Parses, converts to vcf, and analyzes fasta input files (-C/-C2 for outgroups, -H for chromosome name, -E for conversion-only mode).\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Apr 8, 2020): -G parameter to specify the grid size\n", releaseIndex++, majorIndex, minorIndex++);
 	fprintf(fp, " %d. RAiSD v%d.%d (Apr 22, 2020): -CO, -COT, -COD parameters for common-outlier analysis between RAiSD and SweeD, install script for gsl\n", releaseIndex++, majorIndex, minorIndex++);
+	fprintf(fp, " %d. RAiSD v%d.%d (Aug 6, 2020): fixed bug in parsing one-character VCF sample names\n", releaseIndex++, majorIndex, minorIndex++);
+
 }
 
 RSDCommandLine_t * RSDCommandLine_new(void)

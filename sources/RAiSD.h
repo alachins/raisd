@@ -35,8 +35,8 @@
 #endif
 
 #define MAJOR_VERSION 2
-#define MINOR_VERSION 8
-#define RELEASE_MONTH "April"
+#define MINOR_VERSION 9
+#define RELEASE_MONTH "August"
 #define RELEASE_YEAR 2020
 
 /*Testing*/
@@ -86,6 +86,7 @@ extern double TotalMuTime;
 #define SAMPLE_IS_VALID 1
 #define SAMPLE_IS_NOT_VALID 0
 #define MAX_COMMANDLINE_FLAGS 100
+#define MAX_SAMPLENAME_CHARACTERS 1000
 
 #define OTHER_FORMAT -1
 #define MS_FORMAT 0

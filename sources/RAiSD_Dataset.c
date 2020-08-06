@@ -957,72 +957,104 @@ int RSDDataset_getNumberOfSamples_vcf_gz (RSDDataset_t * RSDDataset)
 
 	if(rcnt==1 && !strcmp(tstring, "#CHROM"))
 	{
-		int i;
-		for(i=0;i<8 && rcnt==1;i++)
-			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
-		
-		assert(rcnt==1); // check for incomplete vcf header line 
+		rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "POS"));
+
+		rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "ID"));
+
+		rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "REF"));
+
+		rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "ALT"));
+
+		rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "QUAL"));
+
+		rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "FILTER"));
+
+		rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "INFO"));
+
+		rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "FORMAT"));
 
 		int sampleCntr = 0;
 		int sampleIndex = -1;
-
-		tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
-		char tchar=tstring[0]; 
 		char sampleName [STRING_SIZE];
+		strcpy(sampleName,"0");
 
-/******/		
-		int multiStringName = 0;
+		char tchar=(char)gzgetc(RSDDataset->inputFilePtrGZ);
 
-		if(tstring[0]=='"')
-			multiStringName = 1;
-/******/
-	
-		while(tstring[0]!='\n' && tstring[0]!=EOF && tstring[0]!='\r')
+		while(tchar==' ' || tchar=='\t')
+				tchar = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+
+		while(tchar!='\n' && tchar!=EOF && tchar!='\r')
 		{
-			rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
-			assert(rcnt==1);
-
-/******/
-			if(multiStringName==1)
+			if(tchar=='"')
 			{
-				char tstring2[STRING_SIZE];
+				int sampleNameSize=0;
 
-				rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring2);
-				assert(rcnt==1);
+				tchar = (char)gzgetc(RSDDataset->inputFilePtrGZ);
 
-				while(tstring2[strlen(tstring2)-1]!='"')
+				assert((tchar!='\n' && tchar!=EOF && tchar!='\r' && tchar!=' ' && tchar!='\t')); // only '"' as samplename
+
+				while(tchar!='"')
 				{
-					strcat(tstring, "_");
-					strcat(tstring, tstring2);
+					sampleName[sampleNameSize++] = tchar;
+					sampleName[sampleNameSize]='\0';
+					
+					assert(sampleNameSize<=MAX_SAMPLENAME_CHARACTERS);
+					
+					tchar = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+					
+					assert(tchar!=EOF && tchar!='\r'); // no matching '"' in the samplename
 
-					rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring2);
-					assert(rcnt==1);
-				}
+					if(tchar==' ' || tchar=='\t' || tchar=='\n')
+					{
+						sampleName[sampleNameSize++] = '_';
+						sampleName[sampleNameSize]='\0';
 
-				strcat(tstring, "_");
-				strcat(tstring, tstring2);
-
-				multiStringName = 0;
+						while(tchar==' ' || tchar=='\t' || tchar=='\n')	
+							tchar = (char)gzgetc(RSDDataset->inputFilePtrGZ);	
+					}				
+				}	
 			}
-/******/
-
-			if(RSDDataset->sampleFilePtr!=NULL)
+			else
 			{
-				if(sampleCntr==0)
+				sampleName[0] = tchar;
+				sampleName[1] = '\0';
+
+				tchar = (char)gzgetc(RSDDataset->inputFilePtrGZ);
+				if(tchar!='\n' && tchar!=EOF && tchar!='\r' && tchar!=' ' && tchar!='\t')
 				{
-					strcpy(sampleName, tstring);
+					gzungetc(tchar, RSDDataset->inputFilePtrGZ);
+
+					rcnt = gzscanf(RSDDataset->inputFilePtrGZ, tstring);
+					assert(rcnt==1);
+					
+					strcat(sampleName, tstring);
 				}
 				else
 				{
-					sampleName[0] = tchar;
-					sampleName[1] = '\0';
-					strcat(sampleName, tstring);
+					gzungetc(tchar, RSDDataset->inputFilePtrGZ);	
 				}
-				
-				fprintf(RSDDataset->sampleFilePtr, "%s\n", sampleName);
 			}
-		
-			sampleCntr++; // this counts the number of samples in the file, dont care about validity yet
+
+			if(RSDDataset->sampleFilePtr!=NULL)
+				fprintf(RSDDataset->sampleFilePtr, "%s\n", sampleName);
+
+			sampleCntr++; // this counts the number of samples in the file (ignoring validity)
 
 			sampleIndex = sampleCntr-1;
 			RSDDataset->sampleValid = rsd_realloc(RSDDataset->sampleValid, sizeof(int)*((unsigned long)sampleCntr));
@@ -1032,23 +1064,14 @@ int RSDDataset_getNumberOfSamples_vcf_gz (RSDDataset_t * RSDDataset)
 			if(RSDDataset->sampleValidListSize!=ALL_SAMPLES_VALID)
 				RSDDataset_validateSample(RSDDataset, sampleName, sampleIndex);
 
-			tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
-			tchar = tstring[0];
+			tchar = (char)gzgetc(RSDDataset->inputFilePtrGZ);
 
-			while(tstring[0]==' ' || tstring[0]=='\t')
-			{
-				tstring[0] = (char)gzgetc(RSDDataset->inputFilePtrGZ);
-				tchar = tstring[0];
-			}
-
-/******/
-			if(tstring[0]=='"')
-				multiStringName = 1;
-/******/
+			while(tchar==' ' || tchar=='\t')
+				tchar = (char)gzgetc(RSDDataset->inputFilePtrGZ);
 
 		}
-		assert(tstring[0]=='\n' || tstring[0]=='\r');
-		gzungetc(tstring[0], RSDDataset->inputFilePtrGZ);		
+		assert(tchar=='\n' || tchar=='\r');
+		gzungetc(tchar, RSDDataset->inputFilePtrGZ);
 
 		RSDDataset->numberOfSamplesVCF = sampleCntr;
 		RSDDataset->numberOfSamples = RSDDataset_getValidSampleSize (RSDDataset);
@@ -1786,70 +1809,104 @@ int RSDDataset_getNumberOfSamples_vcf (RSDDataset_t * RSDDataset)
 
 	if(rcnt==1 && !strcmp(tstring, "#CHROM"))
 	{
-		int i;
-		for(i=0;i<8 && rcnt==1;i++)
-			rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
-		
-		assert(rcnt==1); // check for incomplete vcf header line 
+		rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "POS"));
+
+		rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "ID"));
+
+		rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "REF"));
+
+		rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "ALT"));
+
+		rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "QUAL"));
+
+		rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "FILTER"));
+
+		rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "INFO"));
+
+		rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
+		assert(rcnt==1);
+		assert(!strcmp(tstring, "FORMAT"));
 
 		int sampleCntr = 0;
 		int sampleIndex = -1;
-
-		tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
-		char tchar=tstring[0]; 
 		char sampleName [STRING_SIZE];
+		strcpy(sampleName,"0");
 
-/******/		
-		int multiStringName = 0;
+		char tchar=(char)fgetc(RSDDataset->inputFilePtr);
 
-		if(tstring[0]=='"')
-			multiStringName = 1;
-/******/
-		while(tstring[0]!='\n' && tstring[0]!=EOF && tstring[0]!='\r')
+		while(tchar==' ' || tchar=='\t')
+				tchar = (char)fgetc(RSDDataset->inputFilePtr);
+
+		while(tchar!='\n' && tchar!=EOF && tchar!='\r')
 		{
-			rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring);
-			assert(rcnt==1);
-/******/
-			if(multiStringName==1)
+			if(tchar=='"')
 			{
-				char tstring2[STRING_SIZE];
+				int sampleNameSize=0;
 
-				rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring2);
-				assert(rcnt==1);
+				tchar = (char)fgetc(RSDDataset->inputFilePtr);
 
-				while(tstring2[strlen(tstring2)-1]!='"')
+				assert((tchar!='\n' && tchar!=EOF && tchar!='\r' && tchar!=' ' && tchar!='\t')); // only '"' as samplename
+
+				while(tchar!='"')
 				{
-					strcat(tstring, "_");
-					strcat(tstring, tstring2);
+					sampleName[sampleNameSize++] = tchar;
+					sampleName[sampleNameSize]='\0';
+					
+					assert(sampleNameSize<=MAX_SAMPLENAME_CHARACTERS);
+					
+					tchar = (char)fgetc(RSDDataset->inputFilePtr);
+					
+					assert(tchar!=EOF && tchar!='\r'); // no matching '"' in the samplename
 
-					rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring2);
-					assert(rcnt==1);
-				}
+					if(tchar==' ' || tchar=='\t' || tchar=='\n')
+					{
+						sampleName[sampleNameSize++] = '_';
+						sampleName[sampleNameSize]='\0';
 
-				strcat(tstring, "_");
-				strcat(tstring, tstring2);
-
-				multiStringName = 0;
+						while(tchar==' ' || tchar=='\t' || tchar=='\n')	
+							tchar = (char)fgetc(RSDDataset->inputFilePtr);	
+					}				
+				}	
 			}
-/******/
-
-			if(RSDDataset->sampleFilePtr!=NULL)
+			else
 			{
-				if(sampleCntr==0)
+				sampleName[0] = tchar;
+				sampleName[1] = '\0';
+
+				tchar=(char)fgetc(RSDDataset->inputFilePtr);
+				if(tchar!='\n' && tchar!=EOF && tchar!='\r' && tchar!=' ' && tchar!='\t')
 				{
-					strcpy(sampleName, tstring);
+					ungetc(tchar, RSDDataset->inputFilePtr);
+
+					rcnt = fscanf(RSDDataset->inputFilePtr, "%s", tstring); 
+					assert(rcnt==1);
+					
+					strcat(sampleName, tstring);
 				}
 				else
 				{
-					sampleName[0] = tchar;
-					sampleName[1] = '\0';
-					strcat(sampleName, tstring);
+					ungetc(tchar, RSDDataset->inputFilePtr);	
 				}
-				
-				fprintf(RSDDataset->sampleFilePtr, "%s\n", sampleName);
 			}
-		
-			sampleCntr++; // this counts the number of samples in the file, dont care about validity yet
+
+			if(RSDDataset->sampleFilePtr!=NULL)
+				fprintf(RSDDataset->sampleFilePtr, "%s\n", sampleName);
+
+			sampleCntr++; // this counts the number of samples in the file (ignoring validity)
 
 			sampleIndex = sampleCntr-1;
 			RSDDataset->sampleValid = rsd_realloc(RSDDataset->sampleValid, sizeof(int)*((unsigned long)sampleCntr));
@@ -1859,23 +1916,14 @@ int RSDDataset_getNumberOfSamples_vcf (RSDDataset_t * RSDDataset)
 			if(RSDDataset->sampleValidListSize!=ALL_SAMPLES_VALID)
 				RSDDataset_validateSample(RSDDataset, sampleName, sampleIndex);
 
-			tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
-			tchar = tstring[0];
+			tchar=(char)fgetc(RSDDataset->inputFilePtr);
 
-			while(tstring[0]==' ' || tstring[0]=='\t')
-			{
-				tstring[0] = (char)fgetc(RSDDataset->inputFilePtr);
-				tchar = tstring[0];
-			}
-
-/******/
-			if(tstring[0]=='"')
-				multiStringName = 1;
-/******/
+			while(tchar==' ' || tchar=='\t')
+				tchar = (char)fgetc(RSDDataset->inputFilePtr);
 
 		}
-		assert(tstring[0]=='\n' || tstring[0]=='\r');
-		ungetc(tstring[0], RSDDataset->inputFilePtr);		
+		assert(tchar=='\n' || tchar=='\r');
+		ungetc(tchar, RSDDataset->inputFilePtr);			
 
 		RSDDataset->numberOfSamplesVCF = sampleCntr;
 		RSDDataset->numberOfSamples = RSDDataset_getValidSampleSize (RSDDataset);
