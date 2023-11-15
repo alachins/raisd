@@ -76,11 +76,12 @@ As an alternative, you can install GSL locally (NOT RECOMMENDED) with the follow
 	 
 This will download the latest GSL version from https://ftp.gnu.org/gnu/gsl/, unzip it, install it in the raisd-master/gsl directory, and compile RAiSD. If the executable is not eventually created (this process might take a few minutes), you might need to change the version numbers in the install-RAiSD-GSL.sh script. A folder named gsl-X.Y is already created in the raisd-master directory, where X and Y are the GSL version numbers. Replace the version numbers in the 5th line of the install-RAiSD-GSL.sh script with X and Y, and execute the installation script again. 
 
-Finally, and while still in the raisd-master directory, use the following command to allow RAiSD to access the locally installed GSL library:
+Finally, and while still in the raisd-master directory, use the following commands to allow RAiSD to access the locally installed GSL library. Then, you could execute the ./install-RAiSD.sh to compile RAiSD. 
 	
 	$ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/gsl/lib
+ 	$ export LIBRARY_PATH=$LIBRARY_PATH:$(pwd)/gsl/lib
 
-This command should be used from within the installation directory (raisd-master) in every new terminal before running RAiSD. Otherwise, the following error message will appear when launching RAiSD:
+These commands should be used from within the installation directory (raisd-master) in every new terminal before running RAiSD. Otherwise, the following error message will appear when launching RAiSD:
 
 	./RAiSD: error while loading shared libraries: libgsl.so.25: cannot open shared object file: No such file or directory
 	
